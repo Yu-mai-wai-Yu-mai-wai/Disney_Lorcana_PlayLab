@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #0b0d19;
+    --bg-card: #15192d;
+    --border-glow: #3b4267;
+    
+    /* Lorcana Ink Colors */
+    --ink-amber: #f59e0b;
+    --ink-amethyst: #a855f7;
+    --ink-emerald: #10b981;
+    --ink-ruby: #ef4444;
+    --ink-sapphire: #3b82f6;
+    --ink-steel: #64748b;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: #f8fafc;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: rgba(21, 25, 45, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-nav {
+  background: rgba(11, 13, 25, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.magic-glow-amber {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.magic-glow-amethyst {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+}

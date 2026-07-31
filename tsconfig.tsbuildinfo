@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/authmodal.tsx","./src/components/deckbuilder.tsx","./src/components/lorcanaboard.tsx","./src/components/navbar.tsx","./src/services/api.ts","./src/store/useauthstore.ts","./src/store/usedeckstore.ts","./src/types/lorcana.ts"],"version":"5.9.3"}
