@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { LorcanaBoard } from './components/LorcanaBoard';
 import { DeckBuilder } from './components/DeckBuilder';
+import { RulesGuide } from './components/RulesGuide';
 import { AuthModal } from './components/AuthModal';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'board' | 'deckbuilder'>('board');
+  const [activeTab, setActiveTab] = useState<'board' | 'deckbuilder' | 'rules'>('board');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   return (
@@ -19,7 +20,9 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 pb-12">
-        {activeTab === 'board' ? <LorcanaBoard /> : <DeckBuilder />}
+        {activeTab === 'board' && <LorcanaBoard />}
+        {activeTab === 'deckbuilder' && <DeckBuilder />}
+        {activeTab === 'rules' && <RulesGuide />}
       </main>
 
       {/* Auth Modal connected to AWS API Gateway */}

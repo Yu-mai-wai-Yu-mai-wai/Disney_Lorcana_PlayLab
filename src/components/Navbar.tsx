@@ -4,8 +4,8 @@ import { Sparkles, User, LogOut, Layers, ShieldCheck, Gamepad2, CloudLightning }
 
 interface NavbarProps {
   onOpenAuth: () => void;
-  activeTab: 'board' | 'deckbuilder';
-  setActiveTab: (tab: 'board' | 'deckbuilder') => void;
+  activeTab: 'board' | 'deckbuilder' | 'rules';
+  setActiveTab: (tab: 'board' | 'deckbuilder' | 'rules') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActiveTab }) => {
@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActive
       <nav className="flex items-center gap-2 bg-[#0d1124]/90 p-1.5 rounded-2xl border border-purple-500/20 shadow-inner">
         <button
           onClick={() => setActiveTab('board')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'board'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
@@ -55,14 +55,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActive
 
         <button
           onClick={() => setActiveTab('deckbuilder')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'deckbuilder'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
           }`}
         >
           <Layers className="w-4 h-4 text-amber-400" />
-          Deck Builder (408 Cards)
+          Deck Builder
+        </button>
+
+        <button
+          onClick={() => setActiveTab('rules')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
+            activeTab === 'rules'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
+              : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
+          }`}
+        >
+          <CloudLightning className="w-4 h-4 text-emerald-400" />
+          กติกาการเล่น
         </button>
       </nav>
 
