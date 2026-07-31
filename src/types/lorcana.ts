@@ -17,6 +17,7 @@ export interface LorcanaCard {
   lore?: number;
   flavorText?: string;
   imageUrl: string;
+  artist?: string;
 }
 
 export interface UserProfile {
@@ -36,13 +37,4 @@ export interface AuthState {
 export interface DeckItem {
   card: LorcanaCard;
   count: number;
-}
-
-export interface Deck {
-  id: string;
-  name: string;
-  userId: string;
-  cards: DeckItem[];
-  totalCards: number;
-  createdAt: string;
 }
