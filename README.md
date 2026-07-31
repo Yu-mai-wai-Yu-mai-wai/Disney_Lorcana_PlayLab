@@ -52,7 +52,7 @@ DISNEY LORCANA PLAYLAB CLOUD/
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone <repository-url>
+git clone https://github.com/Yu-mai-wai-Yu-mai-wai/disney-lorcana-playlab-cloud.git
 cd "DISNEY LORCANA PLAYLAB CLOUD"
 npm install
 ```
