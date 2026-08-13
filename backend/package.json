@@ -1,0 +1,22 @@
+{
+  "name": "disney-lorcana-backend-lambdas",
+  "version": "1.0.0",
+  "description": "AWS Serverless Lambda Backend for Disney Lorcana PlayLab Cloud",
+  "main": "auth/register.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.130",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,6 +1,6 @@
 import { UserProfile } from '../types/lorcana';
 
-const API_BASE_URL = 'https://w3jgjq2m78.execute-api.us-east-1.amazonaws.com/prod';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://w3jgjq2m78.execute-api.us-east-1.amazonaws.com/prod';
 
 export interface AuthResponse {
   message: string;
@@ -41,6 +41,51 @@ export const apiService = {
       return data;
     } catch (err: any) {
       return { message: '', error: err.message || 'Network error' };
+    }
+  },
+
+  async saveDeck(name: string, cards: any[], token?: string): Promise<{ message: string; deckId?: string; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/decks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ name, cards }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to save deck');
+      return data;
+    } catch (err: any) {
+      return { message: 'Saved locally', error: err.message };
+    }
+  },
+
+  async getUserDecks(token?: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/decks`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      return await response.json();
+    } catch (err: any) {
+      return { decks: [], error: err.message };
+    }
+  },
+
+  async deleteDeck(deckId: string, token?: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/decks/${deckId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      return await response.json();
+    } catch (err: any) {
+      return { error: err.message };
     }
   },
 };

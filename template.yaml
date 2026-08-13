@@ -1,0 +1,234 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Disney Lorcana PlayLab Cloud - 100% Serverless Free Tier Infrastructure (AWS SAM)
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        USERS_TABLE: !Ref UsersTable
+        DECKS_TABLE: !Ref DecksTable
+        ROOM_TABLE: !Ref RoomStateTable
+        JWT_SECRET: "disney_lorcana_secret_key_2026"
+
+Resources:
+  # ------------------------------------------------------------
+  # 1. DynamoDB Tables (PAY_PER_REQUEST = $0.00 Free Tier)
+  # ------------------------------------------------------------
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LorcanaUsers
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+
+  DecksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LorcanaDecks
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: deckId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: deckId
+          KeyType: RANGE
+
+  RoomStateTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LorcanaRoomState
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: roomId
+          AttributeType: S
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: roomId
+          KeyType: HASH
+        - AttributeName: connectionId
+          KeyType: RANGE
+
+  # ------------------------------------------------------------
+  # 2. HTTP & WebSockets API Gateways
+  # ------------------------------------------------------------
+  LorcanaHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: LorcanaPlayLabApi
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+        AllowMethods:
+          - "GET"
+          - "POST"
+          - "DELETE"
+          - "OPTIONS"
+
+  LorcanaWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: LorcanaPlayLabWebSocketApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      StageName: prod
+      AutoDeploy: true
+
+  # ------------------------------------------------------------
+  # 3. AWS Lambda Functions
+  # ------------------------------------------------------------
+  RegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/dist/
+      Handler: auth/register.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        RegisterApi:
+          Type: HttpApi
+          Properties:
+            Path: /auth/register
+            Method: POST
+            ApiId: !Ref LorcanaHttpApi
+
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/dist/
+      Handler: auth/login.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        LoginApi:
+          Type: HttpApi
+          Properties:
+            Path: /auth/login
+            Method: POST
+            ApiId: !Ref LorcanaHttpApi
+
+  DeckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/dist/
+      Handler: deck/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DecksTable
+      Events:
+        PostDeck:
+          Type: HttpApi
+          Properties:
+            Path: /decks
+            Method: POST
+            ApiId: !Ref LorcanaHttpApi
+        GetDecks:
+          Type: HttpApi
+          Properties:
+            Path: /decks
+            Method: GET
+            ApiId: !Ref LorcanaHttpApi
+        DeleteDeck:
+          Type: HttpApi
+          Properties:
+            Path: /decks/{deckId}
+            Method: DELETE
+            ApiId: !Ref LorcanaHttpApi
+
+  RoomWebSocketFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/dist/
+      Handler: room/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RoomStateTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${LorcanaWebSocketApi}/*"
+
+  # WebSockets Routes Integrations
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      RouteKey: "$connect"
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join [ '/', [ 'integrations', !Ref ConnectIntegration ] ]
+
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RoomWebSocketFunction.Arn}/invocations"
+
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      RouteKey: "$disconnect"
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join [ '/', [ 'integrations', !Ref DisconnectIntegration ] ]
+
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RoomWebSocketFunction.Arn}/invocations"
+
+  SendActionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      RouteKey: "sendAction"
+      AuthorizationType: NONE
+      OperationName: SendActionRoute
+      Target: !Join [ '/', [ 'integrations', !Ref SendActionIntegration ] ]
+
+  SendActionIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RoomWebSocketFunction.Arn}/invocations"
+
+Outputs:
+  ApiEndpoint:
+    Description: "HTTP API Gateway endpoint URL"
+    Value: !Sub "https://${LorcanaHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  WebSocketEndpoint:
+    Description: "WebSockets API Gateway endpoint URL"
+    Value: !Sub "wss://${LorcanaWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
