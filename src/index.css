@@ -1,11 +1,29 @@
 @import "tailwindcss";
 
+@theme {
+  --color-paper: oklch(0.16 0.02 260);
+  --color-paper-2: oklch(0.20 0.02 260);
+  --color-paper-3: oklch(0.24 0.02 260);
+  --color-ink: oklch(0.93 0.01 260);
+  --color-ink-2: oklch(0.72 0.015 260);
+  --color-ink-3: oklch(0.55 0.015 260);
+  --color-rule: oklch(0.30 0.015 260);
+  --color-accent: oklch(0.79 0.16 85);
+  --color-accent-ink: oklch(0.16 0.05 85);
+  --font-display: "Cinzel", serif;
+  --font-body: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --radius-card: 12px;
+  --radius-pill: 9999px;
+  --radius-input: 8px;
+}
+
 @layer base {
   :root {
-    --bg-dark: #070913;
-    --bg-card: rgba(18, 22, 41, 0.85);
+    --bg-dark: #0B0F19;
+    --bg-card: #141a26;
     
-    /* Lorcana Ink Colors */
+    /* Lorcana Ink Colors - Flat Badges */
     --ink-amber: #f59e0b;
     --ink-amethyst: #a855f7;
     --ink-emerald: #10b981;
@@ -15,11 +33,11 @@
   }
 
   body {
-    background-color: #070A10;
+    background-color: #0B0F19;
     background-image: 
-      radial-gradient(at 10% 10%, rgba(217, 119, 6, 0.04) 0px, transparent 50%),
-      radial-gradient(at 90% 10%, rgba(30, 41, 59, 0.25) 0px, transparent 50%),
-      radial-gradient(at 50% 90%, rgba(15, 23, 42, 0.4) 0px, transparent 50%);
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E"),
+      radial-gradient(at 20% 20%, rgba(245, 158, 11, 0.03) 0px, transparent 60%),
+      radial-gradient(at 80% 80%, rgba(30, 41, 59, 0.2) 0px, transparent 60%);
     background-attachment: fixed;
     font-family: 'Outfit', sans-serif;
     color: #F1F5F9;
@@ -27,81 +45,57 @@
 
   h1, h2, h3, .font-cinzel {
     font-family: 'Cinzel', serif;
+    font-style: normal;
   }
 }
 
-/* Stitch Design System Utilities */
-.gold-border { border: 1px solid rgba(245, 158, 11, 0.2); }
-.gold-border:hover { border-color: rgba(245, 158, 11, 0.8); }
-.amethyst-glow:hover { box-shadow: 0 0 20px rgba(168, 85, 247, 0.15); }
-.shimmer {
-    position: relative;
-    overflow: hidden;
-}
-.shimmer::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
-    animation: shimmer 5s infinite;
-}
-@keyframes shimmer {
-    100% { left: 200%; }
+/* Solid Editorial Panels (replaces glassmorphism blur slop) */
+.glass-panel, .glass-panel-heavy, .ether-panel {
+  background: #141a26;
+  border: 1px solid #30363d;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.glass-panel {
-  background: rgba(11, 15, 25, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(245, 158, 11, 0.15);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+.glass-nav-header {
+  background: #0B0F19;
+  border-bottom: 1px solid #30363d;
 }
 
-.ether-panel {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.gold-border {
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
+.gold-border:hover {
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+/* De-slopped Foil Card Light - Thin gold border + subtle sheen on hover ONLY */
+.card-foil-light, .card-foil {
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-foil-light:hover, .card-foil:hover {
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* Primary Button - Solid Gold Accent */
 .btn-primary {
   background-color: #F59E0B;
   color: #000000;
   font-family: 'Cinzel', serif;
   font-weight: 700;
-  position: relative;
-  overflow: hidden;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.btn-primary::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 5s infinite;
-}
-
-@keyframes shimmer {
-  0% { left: -100%; }
-  20% { left: 200%; }
-  100% { left: 200%; }
-}
-
-.card-foil {
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card-foil:hover {
-  border-color: rgba(245, 158, 11, 0.85);
-  box-shadow: 0 0 25px rgba(168, 85, 247, 0.25);
+.btn-primary:hover {
+  background-color: #D97706;
 }
 
 .playmat-bg {
   background-color: #0B0F19;
-  background-image: radial-gradient(circle at center, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
 }
 
 .exerted {
@@ -110,11 +104,11 @@
 }
 
 .hand-card {
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .hand-card:hover {
-  transform: translateY(-20px) scale(1.08);
+  transform: translateY(-16px);
   z-index: 20;
 }
 
@@ -131,238 +125,71 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Lorcana Ink Color Pills */
-.ink-amber { background-color: rgba(245, 158, 11, 0.12); border: 1px solid #F59E0B; color: #F59E0B; }
-.ink-amethyst { background-color: rgba(168, 85, 247, 0.12); border: 1px solid #A855F7; color: #A855F7; }
-.ink-emerald { background-color: rgba(16, 185, 129, 0.12); border: 1px solid #10B981; color: #10B981; }
-.ink-ruby { background-color: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #EF4444; }
-.ink-sapphire { background-color: rgba(59, 130, 246, 0.12); border: 1px solid #3B82F6; color: #3B82F6; }
-.ink-steel { background-color: rgba(156, 163, 175, 0.12); border: 1px solid #9CA3AF; color: #9CA3AF; }
+/* Lorcana Ink Color Pills (Flat mono badges with colored text + 1px border, NO glow) */
+.ink-amber { background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); color: #F59E0B; }
+.ink-amethyst { background-color: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.4); color: #A855F7; }
+.ink-emerald { background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); color: #10B981; }
+.ink-ruby { background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); color: #EF4444; }
+.ink-sapphire { background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.4); color: #3B82F6; }
+.ink-steel { background-color: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.4); color: #94A3B8; }
 
-/* AAA Premium Glassmorphism & Effects - Stitch + 21st.dev + Shadcn UI */
-.glass-panel-heavy {
-  background: linear-gradient(135deg, rgba(23, 28, 52, 0.85) 0%, rgba(12, 15, 31, 0.95) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(168, 85, 247, 0.25);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.glass-nav-header {
-  background: rgba(8, 11, 24, 0.92);
-  backdrop-filter: blur(28px);
-  border-bottom: 1px solid rgba(168, 85, 247, 0.25);
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8);
-}
-
-/* 21st.dev Shimmer Button & Border Glow */
-.shimmer-button-amber {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(245, 158, 11, 0.15);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.shimmer-button-amber::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.7s ease;
-}
-
-.shimmer-button-amber:hover::before {
-  left: 100%;
-}
-
-.shimmer-button-purple {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #9333ea 0%, #4f46e5 100%);
-  box-shadow: 0 0 20px rgba(147, 51, 234, 0.4), 0 0 40px rgba(79, 70, 229, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.shimmer-button-purple::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.7s ease;
-}
-
-.shimmer-button-purple:hover::before {
-  left: 100%;
-}
-
-/* Foil Card Sheen Effect */
-.card-foil-sheen {
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-}
-
-.card-foil-sheen:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 15px 35px rgba(168, 85, 247, 0.3), 0 0 20px rgba(245, 158, 11, 0.2);
-}
-
-.card-foil-sheen::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.03) 40%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.03) 60%,
-    transparent 100%
-  );
-  transform: rotate(30deg);
-  transition: opacity 0.5s ease;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.card-foil-sheen:hover::after {
-  opacity: 1;
-  animation: foilShine 1.5s ease-out infinite;
-}
-
-@keyframes foilShine {
-  0% { transform: translateY(-100%) rotate(30deg); }
-  100% { transform: translateY(100%) rotate(30deg); }
-}
-
-/* Playmat Canvas Pattern - Google Stitch Style */
-.playmat-grid-bg {
-  background-image: 
-    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.12) 0%, transparent 65%),
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 100% 100%, 40px 40px, 40px 40px;
-}
-
-/* 21st.dev Magic UI & Shadcn UI Anti-AI-Slop System */
-
-/* Magic Gradient Border (21st.dev) */
-.magic-border-amber {
-  position: relative;
-  background: linear-gradient(#070913, #070913) padding-box,
-              linear-gradient(135deg, #f59e0b 0%, #a855f7 50%, #3b82f6 100%) border-box;
-  border: 1.5px solid transparent;
-}
-
-.magic-border-purple {
-  position: relative;
-  background: linear-gradient(#070913, #070913) padding-box,
-              linear-gradient(135deg, #9333ea 0%, #4f46e5 50%, #10b981 100%) border-box;
-  border: 1.5px solid transparent;
-}
-
-/* Shadcn UI Badges & Status Pills */
+/* Badges & Inputs */
 .shadcn-badge {
   display: inline-flex;
   align-items: center;
   border-radius: 9999px;
   padding: 0.25rem 0.625rem;
   font-size: 0.6875rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  transition: all 0.2s ease;
 }
 
-.badge-amber {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.4);
-}
+.badge-amber { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }
+.badge-purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.4); }
+.badge-emerald { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
+.badge-rose { background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.4); }
 
-.badge-purple {
-  background: rgba(168, 85, 247, 0.15);
-  color: #e9d5ff;
-  border: 1px solid rgba(168, 85, 247, 0.4);
-}
-
-.badge-emerald {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.4);
-}
-
-.badge-rose {
-  background: rgba(244, 63, 94, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(244, 63, 94, 0.4);
-}
-
-/* Shadcn Focus Ring & Inputs */
 .shadcn-input {
-  background: rgba(11, 15, 25, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: #141a26;
+  border: 1px solid #30363d;
   color: #f8fafc;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
 }
 
 .shadcn-input:focus {
   border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
   outline: none;
 }
 
-/* Dynamic Interactive Cards (3D Elevate & Tilt) */
-.interactive-card {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-.interactive-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 20px 40px -10px rgba(168, 85, 247, 0.3), 0 0 20px rgba(245, 158, 11, 0.2);
-}
-
-.interactive-card:active {
-  transform: translateY(-2px) scale(0.99);
-}
-
-/* Shadcn-like Custom Scrollbars */
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(8, 11, 24, 0.8);
+  background: #0B0F19;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.3);
+  background: #242b3d;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.6);
+  background: #30363d;
 }
 
-/* Accessibility: Focus Visible Ring */
+/* Accessibility: Focus Visible Ring (Preserved from R1) */
 :focus-visible {
   outline: 2px solid #F59E0B;
   outline-offset: 2px;
 }
 
-/* Accessibility: Prefers Reduced Motion Override */
+/* Accessibility: Prefers Reduced Motion Override (Preserved from R1) */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

@@ -13,7 +13,7 @@ export function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col text-slate-100 relative">
+    <div className="min-h-screen flex flex-col text-[#F1F5F9] bg-[#0B0F19] relative">
       {/* Top Navbar */}
       <Navbar
         onOpenAuth={() => setIsAuthOpen(true)}
@@ -35,7 +35,7 @@ export function App() {
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
       {/* Footer */}
-      <footer className="py-4 px-6 border-t border-slate-900/60 text-center text-xs text-slate-400 font-outfit">
+      <footer className="py-4 px-6 border-t border-[#30363d] text-center text-xs text-[#94A3B8] font-outfit bg-[#0B0F19]">
         <p>Disney Lorcana PlayLab &copy; 2026 — All rights reserved</p>
       </footer>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Wifi, Tag, History, MessageSquare, Skull, Trash2, Library, Droplets, Compass, Zap, RotateCw, PanelRightOpen, PanelRightClose, X, Layers, AlertCircle, CheckCircle2, XCircle, Users, Eye, Play, PlusCircle, ArrowUpCircle } from 'lucide-react';
+import { Sparkles, Wifi, Skull, Library, Droplets, Zap, RotateCw, PanelRightOpen, PanelRightClose, X, Layers, AlertCircle, CheckCircle2, XCircle, Play, ArrowUpCircle, Sword, Shield } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
@@ -34,16 +34,13 @@ export const LorcanaBoard: React.FC = () => {
   
   const [deckCount, setDeckCount] = useState(40);
   const [discardCount, setDiscardCount] = useState(3);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'log' | 'chat' | 'graveyard' | 'exiled'>('log');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notice, setNotice] = useState<{ msg: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // SPRINT 3: AWS WEBSOCKETS REAL-TIME ROOM SYNC STATE
   const [inputRoomId, setInputRoomId] = useState('108249');
-  const [activeRoomId, setActiveRoomId] = useState('108249');
-  const [roomRole, setRoomRole] = useState<'player1' | 'player2'>('player1');
-  const [isWsConnected, setIsWsConnected] = useState(false);
-  const [connectedPlayersCount, setConnectedPlayersCount] = useState(1);
+  const [, setActiveRoomId] = useState('108249');
+  const [isWsConnected] = useState(false);
 
   // CARD HOVER, DRAG & ACTION MODAL STATES
   const [hoveredCard, setHoveredCard] = useState<LorcanaCard | null>(null);
@@ -195,7 +192,7 @@ export const LorcanaBoard: React.FC = () => {
     if (!inputRoomId.trim()) return;
     setActiveRoomId(inputRoomId.trim());
     webSocketService.joinRoom(inputRoomId.trim(), 'Illumineer_Player');
-    showNotice(`🟢 Joined Match Room #${inputRoomId.trim()}`, 'success');
+    showNotice(`Joined Match Room #${inputRoomId.trim()}`, 'success');
   };
 
   const showNotice = (msg: string, type: 'success' | 'warning' | 'error') => {
@@ -211,7 +208,7 @@ export const LorcanaBoard: React.FC = () => {
 
   const handleQuest = (card: LorcanaCard) => {
     if (card.isWet) {
-      showNotice(`⚠️ ${card.name} was played this turn! (Ink drying - cannot Quest until next turn)`, 'warning');
+      showNotice(`${card.name} was played this turn! (Ink drying - cannot Quest until next turn)`, 'warning');
       return;
     }
     if (!exertedCards[card.id]) {
@@ -223,23 +220,23 @@ export const LorcanaBoard: React.FC = () => {
         const next = Math.min(20, prev + loreGain);
         webSocketService.sendAction('LORE_UPDATED', { loreScore: next });
         if (next >= 20) {
-          showNotice(`🏆 VICTORY! You reached 20 Lore and won the Illumineer match!`, 'success');
+          showNotice(`VICTORY! You reached 20 Lore and won the Illumineer match!`, 'success');
         }
         return next;
       });
       setLogMessages((prev) => [`You exerted ${card.name} for ${loreGain} Lore!`, ...prev]);
-      showNotice(`✨ ${card.name} Quested for +${loreGain} Lore!`, 'success');
+      showNotice(`${card.name} Quested for +${loreGain} Lore!`, 'success');
     }
   };
 
   // Convert card into Inkwell (Checking Inkable Property & 1 Ink Per Turn Rule)
   const handleAddToInkwell = (card: LorcanaCard) => {
     if (!card.isInkable) {
-      showNotice(`🚫 "${card.name}" is NON-INKABLE! (Look for the gold swirl icon around cost)`, 'error');
+      showNotice(`"${card.name}" is NON-INKABLE!`, 'error');
       return false;
     }
     if (hasInkedThisTurn) {
-      showNotice(`⚠️ You can only put 1 card into the Inkwell per turn!`, 'warning');
+      showNotice(`You can only put 1 card into the Inkwell per turn!`, 'warning');
       return false;
     }
 
@@ -251,14 +248,14 @@ export const LorcanaBoard: React.FC = () => {
 
     webSocketService.sendAction('INK_PLAYED', { cardId: card.id });
     setLogMessages((prev) => [`You converted ${card.name} into Inkwell! (Capacity: ${inkwellCapacity + 1})`, ...prev]);
-    showNotice(`💧 Converted "${card.name}" into Inkwell! (+1 Ink Capacity)`, 'success');
+    showNotice(`Converted "${card.name}" into Inkwell! (+1 Ink Capacity)`, 'success');
     return true;
   };
 
   // Play Card to Battlefield or Discard
   const handlePlayCard = (card: LorcanaCard) => {
     if (availableInk < card.cost) {
-      showNotice(`⚠️ Not enough Inkwell! Requires ${card.cost} Ink, but you have ${availableInk} ready.`, 'warning');
+      showNotice(`Not enough Inkwell! Requires ${card.cost} Ink, but you have ${availableInk} ready.`, 'warning');
       return false;
     }
 
@@ -271,13 +268,13 @@ export const LorcanaBoard: React.FC = () => {
       // Actions/Songs go to Discard pile
       setDiscardCount((prev) => prev + 1);
       setLogMessages((prev) => [`You played ${card.type.toUpperCase()}: ${card.name}! (Sent to Discard Pile)`, ...prev]);
-      showNotice(`✨ Cast Action "${card.name}"! (${card.cost} Ink used, sent to Discard)`, 'success');
+      showNotice(`Cast Action "${card.name}"! (${card.cost} Ink used, sent to Discard)`, 'success');
     } else {
       // Characters enter battlefield with isWet: true
       const newFieldCard = { ...card, isWet: true };
       setFieldCards((prev) => [...prev, newFieldCard]);
       setLogMessages((prev) => [`You cast Character: ${card.name} (${card.title}) onto the battlefield!`, ...prev]);
-      showNotice(`✨ Played ${card.name} onto field! (${card.cost} Ink used)`, 'success');
+      showNotice(`Played ${card.name} onto field! (${card.cost} Ink used)`, 'success');
       webSocketService.sendAction('CARD_MOVED', { cardId: card.id, position: { x: 50, y: 50, zone: 'field' } });
     }
     return true;
@@ -303,11 +300,11 @@ export const LorcanaBoard: React.FC = () => {
   // Draw Card Action
   const handleDrawCard = () => {
     if (deckCount <= 0) {
-      showNotice(`⚠️ Deck is empty! Cannot draw more cards.`, 'error');
+      showNotice(`Deck is empty! Cannot draw more cards.`, 'error');
       return;
     }
     if (handCards.length >= 7) {
-      showNotice(`⚠️ Hand is full (Max 7 cards)!`, 'warning');
+      showNotice(`Hand is full (Max 7 cards)!`, 'warning');
       return;
     }
 
@@ -320,13 +317,13 @@ export const LorcanaBoard: React.FC = () => {
     const drawn = drawPool[Math.floor(Math.random() * drawPool.length)];
     setHandCards((prev) => [...prev, drawn]);
     setLogMessages((prev) => [`You drew ${drawn.name} from your deck.`, ...prev]);
-    showNotice(`🎴 Drew "${drawn.name}" from Deck!`, 'success');
+    showNotice(`Drew "${drawn.name}" from Deck!`, 'success');
   };
 
   // Official Turn Change Logic
   const handleEndTurn = () => {
     setIsMyTurn(false);
-    showNotice(`⏳ Ending Turn ${turnNumber}... Opponent is playing.`, 'warning');
+    showNotice(`Ending Turn ${turnNumber}... Opponent is playing.`, 'warning');
 
     setTimeout(() => {
       setOpponentLore((prev) => Math.min(20, prev + 1));
@@ -348,13 +345,13 @@ export const LorcanaBoard: React.FC = () => {
             { id: `turn-draw-${Date.now()}`, name: 'Tinker Bell', title: 'Tiny Fairy', cost: 3, strength: 2, willpower: 3, lore: 1, isInkable: true, type: 'character', ink: 'Steel', img: 'https://api.lorcana.ravensburger.com/images/en/set1/58_e13723fd1214327ef6f4ac4954201558bd90caa6.jpg' }
           ]);
         }
-        showNotice(`⚡ Turn Refreshed! All Ink ready & 1 Card drawn.`, 'success');
+        showNotice(`Turn Refreshed! All Ink ready & 1 Card drawn.`, 'success');
       }, 1200);
     }, 1000);
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] flex playmat-bg text-slate-100 font-outfit select-none overflow-hidden">
+    <div className="relative w-full h-[calc(100vh-64px)] flex bg-[#0B0F19] text-[#F1F5F9] font-outfit select-none overflow-hidden">
       
       {/* Notice Banner */}
       <AnimatePresence>
@@ -363,80 +360,80 @@ export const LorcanaBoard: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 glass-panel px-6 py-3 rounded-2xl border font-bold text-xs shadow-2xl flex items-center gap-2.5 bg-[#051424]/95 ${
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#0d1c2d] px-6 py-3 rounded-lg border font-bold text-xs flex items-center gap-2.5 ${
               notice.type === 'success'
                 ? 'border-emerald-500/80 text-emerald-300'
                 : notice.type === 'error'
                 ? 'border-rose-500/80 text-rose-300'
-                : 'border-amber-400/80 text-amber-300'
+                : 'border-[#F59E0B]/80 text-[#F59E0B]'
             }`}
           >
             {notice.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
             {notice.type === 'error' && <XCircle className="w-4 h-4 text-rose-400" />}
-            {notice.type === 'warning' && <AlertCircle className="w-4 h-4 text-amber-400" />}
+            {notice.type === 'warning' && <AlertCircle className="w-4 h-4 text-[#F59E0B]" />}
             <span>{notice.msg}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* LEFT SIDEBAR: DEDICATED INKWELL, DECK & DISCARD ZONES */}
-      <aside className={`w-64 border-r border-amber-500/20 bg-[#051424]/95 p-4 flex flex-col justify-between z-20 shrink-0 space-y-4 transition-colors ${
-        isDraggingOverInkwell ? 'border-2 border-amber-400 bg-amber-500/10' : ''
+      <aside className={`w-64 border-r border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-20 shrink-0 space-y-4 transition-colors ${
+        isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
-        <div className="space-y-2 border-b border-slate-800 pb-3">
-          <div className="text-[11px] font-cinzel font-bold text-amber-300">OPPONENT PILES</div>
+        <div className="space-y-2 border-b border-[#30363d] pb-3">
+          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B]">OPPONENT PILES</div>
           <div className="flex gap-2">
-            <div className="w-16 h-22 rounded-xl border border-amber-400/40 flex flex-col items-center justify-between p-1.5 relative shadow-xl overflow-hidden group">
+            <div className="w-16 h-22 rounded-lg border border-[#30363d] flex flex-col items-center justify-between p-1.5 relative overflow-hidden bg-[#0B0F19]">
               <img
                 src="/Lorcana_Card_Back.png"
                 alt="Opponent Deck Back"
-                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform"
+                className="absolute inset-0 w-full h-full object-cover opacity-90"
               />
-              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px]" />
-              <Layers className="w-4 h-4 text-amber-300 z-10 drop-shadow" />
-              <span className="text-[10px] font-mono font-bold text-white z-10 bg-slate-950/80 px-1.5 py-0.5 rounded border border-amber-400/40">Deck: 48</span>
+              <div className="absolute inset-0 bg-[#0B0F19]/40" />
+              <Layers className="w-4 h-4 text-[#F59E0B] z-10" />
+              <span className="text-[10px] font-mono font-bold text-white z-10 bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d]">Deck: 48</span>
             </div>
-            <div className="w-16 h-22 bg-slate-900 rounded-xl border border-slate-700 flex flex-col items-center justify-center p-1 relative shadow">
+            <div className="w-16 h-22 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative">
               <Skull className="w-4 h-4 text-rose-400 mb-1" />
-              <span className="text-[10px] font-mono font-bold text-slate-300">Grave: 2</span>
+              <span className="text-[10px] font-mono font-bold text-[#94A3B8]">Grave: 2</span>
             </div>
           </div>
         </div>
 
         {/* Inkwell Reserve Drop Zone */}
         <div className="space-y-2 flex-1 flex flex-col justify-center">
-          <div className="flex justify-between items-center text-xs font-cinzel font-bold text-amber-300">
+          <div className="flex justify-between items-center text-xs font-cinzel font-bold text-[#F59E0B]">
             <span className="flex items-center gap-1.5">
-              <Droplets className="w-4 h-4 text-amber-400 fill-amber-400" /> INKWELL ZONE
+              <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" /> INKWELL ZONE
             </span>
-            <span className="font-mono text-amber-400 text-sm font-bold">{availableInk}/{inkwellCapacity}</span>
+            <span className="font-mono text-[#F59E0B] text-sm font-bold">{availableInk}/{inkwellCapacity}</span>
           </div>
-          <div className="grid grid-cols-2 gap-1.5 p-2 bg-[#010f1f] rounded-xl border border-amber-400/40 relative">
+          <div className="grid grid-cols-2 gap-1.5 p-2 bg-[#0B0F19] rounded-lg border border-[#30363d] relative">
             {Array.from({ length: Math.max(6, inkwellCapacity) }).map((_, i) => (
               <div
                 key={i}
-                className={`h-14 rounded-lg border flex flex-col items-center justify-center transition-all ${
+                className={`h-12 rounded border flex flex-col items-center justify-center transition-colors ${
                   i < availableInk
-                    ? 'bg-amber-500/25 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)] text-amber-300'
+                    ? 'bg-[#F59E0B]/10 border-[#F59E0B]/50 text-[#F59E0B]'
                     : i < inkwellCapacity
-                    ? 'bg-slate-900 border-slate-700 text-slate-500'
-                    : 'bg-slate-950/40 border-slate-900 text-slate-800'
+                    ? 'bg-[#141a26] border-[#30363d] text-[#94A3B8]'
+                    : 'bg-[#0B0F19] border-[#30363d]/50 text-[#94A3B8]/40'
                 }`}
               >
-                <Droplets className={`w-4 h-4 ${i < availableInk ? 'text-amber-400 fill-amber-400 animate-pulse' : ''}`} />
-                <span className="text-[9px] font-mono text-amber-400/90 mt-0.5 font-bold">{i < availableInk ? 'Ready Ink' : i < inkwellCapacity ? 'Exerted' : 'Empty'}</span>
+                <Droplets className={`w-3.5 h-3.5 ${i < availableInk ? 'text-[#F59E0B] fill-[#F59E0B]' : 'text-[#94A3B8]'}`} />
+                <span className="text-[9px] font-mono text-[#94A3B8] mt-0.5 font-bold">{i < availableInk ? 'Ready Ink' : i < inkwellCapacity ? 'Exerted' : 'Empty'}</span>
               </div>
             ))}
           </div>
-          <div className="text-[10px] font-mono text-center px-2 py-1.5 rounded-lg border bg-slate-950/80 border-amber-500/30 text-amber-300 font-semibold">
-            {hasInkedThisTurn ? '🚫 Inked this turn (1/1 Limit)' : '💧 Drag Card Here to Add Ink'}
+          <div className="text-[10px] font-mono text-center px-2 py-1.5 rounded border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold">
+            {hasInkedThisTurn ? 'Inked this turn (1/1 Limit)' : 'Drag Card Here to Add Ink'}
           </div>
         </div>
 
         {/* Player Piles */}
-        <div className="space-y-2 border-t border-slate-800 pt-3">
-          <div className="text-[11px] font-cinzel font-bold text-amber-300">YOUR PILES</div>
+        <div className="space-y-2 border-t border-[#30363d] pt-3">
+          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B]">YOUR PILES</div>
           <div className="flex gap-2">
             {/* Draw Deck */}
             <div
@@ -449,27 +446,27 @@ export const LorcanaBoard: React.FC = () => {
                   handleDrawCard();
                 }
               }}
-              className="w-20 h-28 rounded-xl border-2 border-amber-400 flex flex-col items-center justify-between p-2 relative shadow-2xl cursor-pointer hover:border-amber-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all overflow-hidden group"
+              className="w-20 h-28 rounded-lg border-2 border-[#F59E0B] flex flex-col items-center justify-between p-2 relative cursor-pointer hover:border-amber-300 transition-colors overflow-hidden bg-[#0B0F19]"
               title="Click to Draw Card from Deck"
             >
               <img
                 src="/Lorcana_Card_Back.png"
                 alt="Player Deck Back"
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
+                className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]" />
-              <Library className="w-5 h-5 text-amber-300 z-10 drop-shadow group-hover:scale-110 transition-transform" />
+              <div className="absolute inset-0 bg-[#0B0F19]/40" />
+              <Library className="w-5 h-5 text-[#F59E0B] z-10" />
               <div className="flex flex-col items-center z-10">
-                <span className="text-[10px] font-cinzel font-bold text-white drop-shadow">DECK</span>
-                <span className="text-[10px] font-mono font-bold text-amber-300 bg-slate-950/90 px-1.5 py-0.5 rounded border border-amber-400/50 shadow">{deckCount} Cards</span>
+                <span className="text-[10px] font-cinzel font-bold text-white">DECK</span>
+                <span className="text-[10px] font-mono font-bold text-[#F59E0B] bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d]">{deckCount} Cards</span>
               </div>
             </div>
 
             {/* Discard */}
-            <div className="w-20 h-28 bg-slate-950 rounded-xl border border-slate-700 flex flex-col items-center justify-center p-1 relative shadow-xl cursor-pointer hover:border-rose-400 transition-all overflow-hidden">
+            <div className="w-20 h-28 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative cursor-pointer hover:border-rose-400 transition-colors overflow-hidden">
               <Skull className="w-5 h-5 text-rose-400 mb-1" />
-              <span className="text-[10px] font-cinzel font-bold text-slate-300">DISCARD</span>
-              <span className="text-[10px] font-mono font-bold text-slate-400 mt-1">{discardCount} Cards</span>
+              <span className="text-[10px] font-cinzel font-bold text-[#F1F5F9]">DISCARD</span>
+              <span className="text-[10px] font-mono font-bold text-[#94A3B8] mt-1">{discardCount} Cards</span>
             </div>
           </div>
         </div>
@@ -479,32 +476,32 @@ export const LorcanaBoard: React.FC = () => {
       <div className="flex-1 flex flex-col justify-between relative z-10 p-4 pb-32">
         
         {/* TOP STATUS HEADER BAR */}
-        <div className="flex justify-between items-center w-full z-20 pb-2 border-b border-amber-500/20">
-          <div className="glass-panel px-4 py-2 rounded-2xl border border-slate-700 flex items-center gap-3 bg-[#0d1c2d]">
+        <div className="flex justify-between items-center w-full z-20 pb-2 border-b border-[#30363d]">
+          <div className="px-4 py-2 rounded-lg border border-[#30363d] flex items-center gap-3 bg-[#141a26]">
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-cinzel font-bold text-slate-400 uppercase">Opponent Lore</span>
-              <span className="font-cinzel text-xl font-black text-rose-400">{opponentLore} / 20</span>
+              <span className="text-[10px] font-cinzel font-bold text-[#94A3B8] uppercase">Opponent Lore</span>
+              <span className="font-cinzel text-xl font-bold text-rose-400">{opponentLore} / 20</span>
             </div>
           </div>
 
-          <div className="glass-panel px-5 py-1.5 rounded-full border border-amber-400/60 text-amber-300 font-cinzel font-bold text-xs pointer-events-auto shadow-2xl flex items-center gap-2 bg-[#0d1c2d]">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+          <div className="px-4 py-1.5 rounded-lg border border-[#F59E0B]/40 text-[#F59E0B] font-cinzel font-bold text-xs flex items-center gap-2 bg-[#141a26]">
+            <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
             <span>Main Phase | Turn {turnNumber}</span>
           </div>
 
           <div className="flex items-center gap-2 font-mono text-xs">
-            <form onSubmit={handleJoinRoomSubmit} className="flex items-center gap-1.5 glass-panel px-3 py-1 rounded-xl border border-amber-500/30">
-              <Wifi className={`w-3.5 h-3.5 ${isWsConnected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Room:</span>
+            <form onSubmit={handleJoinRoomSubmit} className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#30363d] bg-[#141a26]">
+              <Wifi className={`w-3.5 h-3.5 ${isWsConnected ? 'text-emerald-400' : 'text-[#F59E0B]'}`} />
+              <span className="text-[10px] font-bold text-[#94A3B8] uppercase">Room:</span>
               <input
                 type="text"
                 value={inputRoomId}
                 onChange={(e) => setInputRoomId(e.target.value)}
-                className="w-16 bg-slate-950 border border-slate-800 text-amber-300 px-1.5 py-0.5 rounded text-xs font-mono font-bold outline-none text-center"
+                className="w-16 bg-[#0B0F19] border border-[#30363d] text-[#F59E0B] px-1.5 py-0.5 rounded text-xs font-mono font-bold outline-none text-center"
               />
               <button
                 type="submit"
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors"
+                className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors"
               >
                 Join
               </button>
@@ -512,7 +509,7 @@ export const LorcanaBoard: React.FC = () => {
 
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="bg-amber-500/20 border border-amber-400/60 hover:bg-amber-500/40 text-amber-300 p-2 rounded-xl font-bold transition-all shadow cursor-pointer flex items-center gap-1.5"
+              className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] p-2 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5"
             >
               {isSidebarOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
               <span className="font-sans text-xs">Action Log</span>
@@ -520,45 +517,43 @@ export const LorcanaBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* 1. OPPONENT BATTLEFIELD ZONE (ENLARGED CARDS: w-36 h-52) */}
-        <div className="flex-1 flex flex-col justify-center items-center py-2 border-b border-amber-500/10 min-h-[190px]">
-          <div className="text-[10px] font-cinzel font-bold text-amber-300/70 mb-2 uppercase tracking-widest">
+        {/* 1. OPPONENT BATTLEFIELD ZONE */}
+        <div className="flex-1 flex flex-col justify-center items-center py-2 border-b border-[#30363d]/50 min-h-[190px]">
+          <div className="text-[10px] font-cinzel font-bold text-[#F59E0B]/70 mb-2 uppercase tracking-widest">
             Opponent Battlefield
           </div>
           <div className="flex items-center justify-center gap-8 w-full">
-            <div className="w-36 h-52 glass-panel rounded-2xl exerted flex items-center justify-center relative overflow-hidden shadow-2xl border-2 border-amber-500/30">
-              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs" />
+            <div className="w-36 h-52 bg-[#141a26] rounded-xl exerted flex items-center justify-center relative overflow-hidden border border-[#30363d]">
               <img
                 src="https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg"
                 alt="Opponent Exerted"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover opacity-60"
               />
-              <span className="absolute bottom-2 bg-slate-950/90 text-amber-300 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border border-amber-400/40 shadow">
+              <span className="absolute bottom-2 bg-[#0B0F19]/90 text-[#F59E0B] text-xs font-mono font-bold px-2 py-0.5 rounded border border-[#30363d]">
                 Exerted
               </span>
             </div>
 
-            <div className="w-36 h-52 glass-panel rounded-2xl flex items-center justify-center relative overflow-hidden shadow-2xl border-2 border-amber-500/30">
-              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs" />
+            <div className="w-36 h-52 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border border-[#30363d]">
               <img
                 src="https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg"
                 alt="Opponent Ready"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover opacity-60"
               />
-              <span className="absolute bottom-2 bg-slate-950/90 text-emerald-400 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border border-emerald-500/40 shadow">
+              <span className="absolute bottom-2 bg-[#0B0F19]/90 text-emerald-400 text-xs font-mono font-bold px-2 py-0.5 rounded border border-emerald-500/40">
                 Ready
               </span>
             </div>
           </div>
         </div>
 
-        {/* 2. PLAYER BATTLEFIELD ZONE (ENLARGED CARDS: w-36 h-52 + DRAG-TO-PLAY DROPZONE) */}
+        {/* 2. PLAYER BATTLEFIELD ZONE */}
         <div className="flex-1 flex flex-col justify-center items-center py-2 relative min-h-[240px]">
-          <div className="text-[10px] font-cinzel font-bold text-amber-300 mb-2 uppercase tracking-widest flex items-center gap-2">
+          <div className="text-[10px] font-cinzel font-bold text-[#F59E0B] mb-2 uppercase tracking-widest flex items-center gap-2">
             <span>Your Battlefield Area</span>
-            <span className="text-[9px] font-mono text-slate-400 font-normal">(Hover to read stats • Drag card here to Play)</span>
+            <span className="text-[9px] font-mono text-[#94A3B8] font-normal">(Hover to read stats • Drag card here to Play)</span>
           </div>
 
           {/* ACTIVE DRAG-TO-PLAY DROPZONE HIGHLIGHT */}
@@ -566,11 +561,11 @@ export const LorcanaBoard: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-x-12 inset-y-4 border-2 border-dashed border-amber-400 bg-amber-500/15 rounded-3xl flex flex-col items-center justify-center gap-2 pointer-events-none z-20 backdrop-blur-xs shadow-[0_0_50px_rgba(245,158,11,0.3)]"
+              className="absolute inset-x-12 inset-y-4 border-2 border-dashed border-[#F59E0B] bg-[#F59E0B]/10 rounded-xl flex flex-col items-center justify-center gap-2 pointer-events-none z-20"
             >
-              <ArrowUpCircle className="w-10 h-10 text-amber-400 animate-bounce" />
-              <span className="font-cinzel text-lg font-black text-amber-300 uppercase tracking-wider">
-                Release Card Here to Play onto Battlefield!
+              <ArrowUpCircle className="w-8 h-8 text-[#F59E0B]" />
+              <span className="font-cinzel text-base font-bold text-[#F59E0B] uppercase tracking-wider">
+                Release Card Here to Play onto Battlefield
               </span>
             </motion.div>
           )}
@@ -593,14 +588,14 @@ export const LorcanaBoard: React.FC = () => {
                       toggleExert(card.id);
                     }
                   }}
-                  className={`w-36 h-52 rounded-2xl relative cursor-pointer transition-all duration-300 preserve-3d group ${
-                    isExerted ? 'exerted border-2 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.6)]' : 'border-2 border-slate-700 shadow-2xl hover:border-amber-400'
+                  className={`w-36 h-52 rounded-xl relative cursor-pointer transition-colors group card-foil-light ${
+                    isExerted ? 'exerted border-2 border-[#F59E0B]' : 'border border-[#30363d] hover:border-[#F59E0B]'
                   }`}
                 >
-                  <div className="relative w-full h-full rounded-2xl overflow-hidden">
-                    <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                      <span className="font-cinzel text-xs font-bold text-amber-300 line-clamp-2">{card.name}</span>
-                      <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+                  <div className="relative w-full h-full rounded-xl overflow-hidden bg-[#141a26]">
+                    <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                      <span className="font-cinzel text-xs font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
+                      <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                     </div>
                     <img
                       src={card.img}
@@ -609,14 +604,14 @@ export const LorcanaBoard: React.FC = () => {
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).style.display = 'none';
                       }}
-                      className="w-full h-full object-cover rounded-2xl relative z-10"
+                      className="w-full h-full object-cover rounded-xl relative z-10"
                     />
                   </div>
                   
                   {card.isWet && (
-                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center pointer-events-none z-20">
-                      <Droplets className="w-8 h-8 text-amber-300 animate-bounce" />
-                      <span className="text-[10px] font-cinzel font-bold text-amber-300 bg-slate-950/90 px-2 py-0.5 rounded mt-1 border border-amber-400/40">
+                    <div className="absolute inset-0 bg-[#0B0F19]/70 rounded-xl flex flex-col items-center justify-center pointer-events-none z-20">
+                      <Droplets className="w-6 h-6 text-[#F59E0B]" />
+                      <span className="text-[10px] font-cinzel font-bold text-[#F59E0B] bg-[#0B0F19] px-2 py-0.5 rounded mt-1 border border-[#30363d]">
                         Ink Drying...
                       </span>
                     </div>
@@ -629,16 +624,16 @@ export const LorcanaBoard: React.FC = () => {
                         handleQuest(card);
                       }}
                       aria-label="Quest"
-                      className="absolute top-2.5 right-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 p-2 rounded-full shadow-lg opacity-90 group-hover:opacity-100 transition-all cursor-pointer font-bold text-[10px] flex items-center justify-center z-20"
+                      className="absolute top-2 right-2 bg-[#F59E0B] hover:bg-[#D97706] text-black p-1.5 rounded-full transition-colors cursor-pointer font-bold text-[10px] flex items-center justify-center z-20"
                       title={`Quest for +${card.lore || 1} Lore`}
                     >
-                      <Zap className="w-4 h-4 fill-slate-950" />
+                      <Zap className="w-3.5 h-3.5 fill-black" />
                     </button>
                   )}
 
-                  <div className="absolute bottom-2.5 left-2 right-2 bg-slate-950/90 px-2 py-1 rounded-xl border border-amber-400/40 flex justify-between items-center text-[10px] font-mono font-bold z-20">
-                    <span className="text-amber-300">⚔️ {card.strength}/{card.willpower}</span>
-                    <span className="text-amber-400">♦ {card.lore}</span>
+                  <div className="absolute bottom-2 left-2 right-2 bg-[#0B0F19]/90 px-2 py-1 rounded-lg border border-[#30363d] flex justify-between items-center text-[10px] font-mono font-bold z-20 text-[#F1F5F9]">
+                    <span className="flex items-center gap-1"><Sword className="w-3 h-3 text-[#F59E0B]" />{card.strength}/{card.willpower}</span>
+                    <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-[#F59E0B]" />{card.lore}</span>
                   </div>
                 </motion.div>
               );
@@ -648,19 +643,19 @@ export const LorcanaBoard: React.FC = () => {
 
         {/* PLAYER LORE & PASS TURN CONTROLS BAR */}
         <div className="absolute bottom-2 left-6 right-6 flex justify-between items-center z-20 pointer-events-none">
-          <div className="glass-panel px-5 py-2 rounded-2xl border border-amber-400 flex items-center gap-3 bg-[#0d1c2d] pointer-events-auto shadow-2xl">
+          <div className="px-4 py-2 rounded-lg border border-[#30363d] flex items-center gap-3 bg-[#141a26] pointer-events-auto">
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-cinzel font-bold text-amber-300 uppercase">Your Lore Score</span>
-              <span className="font-cinzel text-2xl font-black text-amber-400">{playerLore} / 20</span>
+              <span className="text-[10px] font-cinzel font-bold text-[#F59E0B] uppercase">Your Lore Score</span>
+              <span className="font-cinzel text-xl font-bold text-[#F59E0B]">{playerLore} / 20</span>
             </div>
           </div>
 
           <button
             onClick={handleEndTurn}
             disabled={!isMyTurn}
-            className="pointer-events-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-40 text-slate-950 px-6 py-3 rounded-2xl font-cinzel font-black text-xs uppercase tracking-wider shadow-2xl flex items-center gap-2 cursor-pointer transition-all hover:scale-105"
+            className="pointer-events-auto bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-6 py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
           >
-            <RotateCw className="w-4 h-4 fill-slate-950" />
+            <RotateCw className="w-4 h-4 fill-black" />
             <span>Pass Turn</span>
           </button>
         </div>
@@ -670,28 +665,28 @@ export const LorcanaBoard: React.FC = () => {
       <AnimatePresence>
         {hoveredCard && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed bottom-28 left-72 z-50 w-80 bg-slate-950/95 border-2 border-amber-400/80 rounded-2xl p-4 shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-slate-100 flex flex-col gap-2.5 pointer-events-none"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-28 left-72 z-50 w-80 bg-[#141a26] border border-[#30363d] rounded-xl p-4 text-[#F1F5F9] flex flex-col gap-2.5 pointer-events-none shadow-xl"
           >
-            <div className="flex gap-3 items-center border-b border-amber-500/20 pb-2">
+            <div className="flex gap-3 items-center border-b border-[#30363d] pb-2">
               <img
                 src={hoveredCard.img}
                 alt={hoveredCard.name}
                 referrerPolicy="no-referrer"
-                className="w-16 h-24 object-cover rounded-lg border border-amber-400/50 shadow"
+                className="w-14 h-20 object-cover rounded border border-[#30363d]"
               />
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   {hoveredCard.ink && <InkSymbol ink={hoveredCard.ink} size={16} />}
-                  <span className="font-cinzel font-bold text-base text-amber-300 leading-tight">{hoveredCard.name}</span>
+                  <span className="font-cinzel font-bold text-sm text-[#F59E0B] leading-tight">{hoveredCard.name}</span>
                 </div>
-                <span className="text-[11px] font-mono text-slate-400">{hoveredCard.title}</span>
-                <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-amber-400 font-bold">
-                  <span>Cost: 💧{hoveredCard.cost}</span>
+                <span className="text-[11px] font-mono text-[#94A3B8]">{hoveredCard.title}</span>
+                <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-[#F59E0B] font-bold">
+                  <span>Cost: {hoveredCard.cost} Ink</span>
                   {hoveredCard.isInkable ? (
-                    <span className="text-emerald-400 flex items-center gap-0.5">💧 Inkable</span>
+                    <span className="text-emerald-400">Inkable</span>
                   ) : (
                     <span className="text-rose-400">Non-Inkable</span>
                   )}
@@ -700,35 +695,35 @@ export const LorcanaBoard: React.FC = () => {
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-2 rounded-xl border border-slate-800 text-center font-mono text-xs">
+            <div className="grid grid-cols-3 gap-1 bg-[#0B0F19] p-2 rounded border border-[#30363d] text-center font-mono text-xs">
               <div>
-                <span className="text-[9px] text-slate-400 block">STRENGTH</span>
-                <span className="text-amber-400 font-bold">⚔️ {hoveredCard.strength ?? '-'}</span>
+                <span className="text-[9px] text-[#94A3B8] block">STRENGTH</span>
+                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1"><Sword className="w-3 h-3 text-[#F59E0B]" />{hoveredCard.strength ?? '-'}</span>
               </div>
               <div>
-                <span className="text-[9px] text-slate-400 block">WILLPOWER</span>
-                <span className="text-amber-400 font-bold">🛡️ {hoveredCard.willpower ?? '-'}</span>
+                <span className="text-[9px] text-[#94A3B8] block">WILLPOWER</span>
+                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1"><Shield className="w-3 h-3 text-[#F59E0B]" />{hoveredCard.willpower ?? '-'}</span>
               </div>
               <div>
-                <span className="text-[9px] text-slate-400 block">LORE</span>
-                <span className="text-amber-400 font-bold">♦ {hoveredCard.lore ?? '-'}</span>
+                <span className="text-[9px] text-[#94A3B8] block">LORE</span>
+                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1"><Sparkles className="w-3 h-3 text-[#F59E0B]" />{hoveredCard.lore ?? '-'}</span>
               </div>
             </div>
 
             {/* Abilities & Text Box */}
             {hoveredCard.abilities && hoveredCard.abilities.length > 0 && (
-              <div className="space-y-1.5 text-[11px] font-mono bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+              <div className="space-y-1.5 text-[11px] font-mono bg-[#0B0F19] p-2 rounded border border-[#30363d]">
                 {hoveredCard.abilities.map((ab, idx) => (
                   <div key={idx}>
-                    <span className="font-bold text-amber-300">{ab.name}: </span>
-                    <span className="text-slate-300">{ab.text}</span>
+                    <span className="font-bold text-[#F59E0B]">{ab.name}: </span>
+                    <span className="text-[#F1F5F9]">{ab.text}</span>
                   </div>
                 ))}
               </div>
             )}
 
             {hoveredCard.flavorText && (
-              <div className="text-[10px] font-outfit italic text-slate-400 border-t border-slate-800 pt-1">
+              <div className="text-[10px] font-outfit text-[#94A3B8] border-t border-[#30363d] pt-1">
                 {hoveredCard.flavorText}
               </div>
             )}
@@ -741,23 +736,19 @@ export const LorcanaBoard: React.FC = () => {
         isOpen={!!selectedHandCard}
         onClose={() => setSelectedHandCard(null)}
         ariaLabel="Card Action"
-        overlayClassName="bg-slate-950/80 backdrop-blur-md"
+        overlayClassName="bg-[#0B0F19]/80"
       >
         {selectedHandCard && (
-          <div className="relative z-10 max-w-sm w-full bg-slate-950 border-2 border-amber-400/80 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center">
+          <div className="relative z-10 max-w-sm w-full bg-[#141a26] border border-[#30363d] rounded-xl p-6 flex flex-col items-center gap-4 text-center">
             <button
               onClick={() => setSelectedHandCard(null)}
-              aria-label="ปิด"
-              className="absolute top-4 right-4 p-1.5 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 cursor-pointer"
+              aria-label="Close"
+              className="absolute top-4 right-4 p-1 bg-[#0B0F19] text-[#94A3B8] hover:text-white rounded border border-[#30363d] cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <div className="w-36 h-52 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-xl relative">
-              <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                <span className="font-cinzel text-xs font-bold text-amber-300">{selectedHandCard.name}</span>
-                <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
-              </div>
+            <div className="w-36 h-52 rounded-xl overflow-hidden border border-[#30363d] relative bg-[#0B0F19]">
               <img
                 src={selectedHandCard.img}
                 alt={selectedHandCard.name}
@@ -770,37 +761,37 @@ export const LorcanaBoard: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <div className="font-cinzel text-xl font-bold text-amber-300">{selectedHandCard.name}</div>
-              <div className="text-xs font-mono text-slate-400">{selectedHandCard.title}</div>
+              <div className="font-cinzel text-lg font-bold text-[#F59E0B]">{selectedHandCard.name}</div>
+              <div className="text-xs font-mono text-[#94A3B8]">{selectedHandCard.title}</div>
             </div>
 
             {/* Action Buttons */}
-            <div className="w-full space-y-2.5 pt-2">
+            <div className="w-full space-y-2 pt-2">
               <button
                 onClick={() => handleAddToInkwell(selectedHandCard)}
                 disabled={!selectedHandCard.isInkable || hasInkedThisTurn}
-                className="w-full bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 text-amber-300 border border-amber-400/60 p-3.5 rounded-2xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all"
+                className="w-full bg-[#141a26] hover:bg-[#1e2638] disabled:opacity-40 text-[#F59E0B] border border-[#F59E0B]/50 p-3 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
               >
-                <Droplets className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
                 <span>
                   {!selectedHandCard.isInkable
-                    ? '🚫 Non-Inkable Card'
+                    ? 'Non-Inkable Card'
                     : hasInkedThisTurn
-                    ? '🚫 Inked this turn (1/1 Limit)'
-                    : '💧 Add to Inkwell (+1 Ink Capacity)'}
+                    ? 'Inked this turn (1/1 Limit)'
+                    : 'Add to Inkwell (+1 Ink Capacity)'}
                 </span>
               </button>
 
               <button
                 onClick={() => handlePlayCard(selectedHandCard)}
                 disabled={availableInk < selectedHandCard.cost}
-                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 p-3.5 rounded-2xl font-cinzel font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg"
+                className="w-full bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-3 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
               >
-                <Play className="w-4 h-4 fill-slate-950" />
+                <Play className="w-4 h-4 fill-black" />
                 <span>
                   {availableInk < selectedHandCard.cost
-                    ? `⚠️ Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`
-                    : `✨ Play to Field (${selectedHandCard.cost} Ink)`}
+                    ? `Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`
+                    : `Play to Field (${selectedHandCard.cost} Ink)`}
                 </span>
               </button>
             </div>
@@ -808,22 +799,22 @@ export const LorcanaBoard: React.FC = () => {
         )}
       </Modal>
 
-      {/* SMART COLLAPSIBLE HAND DOCK WITH ENLARGED CARDS (w-32 h-48) */}
+      {/* HAND DOCK */}
       <div className="fixed bottom-0 left-64 right-0 z-30 flex justify-center pointer-events-none">
         <motion.div
           initial={{ y: 90 }}
           whileHover={{ y: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-slate-950/95 border-t-2 border-amber-400/80 rounded-t-3xl px-8 pt-3 pb-6 backdrop-blur-2xl shadow-[0_-15px_40px_rgba(0,0,0,0.85)] pointer-events-auto flex flex-col items-center max-w-5xl w-full"
+          className="bg-[#0d1420] border-t border-[#30363d] rounded-t-xl px-8 pt-3 pb-6 pointer-events-auto flex flex-col items-center max-w-5xl w-full shadow-2xl"
         >
-          <div className="w-20 h-1.5 bg-amber-400/80 rounded-full mb-2 cursor-grab active:cursor-grabbing" />
-          <div className="text-[11px] font-cinzel font-bold text-amber-300 mb-2 uppercase tracking-widest flex items-center gap-2">
+          <div className="w-16 h-1 bg-[#30363d] rounded-full mb-2 cursor-grab active:cursor-grabbing" />
+          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B] mb-2 uppercase tracking-widest flex items-center gap-2">
             <span>Your Hand ({handCards.length}/7 Cards)</span>
-            <span className="text-[10px] font-mono text-slate-400 font-normal">• Drag Card Up to Play onto Field • Drag Left for Ink</span>
+            <span className="text-[10px] font-mono text-[#94A3B8] font-normal">• Drag Card Up to Play onto Field • Drag Left for Ink</span>
           </div>
 
-          {/* Enlarge Hand Cards Stack (w-32 h-48) */}
-          <div className="flex items-center justify-center -space-x-8 px-4 py-2">
+          {/* Hand Cards Stack */}
+          <div className="flex items-center justify-center -space-x-6 px-4 py-2">
             {handCards.map((card) => (
               <motion.div
                 key={card.id}
@@ -843,13 +834,13 @@ export const LorcanaBoard: React.FC = () => {
                   }
                 }}
                 onDragEnd={(_, info) => handleDragEnd(card, info)}
-                whileHover={{ scale: 1.15, y: -35, zIndex: 50 }}
-                className="w-32 h-48 rounded-2xl relative cursor-pointer preserve-3d shadow-2xl border-2 border-amber-400/60 bg-slate-950 group"
+                whileHover={{ y: -20, zIndex: 50 }}
+                className="w-32 h-48 rounded-xl relative cursor-pointer border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light"
               >
-                <div className="relative w-full h-full rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                    <span className="font-cinzel text-xs font-bold text-amber-300 line-clamp-2">{card.name}</span>
-                    <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+                <div className="relative w-full h-full rounded-xl overflow-hidden">
+                  <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                    <span className="font-cinzel text-xs font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
+                    <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                   </div>
                   <img
                     src={card.img}
@@ -858,12 +849,12 @@ export const LorcanaBoard: React.FC = () => {
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = 'none';
                     }}
-                    className="w-full h-full object-cover rounded-2xl relative z-10"
+                    className="w-full h-full object-cover rounded-xl relative z-10"
                   />
                 </div>
 
-                <div className="absolute top-1.5 left-1.5 bg-slate-950/90 px-1.5 py-0.5 rounded-lg border border-amber-400/50 text-[10px] font-mono font-bold text-amber-300 flex items-center gap-1 shadow z-20">
-                  <Droplets className="w-3 h-3 text-amber-400 fill-amber-400" />
+                <div className="absolute top-1.5 left-1.5 bg-[#0B0F19] px-1.5 py-0.5 rounded border border-[#30363d] text-[10px] font-mono font-bold text-[#F59E0B] flex items-center gap-1 z-20">
+                  <Droplets className="w-3 h-3 text-[#F59E0B] fill-[#F59E0B]" />
                   <span>{card.cost}</span>
                 </div>
               </motion.div>
@@ -872,34 +863,34 @@ export const LorcanaBoard: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* RIGHT SIDEBAR: ACTION LOG & CHAT */}
+      {/* RIGHT SIDEBAR: ACTION LOG */}
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.aside
             initial={{ x: 300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
-            className="w-72 border-l border-amber-500/20 bg-[#051424]/95 p-4 flex flex-col justify-between z-30 shrink-0 shadow-2xl"
+            className="w-72 border-l border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-30 shrink-0 shadow-xl"
           >
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <span className="font-cinzel font-bold text-amber-300 text-xs">Match Action Log</span>
+            <div className="flex justify-between items-center border-b border-[#30363d] pb-3">
+              <span className="font-cinzel font-bold text-[#F59E0B] text-xs">Match Action Log</span>
               <button
                 onClick={() => setIsSidebarOpen(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg"
+                className="p-1 text-[#94A3B8] hover:text-white rounded"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto my-3 space-y-2 pr-1 text-xs font-mono text-slate-300">
+            <div className="flex-1 overflow-y-auto my-3 space-y-2 pr-1 text-xs font-mono text-[#F1F5F9]">
               {logMessages.map((msg, idx) => (
-                <div key={idx} className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 leading-relaxed">
+                <div key={idx} className="bg-[#0B0F19] p-2.5 rounded border border-[#30363d] leading-relaxed">
                   {msg}
                 </div>
               ))}
             </div>
 
-            <div className="text-[10px] font-mono text-slate-500 text-center border-t border-slate-800 pt-2">
+            <div className="text-[10px] font-mono text-[#94A3B8] text-center border-t border-[#30363d] pt-2">
               AWS WebSockets Live Sync Active
             </div>
           </motion.aside>

@@ -16,7 +16,7 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   ariaLabel = 'Modal Dialog',
   className = '',
-  overlayClassName = 'bg-slate-950/85 backdrop-blur-md',
+  overlayClassName = 'bg-[#0B0F19]/80',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 

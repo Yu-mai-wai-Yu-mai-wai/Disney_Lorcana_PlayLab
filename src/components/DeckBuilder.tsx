@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDeckStore } from '../store/useDeckStore';
 import { InkColor, LorcanaCard } from '../types/lorcana';
-import { Search, Plus, Minus, Layers, Filter, Trash2, Save, Sparkles, CheckCircle2, CloudUpload, BarChart3, AlertTriangle, ChevronLeft, ChevronRight, Eye, Gift } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Save, ChevronLeft, ChevronRight, Eye, Gift, Sword, Shield, Sparkles } from 'lucide-react';
 import { apiService } from '../services/api';
 import { Card3DInspectorModal } from './Card3DInspectorModal';
 import { BoosterPackModal } from './BoosterPackModal';
@@ -108,7 +108,7 @@ export const DeckBuilder: React.FC = () => {
       } else {
         setSaveStatus(`Saved successfully to AWS DynamoDB!`);
       }
-    } catch (e: any) {
+    } catch {
       setSaveStatus(`Saved locally (Cloud ready)`);
     } finally {
       setIsSaving(false);
@@ -116,37 +116,37 @@ export const DeckBuilder: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto flex flex-col md:flex-row gap-6 mt-4 font-outfit select-none">
+    <div className="p-6 max-w-7xl mx-auto flex flex-col md:flex-row gap-6 mt-4 font-outfit select-none bg-[#0B0F19]">
       {/* Left Column: Filter Bar & Card Grid (70%) */}
       <div className="w-full md:w-[70%] flex flex-col gap-6">
         
         {/* Top Feature Banner & Filter Bar */}
         <div className="flex flex-col gap-4">
-          <div className="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-amber-500/15 shadow-2xl">
+          <div className="bg-[#141a26] p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-[#30363d]">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-3 w-4 h-4 text-[#94A3B8]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search cards by name or title..."
-                className="w-full shadcn-input rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono"
+                className="w-full shadcn-input rounded-lg pl-10 pr-4 py-2 text-xs text-[#F1F5F9] placeholder:text-[#94A3B8] font-mono"
               />
             </div>
 
             {/* Open Booster Pack Button */}
             <button
               onClick={() => setIsBoosterModalOpen(true)}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 px-4 py-2.5 rounded-xl font-cinzel font-black text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 cursor-pointer transition-all hover:scale-105 shrink-0"
+              className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-4 py-2 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shrink-0"
             >
-              <Gift className="w-4 h-4 fill-slate-950" />
-              <span>Open Booster Pack (เปิดซองการ์ด)</span>
+              <Gift className="w-4 h-4 text-black" />
+              <span>Open Booster Pack</span>
             </button>
           </div>
 
           {/* Secondary Filters Bar */}
-          <div className="glass-panel p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-amber-500/15 shadow-2xl">
+          <div className="bg-[#141a26] p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-[#30363d]">
             {/* Ink Color Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto py-1">
               {INK_COLORS.map((ink) => {
@@ -163,13 +163,13 @@ export const DeckBuilder: React.FC = () => {
                   <button
                     key={ink}
                     onClick={() => setInkFilter(ink)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded text-xs font-bold transition-colors shrink-0 cursor-pointer flex items-center gap-1.5 ${
                       ink === 'All'
                         ? isActive
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-400/60'
-                          : 'bg-slate-900/90 text-slate-400 border border-slate-800'
+                          ? 'bg-[#242b3d] text-[#F59E0B] border border-[#F59E0B]'
+                          : 'bg-[#0B0F19] text-[#94A3B8] border border-[#30363d]'
                         : pillClass
-                    } ${isActive ? 'scale-105 shadow-md font-extrabold' : 'opacity-70 hover:opacity-100'}`}
+                    } ${isActive ? 'border-[#F59E0B] text-[#F59E0B]' : 'opacity-70 hover:opacity-100'}`}
                   >
                     {ink !== 'All' && (
                       <InkSymbol ink={ink} size={15} />
@@ -185,7 +185,7 @@ export const DeckBuilder: React.FC = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="bg-[#0B0F19] border border-slate-800 text-slate-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-400 cursor-pointer"
+                className="bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg py-1.5 px-3 text-xs outline-none focus:border-[#F59E0B] cursor-pointer"
               >
                 <option value="All">All Types</option>
                 <option value="Character">Character</option>
@@ -197,7 +197,7 @@ export const DeckBuilder: React.FC = () => {
               <select
                 value={selectedRarity}
                 onChange={(e) => setSelectedRarity(e.target.value)}
-                className="bg-[#0B0F19] border border-slate-800 text-slate-200 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-400 cursor-pointer"
+                className="bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg py-1.5 px-3 text-xs outline-none focus:border-[#F59E0B] cursor-pointer"
               >
                 <option value="All">Any Rarity</option>
                 <option value="Common">Common</option>
@@ -215,25 +215,25 @@ export const DeckBuilder: React.FC = () => {
         </div>
 
         {/* Results Counter & Pagination Header */}
-        <div className="flex justify-between items-center px-1 font-mono text-xs text-slate-400">
+        <div className="flex justify-between items-center px-1 font-mono text-xs text-[#94A3B8]">
           <div>
-            Showing <strong className="text-amber-400">{paginatedCards.length}</strong> of <strong className="text-white">{filteredCards.length}</strong> Cards Found
+            Showing <strong className="text-[#F59E0B]">{paginatedCards.length}</strong> of <strong className="text-white">{filteredCards.length}</strong> Cards Found
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 disabled:opacity-30 cursor-pointer"
+              className="p-1.5 rounded-lg bg-[#141a26] border border-[#30363d] text-[#F1F5F9] hover:text-[#F59E0B] disabled:opacity-30 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-bold text-amber-300">
+            <span className="font-bold text-[#F59E0B]">
               Page {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 disabled:opacity-30 cursor-pointer"
+              className="p-1.5 rounded-lg bg-[#141a26] border border-[#30363d] text-[#F1F5F9] hover:text-[#F59E0B] disabled:opacity-30 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -257,12 +257,12 @@ export const DeckBuilder: React.FC = () => {
                     setInspectedCard(card);
                   }
                 }}
-                className="card-container relative bg-slate-950/80 rounded-2xl card-foil border border-purple-500/20 hover:border-amber-400 aspect-[2.5/3.5] overflow-hidden group cursor-pointer shadow-xl flex flex-col justify-between"
+                className="relative bg-[#141a26] rounded-xl border border-[#30363d] hover:border-[#F59E0B] aspect-[2.5/3.5] overflow-hidden group cursor-pointer flex flex-col justify-between transition-colors card-foil-light"
               >
                 <div className="absolute inset-0 w-full h-full">
-                  <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                    <span className="font-cinzel text-xs font-bold text-amber-300 line-clamp-2">{card.name}</span>
-                    <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+                  <div className="absolute inset-0 bg-[#141a26] border border-[#30363d] rounded-xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                    <span className="font-cinzel text-xs font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
+                    <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                   </div>
                   <img
                     src={card.imageUrl}
@@ -276,37 +276,37 @@ export const DeckBuilder: React.FC = () => {
                 </div>
 
                 {/* Overlays */}
-                <div className="absolute top-2 left-2 w-8 h-8 bg-slate-950/90 rounded-full border border-amber-400 flex items-center justify-center font-cinzel text-sm text-amber-300 font-black shadow-lg z-10 font-mono">
+                <div className="absolute top-2 left-2 w-7 h-7 bg-[#0B0F19] rounded-lg border border-[#30363d] flex items-center justify-center font-cinzel text-xs text-[#F59E0B] font-bold z-10 font-mono">
                   {card.cost}
                 </div>
 
                 {card.inkwell && (
                   <div
-                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-950/90 border border-amber-400 flex items-center justify-center z-10"
+                    className="absolute top-2 right-2 w-5 h-5 rounded bg-[#0B0F19] border border-[#30363d] flex items-center justify-center z-10"
                     title="Inkwell Card"
                   >
-                    <div className="w-3 h-3 bg-amber-400 rounded-full blur-[1px]" />
+                    <div className="w-2.5 h-2.5 bg-[#F59E0B] rounded-full" />
                   </div>
                 )}
 
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10">
-                  <h3 className="font-cinzel font-bold text-slate-100 truncate text-xs">{card.name}</h3>
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-[#0B0F19]/90 border-t border-[#30363d] z-10">
+                  <h3 className="font-cinzel font-bold text-[#F1F5F9] truncate text-xs">{card.name}</h3>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-amber-400 font-mono text-[9px] font-bold uppercase">{card.ink} • {card.type}</span>
-                    <div className="flex gap-1 font-mono text-[10px]">
-                      {card.strength !== undefined && <span className="text-rose-400 font-bold">{card.strength}</span>}
-                      {card.willpower !== undefined && <span className="text-indigo-400 font-bold">/{card.willpower}</span>}
-                      {card.lore !== undefined && <span className="text-amber-300 font-bold ml-1">♦{card.lore}</span>}
+                    <span className="text-[#F59E0B] font-mono text-[9px] font-bold uppercase">{card.ink} • {card.type}</span>
+                    <div className="flex gap-1.5 font-mono text-[10px]">
+                      {card.strength !== undefined && <span className="text-rose-400 font-bold flex items-center gap-0.5"><Sword className="w-2.5 h-2.5" />{card.strength}</span>}
+                      {card.willpower !== undefined && <span className="text-indigo-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" />{card.willpower}</span>}
+                      {card.lore !== undefined && <span className="text-[#F59E0B] font-bold flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" />{card.lore}</span>}
                     </div>
                   </div>
                 </div>
 
                 {/* Hover Add Button & Details Overlay */}
-                <div className="card-hover-overlay absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-between backdrop-blur-md z-20 p-3.5 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+                <div className="card-hover-overlay absolute inset-0 bg-[#0B0F19]/95 flex flex-col items-center justify-between z-20 p-3 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
                   <div className="space-y-1">
-                    <span className="text-xs font-black text-amber-300 font-cinzel block">{card.name}</span>
-                    {card.title && <span className="text-[10px] text-purple-300 italic block">{card.title}</span>}
-                    <span className="text-[9px] text-slate-400 font-mono block">{card.ink} • {card.rarity}</span>
+                    <span className="text-xs font-bold text-[#F59E0B] font-cinzel block">{card.name}</span>
+                    {card.title && <span className="text-[10px] text-[#94A3B8] block">{card.title}</span>}
+                    <span className="text-[9px] text-[#94A3B8] font-mono block">{card.ink} • {card.rarity}</span>
                   </div>
 
                   <button
@@ -314,7 +314,7 @@ export const DeckBuilder: React.FC = () => {
                       e.stopPropagation();
                       setInspectedCard(card);
                     }}
-                    className="w-full py-1.5 bg-purple-900/80 hover:bg-purple-600 border border-purple-400/40 text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow cursor-pointer flex items-center justify-center gap-1 my-1"
+                    className="w-full py-1.5 bg-[#141a26] hover:bg-[#1e2638] border border-[#30363d] text-[#F59E0B] rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1 my-1"
                   >
                     <Eye className="w-3.5 h-3.5" /> Inspect 3D Card
                   </button>
@@ -324,17 +324,17 @@ export const DeckBuilder: React.FC = () => {
                       <button
                         onClick={() => removeCard(card.id)}
                         aria-label="Remove card"
-                        className="p-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 cursor-pointer"
+                        className="p-1.5 rounded bg-[#141a26] border border-[#30363d] text-[#F1F5F9] hover:text-rose-400 cursor-pointer"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
-                      <span className="font-mono font-black text-amber-300 text-base px-1">{countInDeck}</span>
+                      <span className="font-mono font-bold text-[#F59E0B] text-base px-1">{countInDeck}</span>
                       <button
                         onClick={() => addCard(card)}
                         aria-label="Add card"
-                        className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black cursor-pointer shadow-lg"
+                        className="p-1.5 rounded bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold cursor-pointer"
                       >
-                        <Plus className="w-4 h-4 text-slate-950" />
+                        <Plus className="w-4 h-4 text-black" />
                       </button>
                     </div>
                   </div>
@@ -345,22 +345,22 @@ export const DeckBuilder: React.FC = () => {
         </div>
 
         {/* Bottom Pagination Footer */}
-        <div className="flex justify-between items-center glass-panel p-4 rounded-2xl font-mono text-xs text-slate-400">
+        <div className="flex justify-between items-center bg-[#141a26] p-4 rounded-xl border border-[#30363d] font-mono text-xs text-[#94A3B8]">
           <div>
-            Page <strong className="text-amber-300">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong>
+            Page <strong className="text-[#F59E0B]">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="btn-secondary px-4 py-2 text-xs font-bold disabled:opacity-30 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold rounded-lg border border-[#30363d] bg-[#0B0F19] text-[#F1F5F9] hover:border-[#F59E0B] disabled:opacity-30 cursor-pointer transition-colors"
             >
               Previous Page
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="btn-secondary px-4 py-2 text-xs font-bold disabled:opacity-30 cursor-pointer"
+              className="px-4 py-2 text-xs font-bold rounded-lg border border-[#30363d] bg-[#0B0F19] text-[#F1F5F9] hover:border-[#F59E0B] disabled:opacity-30 cursor-pointer transition-colors"
             >
               Next Page
             </button>
@@ -370,31 +370,31 @@ export const DeckBuilder: React.FC = () => {
 
       {/* Right Column: Deck List Panel (30%) */}
       <div className="w-full md:w-[30%] flex flex-col gap-6">
-        <div className="glass-panel p-5 rounded-3xl border border-purple-500/20 shadow-2xl flex flex-col gap-4 sticky top-20">
-          <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+        <div className="bg-[#141a26] p-5 rounded-xl border border-[#30363d] flex flex-col gap-4 sticky top-20">
+          <div className="flex justify-between items-center pb-3 border-b border-[#30363d]">
             <div>
               <input
                 type="text"
                 value={deckName}
                 onChange={(e) => setDeckName(e.target.value)}
-                className="bg-transparent font-cinzel font-black text-lg text-amber-300 outline-none border-b border-dashed border-amber-400/50 focus:border-amber-400 py-0.5 w-full"
+                className="bg-transparent font-cinzel font-bold text-lg text-[#F59E0B] outline-none border-b border-dashed border-[#F59E0B]/50 focus:border-[#F59E0B] py-0.5 w-full"
               />
-              <div className="text-[10px] font-mono text-slate-400 mt-1">AWS DynamoDB Deck Builder</div>
+              <div className="text-[10px] font-mono text-[#94A3B8] mt-1">AWS DynamoDB Deck Builder</div>
             </div>
 
             <div className="text-right">
-              <div className={`font-mono text-base font-black ${totalCards === 60 ? 'text-emerald-400' : totalCards > 60 ? 'text-rose-400' : 'text-amber-400'}`}>
+              <div className={`font-mono text-base font-bold ${totalCards === 60 ? 'text-emerald-400' : totalCards > 60 ? 'text-rose-400' : 'text-[#F59E0B]'}`}>
                 {totalCards}/60
               </div>
-              <div className="text-[9px] text-slate-400 font-mono">Cards in Deck</div>
+              <div className="text-[9px] text-[#94A3B8] font-mono">Cards in Deck</div>
             </div>
           </div>
 
           {/* Deck List Items */}
           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 no-scrollbar">
             {currentDeck.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 font-mono text-xs">
-                No cards added yet. Click cards on the left grid to build your deck!
+              <div className="text-center py-12 text-[#94A3B8] font-mono text-xs">
+                No cards added yet. Click cards on the left grid to build your deck.
               </div>
             ) : (
               currentDeck.map(({ card, count }) => (
@@ -409,7 +409,7 @@ export const DeckBuilder: React.FC = () => {
                       setInspectedCard(card);
                     }
                   }}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-400/60 transition-all cursor-pointer group"
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#0B0F19] border border-[#30363d] hover:border-[#F59E0B] transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <img
@@ -419,11 +419,11 @@ export const DeckBuilder: React.FC = () => {
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).style.display = 'none';
                       }}
-                      className="w-8 h-10 object-cover rounded shadow"
+                      className="w-8 h-10 object-cover rounded"
                     />
                     <div className="truncate">
-                      <div className="font-cinzel text-xs font-bold text-slate-100 truncate group-hover:text-amber-300">{card.name}</div>
-                      <div className="text-[9px] text-amber-400 font-mono">{card.ink} • {card.cost} Ink</div>
+                      <div className="font-cinzel text-xs font-bold text-[#F1F5F9] truncate group-hover:text-[#F59E0B]">{card.name}</div>
+                      <div className="text-[9px] text-[#F59E0B] font-mono">{card.ink} • {card.cost} Ink</div>
                     </div>
                   </div>
 
@@ -431,15 +431,15 @@ export const DeckBuilder: React.FC = () => {
                     <button
                       onClick={() => removeCard(card.id)}
                       aria-label="Remove card"
-                      className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
+                      className="p-1 text-[#94A3B8] hover:text-rose-400 cursor-pointer"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
-                    <span className="font-mono text-xs font-black text-amber-300 w-4 text-center">{count}</span>
+                    <span className="font-mono text-xs font-bold text-[#F59E0B] w-4 text-center">{count}</span>
                     <button
                       onClick={() => addCard(card)}
                       aria-label="Add card"
-                      className="p-1 text-slate-400 hover:text-amber-300 cursor-pointer"
+                      className="p-1 text-[#94A3B8] hover:text-[#F59E0B] cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -450,9 +450,9 @@ export const DeckBuilder: React.FC = () => {
           </div>
 
           {/* Deck Controls */}
-          <div className="space-y-2 pt-2 border-t border-slate-800">
+          <div className="space-y-2 pt-2 border-t border-[#30363d]">
             {saveStatus && (
-              <div className="text-center font-mono text-[10px] text-amber-400 bg-slate-950 p-2 rounded-lg border border-slate-800">
+              <div className="text-center font-mono text-[10px] text-[#F59E0B] bg-[#0B0F19] p-2 rounded border border-[#30363d]">
                 {saveStatus}
               </div>
             )}
@@ -460,10 +460,10 @@ export const DeckBuilder: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleClearDeckClick}
-                className={`flex-1 border py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                className={`flex-1 border py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
                   isConfirmingClear
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 animate-pulse'
-                    : 'bg-slate-900 border-slate-800 hover:border-rose-500 text-rose-400'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400'
+                    : 'bg-[#0B0F19] border-[#30363d] hover:border-rose-500 text-rose-400'
                 }`}
               >
                 <Trash2 className="w-4 h-4" /> {isConfirmingClear ? 'Confirm Clear?' : 'Clear Deck'}
@@ -472,9 +472,9 @@ export const DeckBuilder: React.FC = () => {
               <button
                 onClick={handleSaveDeck}
                 disabled={isSaving}
-                className="flex-1 btn-primary py-3 rounded-xl font-cinzel font-black text-xs uppercase tracking-wider shadow-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-black py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Deck'}
+                <Save className="w-4 h-4 text-black" /> {isSaving ? 'Saving...' : 'Save Deck'}
               </button>
             </div>
           </div>

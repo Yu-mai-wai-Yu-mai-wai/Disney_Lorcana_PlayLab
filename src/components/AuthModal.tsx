@@ -53,130 +53,130 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} ariaLabel="Sign In or Register" overlayClassName="bg-slate-950/80 backdrop-blur-md">
-      <div className="relative w-full max-w-md bg-slate-900 border border-purple-500/30 rounded-2xl p-6 shadow-2xl overflow-hidden glass-panel">
+    <Modal isOpen={isOpen} onClose={onClose} ariaLabel="Sign In or Register" overlayClassName="bg-[#0B0F19]/80">
+      <div className="relative w-full max-w-md bg-[#141a26] border border-[#30363d] rounded-xl p-6 shadow-xl overflow-hidden">
         {/* Close button */}
         <button
           onClick={onClose}
-          aria-label="ปิด"
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+          aria-label="Close"
+          className="absolute top-4 right-4 text-[#94A3B8] hover:text-white p-1 rounded hover:bg-[#0B0F19] transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-          {/* Title */}
-          <div className="text-center mb-6">
-            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-amber-500/20 border border-purple-500/30 mb-3">
-              <ShieldCheck className="w-8 h-8 text-amber-400" />
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-wide">
-              {mode === 'login' ? 'Welcome Back' : 'Create Lorcana Account'}
-            </h2>
-            <p className="text-xs text-purple-300/70 mt-1">
-              AWS Serverless Auth (bcrypt & JWT Security)
-            </p>
+        {/* Title */}
+        <div className="text-center mb-6">
+          <div className="inline-flex p-2.5 rounded-lg bg-[#0B0F19] border border-[#30363d] mb-3 text-[#F59E0B]">
+            <ShieldCheck className="w-7 h-7 text-[#F59E0B]" />
           </div>
-
-          {/* Mode Switcher */}
-          <div className="flex bg-slate-950/80 p-1 rounded-xl mb-6 border border-slate-800">
-            <button
-              onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                mode === 'login' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => { setMode('register'); setError(null); setSuccess(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                mode === 'register' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Register
-            </button>
-          </div>
-
-          {/* Notifications */}
-          {error && (
-            <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{success}</span>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Username</label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. player1"
-                  className="w-full bg-slate-950/90 border border-slate-800 focus:border-purple-500 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder:text-slate-600 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {mode === 'register' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="player1@lorcana.cloud"
-                    className="w-full bg-slate-950/90 border border-slate-800 focus:border-purple-500 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder:text-slate-600 outline-none transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full bg-slate-950/90 border border-slate-800 focus:border-purple-500 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder:text-slate-600 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 mt-2 bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                  <span>Connecting to AWS Lambda...</span>
-                </>
-              ) : (
-                <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
-              )}
-            </button>
-          </form>
+          <h2 className="text-xl font-cinzel font-bold text-[#F1F5F9] tracking-wide">
+            {mode === 'login' ? 'Welcome Back' : 'Create Lorcana Account'}
+          </h2>
+          <p className="text-xs text-[#94A3B8] mt-1">
+            AWS Serverless Auth (bcrypt &amp; JWT Security)
+          </p>
         </div>
+
+        {/* Mode Switcher */}
+        <div className="flex bg-[#0B0F19] p-1 rounded-lg mb-6 border border-[#30363d]">
+          <button
+            onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
+            className={`flex-1 py-2 text-xs font-bold rounded transition-colors ${
+              mode === 'login' ? 'bg-[#F59E0B] text-black' : 'text-[#94A3B8] hover:text-white'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => { setMode('register'); setError(null); setSuccess(null); }}
+            className={`flex-1 py-2 text-xs font-bold rounded transition-colors ${
+              mode === 'register' ? 'bg-[#F59E0B] text-black' : 'text-[#94A3B8] hover:text-white'
+            }`}
+          >
+            Register
+          </button>
+        </div>
+
+        {/* Notifications */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">Username</label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 w-4 h-4 text-[#94A3B8]" />
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. player1"
+                className="w-full bg-[#0B0F19] border border-[#30363d] focus:border-[#F59E0B] rounded-lg pl-9 pr-4 py-2 text-xs text-[#F1F5F9] placeholder:text-[#94A3B8]/50 outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          {mode === 'register' && (
+            <div>
+              <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 w-4 h-4 text-[#94A3B8]" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="player1@lorcana.cloud"
+                  className="w-full bg-[#0B0F19] border border-[#30363d] focus:border-[#F59E0B] rounded-lg pl-9 pr-4 py-2 text-xs text-[#F1F5F9] placeholder:text-[#94A3B8]/50 outline-none transition-colors"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 w-4 h-4 text-[#94A3B8]" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full bg-[#0B0F19] border border-[#30363d] focus:border-[#F59E0B] rounded-lg pl-9 pr-4 py-2 text-xs text-[#F1F5F9] placeholder:text-[#94A3B8]/50 outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 mt-2 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs rounded-lg shadow flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-black" />
+                <span>Connecting to AWS Lambda...</span>
+              </>
+            ) : (
+              <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
+            )}
+          </button>
+        </form>
+      </div>
     </Modal>
   );
 };

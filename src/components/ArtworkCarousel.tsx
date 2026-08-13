@@ -56,17 +56,17 @@ export const ArtworkCarousel: React.FC = () => {
   };
 
   return (
-    <div className="w-full py-12 flex flex-col items-center select-none relative z-10 overflow-hidden">
+    <div className="w-full py-12 flex flex-col items-center select-none relative z-10 overflow-hidden bg-[#0B0F19]">
       {/* Section Header */}
       <div className="text-center space-y-2 mb-8 px-4">
-        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-900/90 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold uppercase shadow-xl backdrop-blur-md">
-          <Sparkles className="w-4 h-4 text-amber-400" /> Full-Frame Disney Masterpiece Gallery
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141a26] border border-[#30363d] text-[#F59E0B] text-xs font-mono font-bold uppercase">
+          <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" /> Full-Frame Disney Masterpiece Gallery
         </div>
-        <h2 className="font-cinzel text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-amber-300 tracking-wide drop-shadow-2xl">
+        <h2 className="font-cinzel text-3xl sm:text-4xl md:text-5xl font-bold text-[#F1F5F9] tracking-wide">
           Official Disney Lorcana Artworks
         </h2>
-        <p className="text-slate-300 text-xs md:text-sm max-w-xl mx-auto font-outfit">
-          Explore high-resolution original card illustrations & key visuals.
+        <p className="text-[#94A3B8] text-xs md:text-sm max-w-xl mx-auto font-outfit">
+          Explore high-resolution original card illustrations &amp; key visuals.
         </p>
       </div>
 
@@ -111,14 +111,14 @@ export const ArtworkCarousel: React.FC = () => {
                   else setFullscreenImage(artwork);
                 }
               }}
-              className="absolute w-[85vw] max-w-[820px] h-[340px] sm:h-[410px] md:h-[460px] rounded-3xl overflow-hidden cursor-pointer preserve-3d shadow-[0_30px_90px_rgba(0,0,0,0.95)] border-2 border-amber-400/40 bg-slate-950 group"
+              className="absolute w-[85vw] max-w-[820px] h-[340px] sm:h-[410px] md:h-[460px] rounded-xl overflow-hidden cursor-pointer preserve-3d border border-[#30363d] bg-[#141a26] group"
               style={{ transformStyle: 'preserve-3d' }}
             >
-              {/* Full-Frame Art Image with Fallback */}
+              {/* Full-Frame Art Image */}
               <div className="relative w-full h-full">
-                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
-                  <span className="font-cinzel text-lg font-bold text-amber-300">{artwork.title}</span>
-                  <span className="text-xs text-slate-400 font-mono mt-1">Image unavailable</span>
+                <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                  <span className="font-cinzel text-lg font-bold text-[#F59E0B]">{artwork.title}</span>
+                  <span className="text-xs text-[#94A3B8] font-mono mt-1">Image unavailable</span>
                 </div>
                 <img
                   src={artwork.url}
@@ -126,24 +126,24 @@ export const ArtworkCarousel: React.FC = () => {
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = 'none';
                   }}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out relative z-10"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out relative z-10"
                 />
               </div>
 
-              {/* Gloss Gradient Bottom & Top Shadows */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-85 group-hover:opacity-70 transition-opacity z-20" />
+              {/* Dark Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F19] via-[#0B0F19]/30 to-transparent opacity-85 group-hover:opacity-70 transition-opacity z-20" />
 
               {/* Cinematic Center Label Banner */}
               {isCenter && (
                 <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 flex items-end justify-between text-left z-30">
                   <div className="space-y-1 max-w-xl">
-                    <span className="bg-amber-500/20 text-amber-300 border border-amber-400/50 px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider">
+                    <span className="bg-[#0B0F19] text-[#F59E0B] border border-[#30363d] px-3 py-1 rounded text-[11px] font-mono font-bold uppercase tracking-wider">
                       Featured Artwork
                     </span>
-                    <h3 className="font-cinzel text-2xl sm:text-3xl md:text-4xl font-black text-amber-300 drop-shadow-lg leading-tight">
+                    <h3 className="font-cinzel text-2xl sm:text-3xl md:text-4xl font-bold text-[#F1F5F9] leading-tight">
                       {artwork.title}
                     </h3>
-                    <p className="text-xs sm:text-sm font-mono text-slate-300 font-semibold drop-shadow">
+                    <p className="text-xs sm:text-sm font-mono text-[#94A3B8] font-semibold">
                       {artwork.subtitle}
                     </p>
                   </div>
@@ -154,7 +154,7 @@ export const ArtworkCarousel: React.FC = () => {
                       setFullscreenImage(artwork);
                     }}
                     aria-label="Maximize artwork preview"
-                    className="p-3.5 bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 rounded-2xl border border-amber-400/60 transition-all cursor-pointer shadow-2xl hover:scale-110 shrink-0"
+                    className="p-3 bg-[#0B0F19] hover:bg-[#F59E0B] text-[#F59E0B] hover:text-black rounded-lg border border-[#30363d] transition-colors cursor-pointer shrink-0"
                   >
                     <Maximize2 className="w-5 h-5" />
                   </button>
@@ -168,17 +168,17 @@ export const ArtworkCarousel: React.FC = () => {
         <button
           onClick={handlePrev}
           aria-label="Previous artwork"
-          className="absolute left-3 sm:left-8 md:left-14 z-40 p-4 rounded-full bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-400/60 transition-all cursor-pointer shadow-2xl hover:scale-110"
+          className="absolute left-3 sm:left-8 md:left-14 z-40 p-3 rounded-full bg-[#141a26] hover:bg-[#F59E0B] text-[#F59E0B] hover:text-black border border-[#30363d] transition-colors cursor-pointer shadow-lg"
         >
-          <ChevronLeft className="w-7 h-7" />
+          <ChevronLeft className="w-6 h-6" />
         </button>
 
         <button
           onClick={handleNext}
           aria-label="Next artwork"
-          className="absolute right-3 sm:right-8 md:right-14 z-40 p-4 rounded-full bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-400/60 transition-all cursor-pointer shadow-2xl hover:scale-110"
+          className="absolute right-3 sm:right-8 md:right-14 z-40 p-3 rounded-full bg-[#141a26] hover:bg-[#F59E0B] text-[#F59E0B] hover:text-black border border-[#30363d] transition-colors cursor-pointer shadow-lg"
         >
-          <ChevronRight className="w-7 h-7" />
+          <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 
@@ -187,7 +187,7 @@ export const ArtworkCarousel: React.FC = () => {
         <button
           onClick={() => setIsAutoPlaying(!isAutoPlaying)}
           aria-label="Toggle autoplay"
-          className="p-2.5 rounded-full bg-slate-900 border border-slate-700 text-amber-400 hover:text-amber-300 transition-colors shadow"
+          className="p-2 rounded-full bg-[#141a26] border border-[#30363d] text-[#F59E0B] hover:text-white transition-colors"
           title={isAutoPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
         >
           {isAutoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -199,10 +199,10 @@ export const ArtworkCarousel: React.FC = () => {
               key={idx}
               onClick={() => setCurrentIndex(idx)}
               aria-label={`Go to slide ${idx + 1}`}
-              className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 currentIndex === idx
-                  ? 'w-9 bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.9)]'
-                  : 'w-2.5 bg-slate-700 hover:bg-slate-500'
+                  ? 'w-8 bg-[#F59E0B]'
+                  : 'w-2 bg-[#30363d] hover:bg-[#94A3B8]'
               }`}
             />
           ))}
@@ -214,22 +214,22 @@ export const ArtworkCarousel: React.FC = () => {
         isOpen={!!fullscreenImage}
         onClose={() => setFullscreenImage(null)}
         ariaLabel="Artwork Preview"
-        overlayClassName="bg-slate-950/95 backdrop-blur-2xl"
+        overlayClassName="bg-[#0B0F19]/90"
       >
         {fullscreenImage && (
           <div className="relative z-10 max-w-5xl w-full flex flex-col items-center pointer-events-auto">
             <button
               onClick={() => setFullscreenImage(null)}
               aria-label="Close"
-              className="absolute -top-12 right-0 p-2.5 bg-slate-900 text-slate-200 hover:text-white rounded-full border border-slate-700 cursor-pointer shadow-2xl"
+              className="absolute -top-12 right-0 p-2 bg-[#141a26] text-[#94A3B8] hover:text-white rounded-lg border border-[#30363d] cursor-pointer"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="rounded-3xl overflow-hidden border-2 border-amber-400/60 shadow-[0_0_90px_rgba(245,158,11,0.5)] max-h-[82vh] bg-slate-950 relative w-full flex items-center justify-center">
-              <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
-                <span className="font-cinzel text-xl font-bold text-amber-300">{fullscreenImage.title}</span>
-                <span className="text-xs text-slate-400 font-mono mt-1">Image unavailable</span>
+            <div className="rounded-xl overflow-hidden border border-[#30363d] max-h-[82vh] bg-[#141a26] relative w-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                <span className="font-cinzel text-xl font-bold text-[#F59E0B]">{fullscreenImage.title}</span>
+                <span className="text-xs text-[#94A3B8] font-mono mt-1">Image unavailable</span>
               </div>
               <img
                 src={fullscreenImage.url}
@@ -242,8 +242,8 @@ export const ArtworkCarousel: React.FC = () => {
             </div>
 
             <div className="mt-4 text-center space-y-1">
-              <div className="font-cinzel text-2xl font-black text-amber-300">{fullscreenImage.title}</div>
-              <div className="text-xs font-mono text-slate-400">{fullscreenImage.subtitle}</div>
+              <div className="font-cinzel text-2xl font-bold text-[#F59E0B]">{fullscreenImage.title}</div>
+              <div className="text-xs font-mono text-[#94A3B8]">{fullscreenImage.subtitle}</div>
             </div>
           </div>
         )}
