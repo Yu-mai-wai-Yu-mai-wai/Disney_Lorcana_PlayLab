@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, Sparkles, Shield, Swords, Compass, Droplets, Tag, Star, Flame, Eye } from 'lucide-react';
 import { LorcanaCard } from '../types/lorcana';
 import { InkSymbol } from './InkSymbol';
+import { Modal } from './ui/Modal';
 
 interface Card3DInspectorModalProps {
   card: LorcanaCard | null;
@@ -127,54 +127,51 @@ export const Card3DInspectorModal: React.FC<Card3DInspectorModalProps> = ({
   const foilConfig = getRarityFoilStyle();
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl font-outfit select-none overflow-y-auto">
-        {/* Backdrop Close Click */}
-        <div className="absolute inset-0" onClick={onClose} />
-
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.85, opacity: 0, y: 20 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="relative z-10 max-w-4xl w-full glass-panel border border-amber-400/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col md:flex-row gap-8 items-center bg-[#051424]/95"
+    <Modal isOpen={!!card} onClose={onClose} ariaLabel="Card Inspector" overlayClassName="bg-slate-950/85 backdrop-blur-xl font-outfit select-none overflow-y-auto">
+      <div className="relative z-10 max-w-4xl w-full glass-panel border border-amber-400/30 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col md:flex-row gap-8 items-center bg-[#051424]/95">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          aria-label="ปิด"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 transition-all cursor-pointer z-30"
         >
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 transition-all cursor-pointer z-30"
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* LEFT: 3D ROTATING HOLOGRAPHIC CARD */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center py-4">
+          <div className="text-xs font-mono text-amber-300/80 mb-3 flex items-center gap-1.5 font-bold">
+            <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
+            <span>Hover & Move mouse to rotate 3D Foil</span>
+          </div>
+
+          {/* 3D Card Container */}
+          <div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className={`w-[290px] h-[410px] md:w-[320px] md:h-[450px] rounded-2xl relative cursor-grab active:cursor-grabbing transition-transform duration-100 ease-out preserve-3d ${foilConfig.shadow}`}
+            style={{
+              transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.04)`,
+              transformStyle: 'preserve-3d',
+            }}
           >
-            <X className="w-5 h-5" />
-          </button>
-
-          {/* LEFT: 3D ROTATING HOLOGRAPHIC CARD */}
-          <div className="w-full md:w-1/2 flex flex-col items-center justify-center py-4">
-            <div className="text-xs font-mono text-amber-300/80 mb-3 flex items-center gap-1.5 font-bold">
-              <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
-              <span>Hover & Move mouse to rotate 3D Foil</span>
-            </div>
-
-            {/* 3D Card Container */}
-            <div
-              ref={cardRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              className={`w-[290px] h-[410px] md:w-[320px] md:h-[450px] rounded-2xl relative cursor-grab active:cursor-grabbing transition-transform duration-100 ease-out preserve-3d ${foilConfig.shadow}`}
-              style={{
-                transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.04)`,
-                transformStyle: 'preserve-3d',
-              }}
-            >
-              {/* Main Card Image */}
+            {/* Main Card Image with Fallback */}
+            <div className="relative w-full h-full rounded-2xl overflow-hidden">
+              <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                <span className="font-cinzel text-sm font-bold text-amber-300 line-clamp-2">{card.name}</span>
+                <span className="text-[10px] text-slate-400 font-mono mt-1">Image unavailable</span>
+              </div>
               <img
                 src={card.imageUrl}
                 alt={card.name}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://api.lorcana.ravensburger.com/images/en/set1/1_ea50bda8825b4ccdf7e71c7052ee9688f92e75ab.jpg';
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}
-                className="w-full h-full object-cover rounded-2xl shadow-2xl pointer-events-none"
+                className="w-full h-full object-cover rounded-2xl shadow-2xl pointer-events-none relative z-10"
               />
+            </div>
 
               {/* Rarity Holographic Foil Overlay */}
               <div
@@ -298,8 +295,7 @@ export const Card3DInspectorModal: React.FC<Card3DInspectorModalProps> = ({
               </div>
             </div>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+    </Modal>
   );
 };

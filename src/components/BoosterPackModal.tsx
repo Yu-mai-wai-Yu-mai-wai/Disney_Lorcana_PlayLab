@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Sparkles, X, RotateCcw, Plus, Star, Eye, Layers, Zap, Gift, Scissors, RotateCw, ChevronRight } from 'lucide-react';
 import { LorcanaCard } from '../types/lorcana';
 import { InkSymbol } from './InkSymbol';
+import { Modal } from './ui/Modal';
 
 interface BoosterPackModalProps {
   isOpen: boolean;
@@ -101,8 +102,6 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
       generatePack();
     }
   }, [isOpen, cardsDatabase]);
-
-  if (!isOpen) return null;
 
   const handleStartTearPack = () => {
     if (packCards.length === 0) {
@@ -210,23 +209,16 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl font-outfit select-none overflow-y-auto">
-        <div className="absolute inset-0" onClick={onClose} />
-
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.85, opacity: 0 }}
-          className="relative z-10 max-w-4xl w-full flex flex-col items-center justify-center min-h-[640px] pointer-events-auto"
+    <Modal isOpen={isOpen} onClose={onClose} ariaLabel="Booster Pack" overlayClassName="bg-slate-950/90 backdrop-blur-2xl font-outfit select-none overflow-y-auto">
+      <div className="relative z-10 max-w-4xl w-full flex flex-col items-center justify-center min-h-[640px] pointer-events-auto">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          aria-label="ปิด"
+          className="absolute top-0 right-4 p-2.5 text-slate-300 hover:text-white rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700 transition-all cursor-pointer z-50 shadow-2xl"
         >
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-0 right-4 p-2.5 text-slate-300 hover:text-white rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700 transition-all cursor-pointer z-50 shadow-2xl"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <X className="w-6 h-6" />
+        </button>
 
           {/* STEP 1: PURE 3D BOOSTER PACK */}
           {packState === 'sealed' && (
@@ -289,7 +281,15 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                     </div>
 
                     <div
+                      role="button"
+                      tabIndex={0}
                       onClick={handleStartTearPack}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleStartTearPack();
+                        }
+                      }}
                       className="absolute bottom-3 left-6 right-6 text-center font-cinzel text-[10px] font-bold text-amber-300 bg-slate-950/80 py-1.5 rounded-lg border border-amber-400/40 opacity-80 group-hover:opacity-100 transition-opacity cursor-pointer z-20"
                     >
                       Click or Slice to Open
@@ -329,6 +329,15 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Task 8: Keyboard / Mobile alternative button */}
+              <button
+                onClick={handleStartTearPack}
+                className="mt-6 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-cinzel font-black text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+              >
+                <Gift className="w-4 h-4 text-slate-950" />
+                Open Pack (เปิดซอง)
+              </button>
             </div>
           )}
 
@@ -396,7 +405,15 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
               <div className="flex flex-col items-center justify-center my-2">
                 <div
                   ref={cardRef}
+                  role="button"
+                  tabIndex={0}
                   onClick={handleCardClick}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleCardClick();
+                    }
+                  }}
                   onMouseMove={handleCardMouseMove}
                   onMouseLeave={handleCardMouseLeave}
                   className={`w-[290px] h-[410px] md:w-[320px] md:h-[450px] rounded-2xl relative cursor-pointer transition-transform duration-100 ease-out preserve-3d ${
@@ -442,23 +459,29 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                       className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-slate-950"
                       style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
                     >
-                      <img
-                        src={currentCard.imageUrl}
-                        alt={currentCard.name}
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://api.lorcana.ravensburger.com/images/en/set1/1_ea50bda8825b4ccdf7e71c7052ee9688f92e75ab.jpg';
-                        }}
-                        className="w-full h-full object-cover rounded-2xl"
-                      />
+                      <div className="relative w-full h-full rounded-2xl overflow-hidden">
+                        <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                          <span className="font-cinzel text-sm font-bold text-amber-300 line-clamp-2">{currentCard.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono mt-1">Image unavailable</span>
+                        </div>
+                        <img
+                          src={currentCard.imageUrl}
+                          alt={currentCard.name}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                          className="w-full h-full object-cover rounded-2xl relative z-10"
+                        />
+                      </div>
                       <div
-                        className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-150"
+                        className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-150 z-20"
                         style={{
                           opacity: glarePos.opacity,
                           background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255, 255, 255, 0.6) 0%, transparent 70%)`,
                         }}
                       />
-                      <div className="absolute bottom-4 left-0 right-0 text-center font-cinzel text-xs font-bold text-amber-300 bg-slate-950/90 py-1.5 border-t border-amber-400/40 shadow flex items-center justify-center gap-1">
+                      <div className="absolute bottom-4 left-0 right-0 text-center font-cinzel text-xs font-bold text-amber-300 bg-slate-950/90 py-1.5 border-t border-amber-400/40 shadow flex items-center justify-center gap-1 z-30">
                         Click to Next Card ({currentCardIndex + 1}/12) <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
@@ -505,8 +528,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
               </div>
             </div>
           )}
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+      </Modal>
   );
 };

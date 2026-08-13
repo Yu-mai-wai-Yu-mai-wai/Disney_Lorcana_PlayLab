@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Wifi, Tag, History, MessageSquare, Skull, Trash2, Library, Droplets, Compass, Zap, RotateCw, PanelRightOpen, PanelRightClose, X, Layers, AlertCircle, CheckCircle2, XCircle, Users, Eye, Play, PlusCircle, ArrowUpCircle } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
+import { Modal } from './ui/Modal';
 
 interface LorcanaCard {
   id: string;
@@ -439,7 +440,15 @@ export const LorcanaBoard: React.FC = () => {
           <div className="flex gap-2">
             {/* Draw Deck */}
             <div
+              role="button"
+              tabIndex={0}
               onClick={handleDrawCard}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleDrawCard();
+                }
+              }}
               className="w-20 h-28 rounded-xl border-2 border-amber-400 flex flex-col items-center justify-between p-2 relative shadow-2xl cursor-pointer hover:border-amber-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all overflow-hidden group"
               title="Click to Draw Card from Deck"
             >
@@ -573,22 +582,39 @@ export const LorcanaBoard: React.FC = () => {
                 <motion.div
                   key={card.id}
                   layout
+                  role="button"
+                  tabIndex={0}
                   onMouseEnter={() => setHoveredCard(card)}
                   onMouseLeave={() => setHoveredCard(null)}
                   onClick={() => toggleExert(card.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleExert(card.id);
+                    }
+                  }}
                   className={`w-36 h-52 rounded-2xl relative cursor-pointer transition-all duration-300 preserve-3d group ${
                     isExerted ? 'exerted border-2 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.6)]' : 'border-2 border-slate-700 shadow-2xl hover:border-amber-400'
                   }`}
                 >
-                  <img
-                    src={card.img}
-                    alt={card.name}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover rounded-2xl"
-                  />
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden">
+                    <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                      <span className="font-cinzel text-xs font-bold text-amber-300 line-clamp-2">{card.name}</span>
+                      <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+                    </div>
+                    <img
+                      src={card.img}
+                      alt={card.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                      className="w-full h-full object-cover rounded-2xl relative z-10"
+                    />
+                  </div>
                   
                   {card.isWet && (
-                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center pointer-events-none">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center pointer-events-none z-20">
                       <Droplets className="w-8 h-8 text-amber-300 animate-bounce" />
                       <span className="text-[10px] font-cinzel font-bold text-amber-300 bg-slate-950/90 px-2 py-0.5 rounded mt-1 border border-amber-400/40">
                         Ink Drying...
@@ -602,14 +628,15 @@ export const LorcanaBoard: React.FC = () => {
                         e.stopPropagation();
                         handleQuest(card);
                       }}
-                      className="absolute top-2.5 right-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 p-2 rounded-full shadow-lg opacity-90 group-hover:opacity-100 transition-all cursor-pointer font-bold text-[10px] flex items-center justify-center"
+                      aria-label="Quest"
+                      className="absolute top-2.5 right-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 p-2 rounded-full shadow-lg opacity-90 group-hover:opacity-100 transition-all cursor-pointer font-bold text-[10px] flex items-center justify-center z-20"
                       title={`Quest for +${card.lore || 1} Lore`}
                     >
                       <Zap className="w-4 h-4 fill-slate-950" />
                     </button>
                   )}
 
-                  <div className="absolute bottom-2.5 left-2 right-2 bg-slate-950/90 px-2 py-1 rounded-xl border border-amber-400/40 flex justify-between items-center text-[10px] font-mono font-bold">
+                  <div className="absolute bottom-2.5 left-2 right-2 bg-slate-950/90 px-2 py-1 rounded-xl border border-amber-400/40 flex justify-between items-center text-[10px] font-mono font-bold z-20">
                     <span className="text-amber-300">⚔️ {card.strength}/{card.willpower}</span>
                     <span className="text-amber-400">♦ {card.lore}</span>
                   </div>
@@ -710,71 +737,76 @@ export const LorcanaBoard: React.FC = () => {
       </AnimatePresence>
 
       {/* CARD ACTION MODAL */}
-      <AnimatePresence>
+      <Modal
+        isOpen={!!selectedHandCard}
+        onClose={() => setSelectedHandCard(null)}
+        ariaLabel="Card Action"
+        overlayClassName="bg-slate-950/80 backdrop-blur-md"
+      >
         {selectedHandCard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <div className="absolute inset-0" onClick={() => setSelectedHandCard(null)} />
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="relative z-10 max-w-sm w-full bg-slate-950 border-2 border-amber-400/80 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center"
+          <div className="relative z-10 max-w-sm w-full bg-slate-950 border-2 border-amber-400/80 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4 text-center">
+            <button
+              onClick={() => setSelectedHandCard(null)}
+              aria-label="ปิด"
+              className="absolute top-4 right-4 p-1.5 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800 cursor-pointer"
             >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-36 h-52 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-xl relative">
+              <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                <span className="font-cinzel text-xs font-bold text-amber-300">{selectedHandCard.name}</span>
+                <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+              </div>
+              <img
+                src={selectedHandCard.img}
+                alt={selectedHandCard.name}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+                className="w-full h-full object-cover relative z-10"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="font-cinzel text-xl font-bold text-amber-300">{selectedHandCard.name}</div>
+              <div className="text-xs font-mono text-slate-400">{selectedHandCard.title}</div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="w-full space-y-2.5 pt-2">
               <button
-                onClick={() => setSelectedHandCard(null)}
-                className="absolute top-4 right-4 p-1.5 bg-slate-900 text-slate-400 hover:text-white rounded-full border border-slate-800"
+                onClick={() => handleAddToInkwell(selectedHandCard)}
+                disabled={!selectedHandCard.isInkable || hasInkedThisTurn}
+                className="w-full bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 text-amber-300 border border-amber-400/60 p-3.5 rounded-2xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all"
               >
-                <X className="w-5 h-5" />
+                <Droplets className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <span>
+                  {!selectedHandCard.isInkable
+                    ? '🚫 Non-Inkable Card'
+                    : hasInkedThisTurn
+                    ? '🚫 Inked this turn (1/1 Limit)'
+                    : '💧 Add to Inkwell (+1 Ink Capacity)'}
+                </span>
               </button>
 
-              <div className="w-36 h-52 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-xl">
-                <img
-                  src={selectedHandCard.img}
-                  alt={selectedHandCard.name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="font-cinzel text-xl font-bold text-amber-300">{selectedHandCard.name}</div>
-                <div className="text-xs font-mono text-slate-400">{selectedHandCard.title}</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="w-full space-y-2.5 pt-2">
-                <button
-                  onClick={() => handleAddToInkwell(selectedHandCard)}
-                  disabled={!selectedHandCard.isInkable || hasInkedThisTurn}
-                  className="w-full bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 text-amber-300 border border-amber-400/60 p-3.5 rounded-2xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all"
-                >
-                  <Droplets className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  <span>
-                    {!selectedHandCard.isInkable
-                      ? '🚫 Non-Inkable Card'
-                      : hasInkedThisTurn
-                      ? '🚫 Inked this turn (1/1 Limit)'
-                      : '💧 Add to Inkwell (+1 Ink Capacity)'}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => handlePlayCard(selectedHandCard)}
-                  disabled={availableInk < selectedHandCard.cost}
-                  className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 p-3.5 rounded-2xl font-cinzel font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg"
-                >
-                  <Play className="w-4 h-4 fill-slate-950" />
-                  <span>
-                    {availableInk < selectedHandCard.cost
-                      ? `⚠️ Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`
-                      : `✨ Play to Field (${selectedHandCard.cost} Ink)`}
-                  </span>
-                </button>
-              </div>
-            </motion.div>
+              <button
+                onClick={() => handlePlayCard(selectedHandCard)}
+                disabled={availableInk < selectedHandCard.cost}
+                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 p-3.5 rounded-2xl font-cinzel font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg"
+              >
+                <Play className="w-4 h-4 fill-slate-950" />
+                <span>
+                  {availableInk < selectedHandCard.cost
+                    ? `⚠️ Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`
+                    : `✨ Play to Field (${selectedHandCard.cost} Ink)`}
+                </span>
+              </button>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
 
       {/* SMART COLLAPSIBLE HAND DOCK WITH ENLARGED CARDS (w-32 h-48) */}
       <div className="fixed bottom-0 left-64 right-0 z-30 flex justify-center pointer-events-none">
@@ -795,6 +827,8 @@ export const LorcanaBoard: React.FC = () => {
             {handCards.map((card) => (
               <motion.div
                 key={card.id}
+                role="button"
+                tabIndex={0}
                 drag
                 dragConstraints={{ left: -400, right: 400, top: -350, bottom: 50 }}
                 dragElastic={0.15}
@@ -802,18 +836,33 @@ export const LorcanaBoard: React.FC = () => {
                 onMouseEnter={() => setHoveredCard(card)}
                 onMouseLeave={() => setHoveredCard(null)}
                 onClick={() => setSelectedHandCard(card)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedHandCard(card);
+                  }
+                }}
                 onDragEnd={(_, info) => handleDragEnd(card, info)}
                 whileHover={{ scale: 1.15, y: -35, zIndex: 50 }}
                 className="w-32 h-48 rounded-2xl relative cursor-pointer preserve-3d shadow-2xl border-2 border-amber-400/60 bg-slate-950 group"
               >
-                <img
-                  src={card.img}
-                  alt={card.name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover rounded-2xl"
-                />
+                <div className="relative w-full h-full rounded-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                    <span className="font-cinzel text-xs font-bold text-amber-300 line-clamp-2">{card.name}</span>
+                    <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+                  </div>
+                  <img
+                    src={card.img}
+                    alt={card.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                    className="w-full h-full object-cover rounded-2xl relative z-10"
+                  />
+                </div>
 
-                <div className="absolute top-1.5 left-1.5 bg-slate-950/90 px-1.5 py-0.5 rounded-lg border border-amber-400/50 text-[10px] font-mono font-bold text-amber-300 flex items-center gap-1 shadow">
+                <div className="absolute top-1.5 left-1.5 bg-slate-950/90 px-1.5 py-0.5 rounded-lg border border-amber-400/50 text-[10px] font-mono font-bold text-amber-300 flex items-center gap-1 shadow z-20">
                   <Droplets className="w-3 h-3 text-amber-400 fill-amber-400" />
                   <span>{card.cost}</span>
                 </div>

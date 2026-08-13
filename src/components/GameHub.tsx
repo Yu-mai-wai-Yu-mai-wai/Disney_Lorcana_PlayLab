@@ -81,7 +81,15 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Card 1 */}
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setActiveTab('board')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveTab('board');
+              }
+            }}
             className="bg-[#0f172a]/70 backdrop-blur-[20px] rounded-2xl p-8 gold-border amethyst-glow transition-all duration-300 flex flex-col gap-4 items-start relative overflow-hidden group cursor-pointer border border-[#ffb95f]/20 hover:border-[#ffb95f]/80"
           >
             <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-400/40 text-amber-400 group-hover:scale-110 transition-transform">
@@ -97,7 +105,15 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
 
           {/* Card 2 */}
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setActiveTab('analytics')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveTab('analytics');
+              }
+            }}
             className="bg-[#0f172a]/70 backdrop-blur-[20px] rounded-2xl p-8 gold-border amethyst-glow transition-all duration-300 flex flex-col gap-4 items-start relative overflow-hidden group cursor-pointer border border-[#ffb95f]/20 hover:border-[#ffb95f]/80"
           >
             <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-400/40 text-amber-400 group-hover:scale-110 transition-transform">
@@ -113,7 +129,15 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
 
           {/* Card 3 */}
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setActiveTab('deckbuilder')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveTab('deckbuilder');
+              }
+            }}
             className="bg-[#0f172a]/70 backdrop-blur-[20px] rounded-2xl p-8 gold-border amethyst-glow transition-all duration-300 flex flex-col gap-4 items-start relative overflow-hidden group cursor-pointer border border-[#ffb95f]/20 hover:border-[#ffb95f]/80"
           >
             <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-400/40 text-amber-400 group-hover:scale-110 transition-transform">
@@ -129,7 +153,15 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
 
           {/* Card 4 */}
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setActiveTab('rules')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveTab('rules');
+              }
+            }}
             className="bg-[#0f172a]/70 backdrop-blur-[20px] rounded-2xl p-8 gold-border amethyst-glow transition-all duration-300 flex flex-col gap-4 items-start relative overflow-hidden group cursor-pointer border border-[#ffb95f]/20 hover:border-[#ffb95f]/80"
           >
             <div className="bg-amber-500/10 p-4 rounded-2xl border border-amber-400/40 text-amber-400 group-hover:scale-110 transition-transform">
@@ -160,10 +192,66 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="flex flex-wrap justify-center gap-6 text-xs text-[#c6c6cc]">
-            <a href="#board" onClick={() => setActiveTab('board')} className="hover:text-[#ffb95f] transition-colors">Match Arena</a>
-            <a href="#deckbuilder" onClick={() => setActiveTab('deckbuilder')} className="hover:text-[#ffb95f] transition-colors">Deck Builder</a>
-            <a href="#analytics" onClick={() => setActiveTab('analytics')} className="hover:text-[#ffb95f] transition-colors">Deck Analytics</a>
-            <a href="#rules" onClick={() => setActiveTab('rules')} className="hover:text-[#ffb95f] transition-colors">Rulebook</a>
+            <a
+              href="#board"
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveTab('board')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveTab('board');
+                }
+              }}
+              className="hover:text-[#ffb95f] transition-colors"
+            >
+              Match Arena
+            </a>
+            <a
+              href="#deckbuilder"
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveTab('deckbuilder')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveTab('deckbuilder');
+                }
+              }}
+              className="hover:text-[#ffb95f] transition-colors"
+            >
+              Deck Builder
+            </a>
+            <a
+              href="#analytics"
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveTab('analytics')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveTab('analytics');
+                }
+              }}
+              className="hover:text-[#ffb95f] transition-colors"
+            >
+              Deck Analytics
+            </a>
+            <a
+              href="#rules"
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveTab('rules')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveTab('rules');
+                }
+              }}
+              className="hover:text-[#ffb95f] transition-colors"
+            >
+              Rulebook
+            </a>
           </div>
 
           <div className="flex flex-wrap justify-center gap-3 mt-2">

@@ -274,7 +274,7 @@
 /* Shadcn UI Badges & Status Pills */
 .shadcn-badge {
   display: inline-flex;
-  items-center: center;
+  align-items: center;
   border-radius: 9999px;
   padding: 0.25rem 0.625rem;
   font-size: 0.6875rem;
@@ -354,4 +354,20 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(168, 85, 247, 0.6);
+}
+
+/* Accessibility: Focus Visible Ring */
+:focus-visible {
+  outline: 2px solid #F59E0B;
+  outline-offset: 2px;
+}
+
+/* Accessibility: Prefers Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -78,8 +78,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
     }
   };
 
-  const handleDeleteDeck = (id: string) => {
-    setSavedDecks((prev) => prev.filter((d) => d.id !== id));
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const confirmTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleDeleteDeckClick = (id: string) => {
+    if (confirmDeleteId === id) {
+      if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+      setConfirmDeleteId(null);
+      setSavedDecks((prev) => prev.filter((d) => d.id !== id));
+    } else {
+      if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+      setConfirmDeleteId(id);
+      confirmTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null);
+      }, 3000);
+    }
   };
 
   return (
@@ -348,12 +361,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                       >
                         <BarChart3 className="w-3.5 h-3.5 text-emerald-400" /> Stats
                       </button>
-                      <button
-                        onClick={() => handleDeleteDeck(deck.id)}
-                        className="flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
+                      {confirmDeleteId === deck.id ? (
+                        <button
+                          onClick={() => handleDeleteDeckClick(deck.id)}
+                          aria-label="Confirm Delete deck"
+                          className="flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer animate-pulse"
+                        >
+                          Confirm Delete?
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDeleteDeckClick(deck.id)}
+                          aria-label="Delete deck"
+                          className="flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

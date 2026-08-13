@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, Maximize2, X, Play, Pause } from 'lucide-react';
+import { Modal } from './ui/Modal';
 
 export interface ArtworkItem {
   id: string;
@@ -95,27 +96,46 @@ export const ArtworkCarousel: React.FC = () => {
                 zIndex: isCenter ? 30 : 10,
               }}
               transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 if (isLeft) handlePrev();
                 else if (isRight) handleNext();
                 else setFullscreenImage(artwork);
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  if (isLeft) handlePrev();
+                  else if (isRight) handleNext();
+                  else setFullscreenImage(artwork);
+                }
+              }}
               className="absolute w-[85vw] max-w-[820px] h-[340px] sm:h-[410px] md:h-[460px] rounded-3xl overflow-hidden cursor-pointer preserve-3d shadow-[0_30px_90px_rgba(0,0,0,0.95)] border-2 border-amber-400/40 bg-slate-950 group"
               style={{ transformStyle: 'preserve-3d' }}
             >
-              {/* Full-Frame Art Image */}
-              <img
-                src={artwork.url}
-                alt={artwork.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
-              />
+              {/* Full-Frame Art Image with Fallback */}
+              <div className="relative w-full h-full">
+                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                  <span className="font-cinzel text-lg font-bold text-amber-300">{artwork.title}</span>
+                  <span className="text-xs text-slate-400 font-mono mt-1">Image unavailable</span>
+                </div>
+                <img
+                  src={artwork.url}
+                  alt={artwork.title}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out relative z-10"
+                />
+              </div>
 
               {/* Gloss Gradient Bottom & Top Shadows */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-85 group-hover:opacity-70 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-85 group-hover:opacity-70 transition-opacity z-20" />
 
               {/* Cinematic Center Label Banner */}
               {isCenter && (
-                <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 flex items-end justify-between text-left">
+                <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 flex items-end justify-between text-left z-30">
                   <div className="space-y-1 max-w-xl">
                     <span className="bg-amber-500/20 text-amber-300 border border-amber-400/50 px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider">
                       Featured Artwork
@@ -133,6 +153,7 @@ export const ArtworkCarousel: React.FC = () => {
                       e.stopPropagation();
                       setFullscreenImage(artwork);
                     }}
+                    aria-label="Maximize artwork preview"
                     className="p-3.5 bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 rounded-2xl border border-amber-400/60 transition-all cursor-pointer shadow-2xl hover:scale-110 shrink-0"
                   >
                     <Maximize2 className="w-5 h-5" />
@@ -146,6 +167,7 @@ export const ArtworkCarousel: React.FC = () => {
         {/* Carousel Navigation Buttons */}
         <button
           onClick={handlePrev}
+          aria-label="Previous artwork"
           className="absolute left-3 sm:left-8 md:left-14 z-40 p-4 rounded-full bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-400/60 transition-all cursor-pointer shadow-2xl hover:scale-110"
         >
           <ChevronLeft className="w-7 h-7" />
@@ -153,6 +175,7 @@ export const ArtworkCarousel: React.FC = () => {
 
         <button
           onClick={handleNext}
+          aria-label="Next artwork"
           className="absolute right-3 sm:right-8 md:right-14 z-40 p-4 rounded-full bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-400/60 transition-all cursor-pointer shadow-2xl hover:scale-110"
         >
           <ChevronRight className="w-7 h-7" />
@@ -163,6 +186,7 @@ export const ArtworkCarousel: React.FC = () => {
       <div className="flex items-center gap-4 mt-6">
         <button
           onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+          aria-label="Toggle autoplay"
           className="p-2.5 rounded-full bg-slate-900 border border-slate-700 text-amber-400 hover:text-amber-300 transition-colors shadow"
           title={isAutoPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
         >
@@ -174,6 +198,7 @@ export const ArtworkCarousel: React.FC = () => {
             <button
               key={idx}
               onClick={() => setCurrentIndex(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
               className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
                 currentIndex === idx
                   ? 'w-9 bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.9)]'
@@ -185,39 +210,44 @@ export const ArtworkCarousel: React.FC = () => {
       </div>
 
       {/* FULLSCREEN ARTWORK PREVIEW MODAL */}
-      <AnimatePresence>
+      <Modal
+        isOpen={!!fullscreenImage}
+        onClose={() => setFullscreenImage(null)}
+        ariaLabel="Artwork Preview"
+        overlayClassName="bg-slate-950/95 backdrop-blur-2xl"
+      >
         {fullscreenImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl">
-            <div className="absolute inset-0" onClick={() => setFullscreenImage(null)} />
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="relative z-10 max-w-5xl w-full flex flex-col items-center pointer-events-auto"
+          <div className="relative z-10 max-w-5xl w-full flex flex-col items-center pointer-events-auto">
+            <button
+              onClick={() => setFullscreenImage(null)}
+              aria-label="Close"
+              className="absolute -top-12 right-0 p-2.5 bg-slate-900 text-slate-200 hover:text-white rounded-full border border-slate-700 cursor-pointer shadow-2xl"
             >
-              <button
-                onClick={() => setFullscreenImage(null)}
-                className="absolute -top-12 right-0 p-2.5 bg-slate-900 text-slate-200 hover:text-white rounded-full border border-slate-700 cursor-pointer shadow-2xl"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <X className="w-6 h-6" />
+            </button>
 
-              <div className="rounded-3xl overflow-hidden border-2 border-amber-400/60 shadow-[0_0_90px_rgba(245,158,11,0.5)] max-h-[82vh] bg-slate-950">
-                <img
-                  src={fullscreenImage.url}
-                  alt={fullscreenImage.title}
-                  className="w-full h-full object-contain max-h-[78vh]"
-                />
+            <div className="rounded-3xl overflow-hidden border-2 border-amber-400/60 shadow-[0_0_90px_rgba(245,158,11,0.5)] max-h-[82vh] bg-slate-950 relative w-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                <span className="font-cinzel text-xl font-bold text-amber-300">{fullscreenImage.title}</span>
+                <span className="text-xs text-slate-400 font-mono mt-1">Image unavailable</span>
               </div>
+              <img
+                src={fullscreenImage.url}
+                alt={fullscreenImage.title}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+                className="w-full h-full object-contain max-h-[78vh] relative z-10"
+              />
+            </div>
 
-              <div className="mt-4 text-center space-y-1">
-                <div className="font-cinzel text-2xl font-black text-amber-300">{fullscreenImage.title}</div>
-                <div className="text-xs font-mono text-slate-400">{fullscreenImage.subtitle}</div>
-              </div>
-            </motion.div>
+            <div className="mt-4 text-center space-y-1">
+              <div className="font-cinzel text-2xl font-black text-amber-300">{fullscreenImage.title}</div>
+              <div className="text-xs font-mono text-slate-400">{fullscreenImage.subtitle}</div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 };

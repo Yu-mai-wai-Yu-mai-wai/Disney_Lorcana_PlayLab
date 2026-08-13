@@ -1,9 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, BookOpen, Shield, Sword, Flame, HelpCircle, Layers, CheckCircle2, RotateCw } from 'lucide-react';
 
+type GuideTab = 'objective' | 'anatomy' | 'turn' | 'keywords';
+
+const TABS: { id: GuideTab; label: string }[] = [
+  { id: 'objective', label: 'Game Objective' },
+  { id: 'anatomy', label: 'Card Anatomy' },
+  { id: 'turn', label: 'Turn Structure' },
+  { id: 'keywords', label: 'Keywords & Mechanics' },
+];
+
 export const RulesGuide: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'objective' | 'anatomy' | 'turn' | 'keywords'>('objective');
+  const [activeTab, setActiveTab] = useState<GuideTab>('objective');
   const [tooltipText, setTooltipText] = useState('Click or hover over any glowing marker on the card to reveal its stat details.');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tabIds: GuideTab[] = ['objective', 'anatomy', 'turn', 'keywords'];
+      const currentIndex = tabIds.indexOf(activeTab);
+      if (e.key === 'ArrowLeft') {
+        if (currentIndex > 0) {
+          setActiveTab(tabIds[currentIndex - 1]);
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (currentIndex < tabIds.length - 1) {
+          setActiveTab(tabIds[currentIndex + 1]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab]);
 
   return (
     <div className="relative z-10 pt-8 pb-16 px-6 max-w-6xl mx-auto flex flex-col items-center font-outfit select-none">
@@ -20,15 +48,10 @@ export const RulesGuide: React.FC = () => {
 
       {/* Navigation Tabs for Masterclass */}
       <div className="flex flex-wrap justify-center gap-3 mb-10 w-full max-w-3xl">
-        {[
-          { id: 'objective', label: 'Game Objective' },
-          { id: 'anatomy', label: 'Card Anatomy' },
-          { id: 'turn', label: 'Turn Structure' },
-          { id: 'keywords', label: 'Keywords & Mechanics' },
-        ].map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id)}
             className={`px-6 py-3 rounded-full border text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === tab.id
                 ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-lg shadow-amber-500/10 scale-105'
@@ -69,41 +92,82 @@ export const RulesGuide: React.FC = () => {
         {activeTab === 'anatomy' && (
           <div className="glass-panel rounded-2xl p-8 border border-amber-400/30 shadow-2xl flex flex-col md:flex-row items-center justify-center gap-10 relative overflow-hidden">
             <div className="relative w-64 h-96 flex-shrink-0 group">
-              <img
-                src="https://api.lorcana.ravensburger.com/images/en/set1/12_da68c89ea3fc28a3a7396c30ab3da45e0f204eea.jpg"
-                alt="Mickey Mouse Card Anatomy"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover rounded-xl border-2 border-amber-400 shadow-2xl"
-              />
+              <div className="relative w-full h-full rounded-xl overflow-hidden">
+                <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                  <span className="font-cinzel text-sm font-bold text-amber-300">Mickey Mouse</span>
+                  <span className="text-[10px] text-slate-400 font-mono mt-1">Image unavailable</span>
+                </div>
+                <img
+                  src="https://api.lorcana.ravensburger.com/images/en/set1/12_da68c89ea3fc28a3a7396c30ab3da45e0f204eea.jpg"
+                  alt="Mickey Mouse Card Anatomy"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                  className="w-full h-full object-cover rounded-xl border-2 border-amber-400 shadow-2xl relative z-10"
+                />
+              </div>
 
               {/* Hotspots */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setTooltipText('Ink Cost (Top-Left): The amount of Ink required from your Inkwell reserve to play this card into the play area.')}
-                className="absolute top-3 left-3 w-6 h-6 rounded-full bg-amber-500 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-slate-950 font-bold text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setTooltipText('Ink Cost (Top-Left): The amount of Ink required from your Inkwell reserve to play this card into the play area.');
+                  }
+                }}
+                className="absolute top-3 left-3 w-6 h-6 rounded-full bg-amber-500 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-slate-950 font-bold text-xs z-20"
                 title="Ink Cost"
               >
                 1
               </div>
 
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setTooltipText('Inkwell Symbol: Gold swirl border around cost indicates this card can be placed face-down into your Inkwell to serve as permanent ink resources.')}
-                className="absolute top-12 left-3 w-6 h-6 rounded-full bg-purple-500 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-white font-bold text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setTooltipText('Inkwell Symbol: Gold swirl border around cost indicates this card can be placed face-down into your Inkwell to serve as permanent ink resources.');
+                  }
+                }}
+                className="absolute top-12 left-3 w-6 h-6 rounded-full bg-purple-500 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-white font-bold text-xs z-20"
                 title="Inkwell Icon"
               >
                 2
               </div>
 
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setTooltipText('Strength & Willpower (Bottom-Right): Red circle = Attack Power when challenging. Blue circle = Health points.')}
-                className="absolute bottom-12 right-3 w-6 h-6 rounded-full bg-rose-500 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-white font-bold text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setTooltipText('Strength & Willpower (Bottom-Right): Red circle = Attack Power when challenging. Blue circle = Health points.');
+                  }
+                }}
+                className="absolute bottom-12 right-3 w-6 h-6 rounded-full bg-rose-500 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-white font-bold text-xs z-20"
                 title="Strength & Willpower"
               >
                 3
               </div>
 
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setTooltipText('Lore Diamonds (Bottom-Right): The number of Lore points gained when this character quests.')}
-                className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-amber-400 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-slate-950 font-bold text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setTooltipText('Lore Diamonds (Bottom-Right): The number of Lore points gained when this character quests.');
+                  }
+                }}
+                className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-amber-400 border-2 border-slate-950 shadow-lg animate-pulse cursor-pointer flex items-center justify-center text-slate-950 font-bold text-xs z-20"
                 title="Lore Value"
               >
                 4

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDeckStore } from '../store/useDeckStore';
 import { InkColor, LorcanaCard } from '../types/lorcana';
 import { Search, Plus, Minus, Layers, Filter, Trash2, Save, Sparkles, CheckCircle2, CloudUpload, BarChart3, AlertTriangle, ChevronLeft, ChevronRight, Eye, Gift } from 'lucide-react';
@@ -56,6 +56,23 @@ export const DeckBuilder: React.FC = () => {
       })
       .catch(() => {});
   }, []);
+
+  const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+  const clearTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleClearDeckClick = () => {
+    if (isConfirmingClear) {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      setIsConfirmingClear(false);
+      clearDeck();
+    } else {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      setIsConfirmingClear(true);
+      clearTimerRef.current = setTimeout(() => {
+        setIsConfirmingClear(false);
+      }, 3000);
+    }
+  };
 
   // Reset page when filters change
   React.useEffect(() => {
@@ -231,18 +248,32 @@ export const DeckBuilder: React.FC = () => {
             return (
               <div
                 key={card.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setInspectedCard(card)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setInspectedCard(card);
+                  }
+                }}
                 className="card-container relative bg-slate-950/80 rounded-2xl card-foil border border-purple-500/20 hover:border-amber-400 aspect-[2.5/3.5] overflow-hidden group cursor-pointer shadow-xl flex flex-col justify-between"
               >
-                <img
-                  src={card.imageUrl}
-                  alt={card.name}
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://api.lorcana.ravensburger.com/images/en/set1/1_ea50bda8825b4ccdf7e71c7052ee9688f92e75ab.jpg';
-                  }}
-                  className="w-full h-full object-cover absolute inset-0"
-                />
+                <div className="absolute inset-0 w-full h-full">
+                  <div className="absolute inset-0 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                    <span className="font-cinzel text-xs font-bold text-amber-300 line-clamp-2">{card.name}</span>
+                    <span className="text-[9px] text-slate-400 font-mono mt-0.5">Image unavailable</span>
+                  </div>
+                  <img
+                    src={card.imageUrl}
+                    alt={card.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                    className="w-full h-full object-cover absolute inset-0 relative z-10"
+                  />
+                </div>
 
                 {/* Overlays */}
                 <div className="absolute top-2 left-2 w-8 h-8 bg-slate-950/90 rounded-full border border-amber-400 flex items-center justify-center font-cinzel text-sm text-amber-300 font-black shadow-lg z-10 font-mono">
@@ -292,6 +323,7 @@ export const DeckBuilder: React.FC = () => {
                     <div className="flex items-center justify-center gap-3 w-full" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => removeCard(card.id)}
+                        aria-label="Remove card"
                         className="p-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 cursor-pointer"
                       >
                         <Minus className="w-4 h-4" />
@@ -299,6 +331,7 @@ export const DeckBuilder: React.FC = () => {
                       <span className="font-mono font-black text-amber-300 text-base px-1">{countInDeck}</span>
                       <button
                         onClick={() => addCard(card)}
+                        aria-label="Add card"
                         className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black cursor-pointer shadow-lg"
                       >
                         <Plus className="w-4 h-4 text-slate-950" />
@@ -367,7 +400,15 @@ export const DeckBuilder: React.FC = () => {
               currentDeck.map(({ card, count }) => (
                 <div
                   key={card.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setInspectedCard(card)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setInspectedCard(card);
+                    }
+                  }}
                   className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-400/60 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5 truncate">
@@ -375,6 +416,9 @@ export const DeckBuilder: React.FC = () => {
                       src={card.imageUrl}
                       alt={card.name}
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
                       className="w-8 h-10 object-cover rounded shadow"
                     />
                     <div className="truncate">
@@ -386,14 +430,16 @@ export const DeckBuilder: React.FC = () => {
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => removeCard(card.id)}
-                      className="p-1 text-slate-400 hover:text-rose-400"
+                      aria-label="Remove card"
+                      className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
                     <span className="font-mono text-xs font-black text-amber-300 w-4 text-center">{count}</span>
                     <button
                       onClick={() => addCard(card)}
-                      className="p-1 text-slate-400 hover:text-amber-300"
+                      aria-label="Add card"
+                      className="p-1 text-slate-400 hover:text-amber-300 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -413,10 +459,14 @@ export const DeckBuilder: React.FC = () => {
 
             <div className="flex gap-2">
               <button
-                onClick={clearDeck}
-                className="flex-1 bg-slate-900 border border-slate-800 hover:border-rose-500 text-rose-400 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                onClick={handleClearDeckClick}
+                className={`flex-1 border py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                  isConfirmingClear
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 animate-pulse'
+                    : 'bg-slate-900 border-slate-800 hover:border-rose-500 text-rose-400'
+                }`}
               >
-                <Trash2 className="w-4 h-4" /> Clear Deck
+                <Trash2 className="w-4 h-4" /> {isConfirmingClear ? 'Confirm Clear?' : 'Clear Deck'}
               </button>
 
               <button

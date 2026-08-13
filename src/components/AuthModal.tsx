@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { apiService } from '../services/api';
 import { X, Lock, Mail, User, ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from './ui/Modal';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,8 +19,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [success, setSuccess] = useState<string | null>(null);
 
   const setAuth = useAuthStore((state) => state.setAuth);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,21 +53,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="relative w-full max-w-md bg-slate-900 border border-purple-500/30 rounded-2xl p-6 shadow-2xl overflow-hidden glass-panel"
+    <Modal isOpen={isOpen} onClose={onClose} ariaLabel="Sign In or Register" overlayClassName="bg-slate-950/80 backdrop-blur-md">
+      <div className="relative w-full max-w-md bg-slate-900 border border-purple-500/30 rounded-2xl p-6 shadow-2xl overflow-hidden glass-panel">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          aria-label="ปิด"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
         >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <X className="w-5 h-5" />
+        </button>
 
           {/* Title */}
           <div className="text-center mb-6">
@@ -183,8 +176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               )}
             </button>
           </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+    </Modal>
   );
 };

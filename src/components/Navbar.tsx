@@ -12,9 +12,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActive
   const { user, isAuthenticated, logout } = useAuthStore();
 
   return (
-    <header className="sticky top-0 z-40 glass-nav-header px-6 py-3.5 flex items-center justify-between">
+    <header className="sticky top-0 z-40 glass-nav-header px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
       {/* Brand Logo & Lorcana Seal */}
-      <div className="flex items-center gap-3.5 cursor-pointer group" onClick={() => setActiveTab('hub')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setActiveTab('hub')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setActiveTab('hub');
+          }
+        }}
+        className="flex items-center gap-3.5 cursor-pointer group"
+      >
         <img
           src="/Logo_cloudgame.png"
           alt="Lorcana PlayLab Cloud Logo"
@@ -34,65 +45,70 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActive
       </div>
 
       {/* Navigation Mode Switcher */}
-      <nav className="flex items-center gap-2 bg-[#0d1124]/90 p-1.5 rounded-2xl border border-purple-500/20 shadow-inner">
+      <nav className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#0d1124]/90 p-1.5 rounded-2xl border border-purple-500/20 shadow-inner">
         <button
           onClick={() => setActiveTab('hub')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
+          aria-label="Home"
+          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'hub'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          Home
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="hidden sm:inline">Home</span>
         </button>
 
         <button
           onClick={() => setActiveTab('board')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
+          aria-label="Playmat Sandbox"
+          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'board'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
           }`}
         >
-          <Gamepad2 className="w-4 h-4 text-purple-300" />
-          Playmat Sandbox
+          <Gamepad2 className="w-4 h-4 text-purple-300 shrink-0" />
+          <span className="hidden sm:inline">Playmat Sandbox</span>
         </button>
 
         <button
           onClick={() => setActiveTab('deckbuilder')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
+          aria-label="Deck Builder"
+          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'deckbuilder'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
           }`}
         >
-          <Layers className="w-4 h-4 text-amber-400" />
-          Deck Builder
+          <Layers className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="hidden sm:inline">Deck Builder</span>
         </button>
 
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
+          aria-label="Deck Analytics"
+          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'analytics'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
           }`}
         >
-          <BarChart3 className="w-4 h-4 text-amber-400" />
-          Deck Analytics
+          <BarChart3 className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="hidden sm:inline">Deck Analytics</span>
         </button>
 
         <button
           onClick={() => setActiveTab('rules')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
+          aria-label="How to Play"
+          className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-extrabold tracking-wide transition-all cursor-pointer ${
             activeTab === 'rules'
               ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-950/80 border border-purple-400/40 scale-105'
               : 'text-slate-400 hover:text-slate-100 hover:bg-purple-950/40'
           }`}
         >
-          <CloudLightning className="w-4 h-4 text-emerald-400" />
-          How to Play
+          <CloudLightning className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="hidden sm:inline">How to Play</span>
         </button>
       </nav>
 
@@ -107,7 +123,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActive
 
         {isAuthenticated && user ? (
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => setActiveTab('dashboard')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveTab('dashboard');
+              }
+            }}
             className="flex items-center gap-2.5 bg-gradient-to-r from-purple-950/90 to-slate-900/90 border border-purple-500/40 px-3.5 py-1.5 rounded-xl shadow-lg cursor-pointer hover:border-amber-400/60 transition-all"
           >
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-purple-600 flex items-center justify-center font-black text-xs text-slate-950 shadow-md">
@@ -122,7 +146,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, activeTab, setActive
                 e.stopPropagation();
                 logout();
               }}
-              className="ml-1 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-lg transition-all"
+              aria-label="Sign Out"
+              className="ml-1 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-lg transition-all cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-3.5 h-3.5" />
