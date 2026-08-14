@@ -3,7 +3,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { webSocketService } from '../services/websocket';
 import { MatchDeckSelect } from '../components/MatchDeckSelect';
 import { apiService } from '../services/api';
-import { Swords, LogIn, Plus, Loader2, X } from 'lucide-react';
+import { STARTER_POOL } from '../data/cardPool';
+import { Swords, LogIn, Plus, Loader2, X, AlertCircle } from 'lucide-react';
 
 interface MatchLobbyProps {
   onStartMatch: (deckId: string, deckName: string) => void;
@@ -69,14 +70,46 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   }, [selectedDeckId, selectedDeckName, onStartMatch, user]);
 
   const loadDecks = async () => {
-    const res = await apiService.getUserDecks(token || undefined);
-    if (res.decks) setDecks(res.decks);
+    try {
+      const res = await apiService.getUserDecks(token || undefined);
+      const cloudDecks = res.decks || [];
+      if (cloudDecks.length > 0) {
+        setDecks(cloudDecks);
+      } else {
+        // No cloud decks → offer a default starter deck so the lobby is playable
+        setDecks([
+          {
+            deckId: 'starter-pool',
+            name: 'Starter Deck (Default)',
+            totalCards: STARTER_POOL.length,
+            cards: STARTER_POOL.map((c) => ({ card: c, count: 1 })),
+          },
+        ]);
+      }
+    } catch (err: any) {
+      setDecks([
+        {
+          deckId: 'starter-pool',
+          name: 'Starter Deck (Default)',
+          totalCards: STARTER_POOL.length,
+          cards: STARTER_POOL.map((c) => ({ card: c, count: 1 })),
+        },
+      ]);
+    }
   };
 
   const handleDeckSelect = (id: string, name: string) => {
     setSelectedDeckId(id);
     setSelectedDeckName(name);
   };
+
+  // Auto-select the first deck (cloud or starter) so buttons are never deadlocked
+  useEffect(() => {
+    if (!selectedDeckId && decks.length > 0) {
+      setSelectedDeckId(decks[0].deckId);
+      setSelectedDeckName(decks[0].name);
+    }
+  }, [decks, selectedDeckId]);
 
   const handleCreateRoom = () => {
     if (!selectedDeckId) return;

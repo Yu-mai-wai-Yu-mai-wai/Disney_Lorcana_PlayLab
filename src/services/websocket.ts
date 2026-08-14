@@ -112,7 +112,8 @@ class WebSocketService {
     const payload: WebSocketMessagePayload = {
       action: 'CREATE_ROOM',
       username: this.currentUsername,
-      payload: { deckId, deckName },
+      deckId,
+      deckName,
     };
     this.send(payload);
 
@@ -137,7 +138,8 @@ class WebSocketService {
       action: 'JOIN_ROOM',
       roomId,
       username: this.currentUsername,
-      payload: { deckId, deckName },
+      deckId,
+      deckName,
     };
     this.send(payload);
 
@@ -168,7 +170,8 @@ class WebSocketService {
     const payload: WebSocketMessagePayload = {
       action: 'MATCHMAKING_JOIN',
       username: this.currentUsername,
-      payload: { deckId, deckName },
+      deckId,
+      deckName,
     };
     this.send(payload);
 
