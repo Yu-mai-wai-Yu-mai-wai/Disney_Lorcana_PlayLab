@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -57,6 +57,20 @@ export const LorcanaBoard: React.FC = () => {
   const [discardCount, setDiscardCount] = useState(3);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHandOpen, setIsHandOpen] = useState(false);
+  const handHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleHandMouseEnter = () => {
+    if (handHoverTimeout.current) clearTimeout(handHoverTimeout.current);
+    setIsHandOpen(true);
+  };
+
+  const handleHandMouseLeave = () => {
+    if (handHoverTimeout.current) clearTimeout(handHoverTimeout.current);
+    handHoverTimeout.current = setTimeout(() => {
+      setIsHandOpen(false);
+    }, 150);
+  };
+
   const [notice, setNotice] = useState<{ msg: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // SPRINT 3: AWS WEBSOCKETS REAL-TIME ROOM SYNC STATE
@@ -422,28 +436,29 @@ export const LorcanaBoard: React.FC = () => {
         isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
-        <div className="space-y-1.5 border-b border-[#30363d] pb-2.5">
-          <div className="text-[10px] font-cinzel font-bold text-[#F59E0B]">OPPONENT PILES</div>
+        <div className="space-y-1.5 border-b border-[#30363d] pb-2.5 shrink-0">
+          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B]">OPPONENT PILES</div>
           <div className="flex gap-2">
-            <div className="flex-1 h-24 rounded-lg border border-[#30363d] flex flex-col items-center justify-between p-1 relative overflow-hidden bg-[#0B0F19]">
+            <div className="flex-1 h-28 rounded-lg border border-[#30363d] flex flex-col items-center justify-between p-1.5 relative overflow-hidden bg-[#0B0F19]">
               <img
                 src="/Lorcana_Card_Back.png"
                 alt="Opponent Deck Back"
                 className="absolute inset-0 w-full h-full object-cover opacity-90"
               />
               <div className="absolute inset-0 bg-[#0B0F19]/40" />
-              <Layers className="w-3.5 h-3.5 text-[#F59E0B] z-10" />
-              <span className="text-[9px] font-mono font-bold text-white z-10 bg-[#0B0F19]/90 px-1 py-0.5 rounded border border-[#30363d]">48</span>
+              <Layers className="w-5 h-5 text-[#F59E0B] z-10" />
+              <span className="text-[11px] font-mono font-bold text-white z-10 bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d]">48</span>
             </div>
-            <div className="flex-1 h-24 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative">
-              <Skull className="w-4 h-4 text-rose-400 mb-1" />
-              <span className="text-[9px] font-mono font-bold text-[#94A3B8]">Grave: 2</span>
+            <div className="flex-1 h-28 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1.5 relative">
+              <Skull className="w-5 h-5 text-rose-400 mb-1" />
+              <span className="text-[10px] font-cinzel font-bold text-[#94A3B8]">GRAVE</span>
+              <span className="text-[11px] font-mono font-bold text-[#94A3B8] mt-0.5">2</span>
             </div>
           </div>
         </div>
 
         {/* Inkwell Reserve Zone */}
-        <div className="space-y-2 flex-1 flex flex-col py-2 min-h-0">
+        <div className="space-y-2 py-2 min-h-0 flex flex-col">
           <div className="flex justify-between items-center text-xs font-cinzel font-bold text-[#F59E0B] shrink-0">
             <span className="flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" /> INKWELL ZONE
@@ -458,7 +473,7 @@ export const LorcanaBoard: React.FC = () => {
               {availableInk}/{inkwellCapacity}
             </motion.span>
           </div>
-          <div className="flex-1 grid grid-cols-2 grid-rows-3 gap-1.5 p-2 bg-[#0B0F19] rounded-xl border border-[#30363d] relative min-h-0">
+          <div className="flex-1 min-h-0 grid grid-cols-2 grid-rows-3 gap-1.5 p-2 bg-[#0B0F19] rounded-xl border border-[#30363d] relative">
             {Array.from({ length: Math.max(6, inkwellCapacity) }).map((_, i) => {
               const isReady = i < availableInk;
               const isExerted = !isReady && i < inkwellCapacity;
@@ -470,7 +485,7 @@ export const LorcanaBoard: React.FC = () => {
                   initial={{ scale: 0.85, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 24, delay: i * 0.02 }}
-                  className={`h-full min-h-10 rounded-lg border flex flex-col items-center justify-center transition-colors ${
+                  className={`h-full min-h-9 rounded-lg border flex flex-col items-center justify-center transition-colors ${
                     isReady
                       ? 'bg-[#F59E0B]/15 border-[#F59E0B]/60 text-[#F59E0B]'
                       : isExerted
@@ -486,14 +501,14 @@ export const LorcanaBoard: React.FC = () => {
               );
             })}
           </div>
-          <div className="text-[9px] font-mono text-center px-2 py-1 rounded-lg border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold shrink-0">
+          <div className="text-[9px] font-mono text-center px-2 py-1 rounded-lg border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold">
             {hasInkedThisTurn ? 'Inked this turn (1/1 Limit)' : 'Drag Card Here to Add Ink'}
           </div>
         </div>
 
         {/* Player Piles */}
-        <div className="space-y-1.5 border-t border-[#30363d] pt-2.5 mt-auto">
-          <div className="text-[10px] font-cinzel font-bold text-[#F59E0B]">YOUR PILES</div>
+        <div className="space-y-1.5 border-t border-[#30363d] pt-2.5 shrink-0">
+          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B]">YOUR PILES</div>
           <div className="flex gap-2">
             {/* Draw Deck */}
             <motion.div
@@ -509,7 +524,7 @@ export const LorcanaBoard: React.FC = () => {
                   handleDrawCard();
                 }
               }}
-              className="flex-1 h-26 rounded-lg border-2 border-[#F59E0B] flex flex-col items-center justify-between p-1.5 relative cursor-pointer hover:border-amber-300 transition-colors overflow-hidden bg-[#0B0F19]"
+              className="flex-1 h-32 rounded-lg border-2 border-[#F59E0B] flex flex-col items-center justify-between p-2 relative cursor-pointer hover:border-amber-300 transition-colors overflow-hidden bg-[#0B0F19]"
               title="Click to Draw Card from Deck"
             >
               <img
@@ -518,18 +533,18 @@ export const LorcanaBoard: React.FC = () => {
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-[#0B0F19]/40" />
-              <Library className="w-4 h-4 text-[#F59E0B] z-10" />
+              <Library className="w-5 h-5 text-[#F59E0B] z-10" />
               <div className="flex flex-col items-center z-10">
-                <span className="text-[9px] font-cinzel font-bold text-white">DECK</span>
-                <span className="text-[9px] font-mono font-bold text-[#F59E0B] bg-[#0B0F19]/90 px-1 py-0.5 rounded border border-[#30363d]">{deckCount}</span>
+                <span className="text-[10px] font-cinzel font-bold text-white">DECK</span>
+                <span className="text-[11px] font-mono font-bold text-[#F59E0B] bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d]">{deckCount}</span>
               </div>
             </motion.div>
 
             {/* Discard */}
-            <div className="flex-1 h-26 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative cursor-pointer hover:border-rose-400 transition-colors overflow-hidden">
-              <Skull className="w-4 h-4 text-rose-400 mb-1" />
-              <span className="text-[9px] font-cinzel font-bold text-[#F1F5F9]">DISCARD</span>
-              <span className="text-[9px] font-mono font-bold text-[#94A3B8] mt-0.5">{discardCount}</span>
+            <div className="flex-1 h-32 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-2 relative cursor-pointer hover:border-rose-400 transition-colors overflow-hidden">
+              <Skull className="w-5 h-5 text-rose-400 mb-1" />
+              <span className="text-[10px] font-cinzel font-bold text-[#F1F5F9]">DISCARD</span>
+              <span className="text-[11px] font-mono font-bold text-[#94A3B8] mt-0.5">{discardCount}</span>
             </div>
           </div>
         </div>
@@ -651,14 +666,14 @@ export const LorcanaBoard: React.FC = () => {
             <AnimatePresence>
               {isDraggingCard && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                  className="absolute inset-x-8 inset-y-1 border-2 border-dashed border-[#F59E0B] bg-[#F59E0B]/10 rounded-xl flex flex-col items-center justify-center gap-1 pointer-events-none z-20"
+                  className="absolute inset-x-4 inset-y-1 border-4 border-dashed border-[#F59E0B] bg-[#F59E0B]/20 rounded-2xl flex flex-col items-center justify-center gap-2 pointer-events-none z-30 shadow-[0_0_30px_rgba(245,158,11,0.25)]"
                 >
-                  <ArrowUpCircle className="w-6 h-6 text-[#F59E0B]" />
-                  <span className="font-cinzel text-xs font-bold text-[#F59E0B] uppercase tracking-wider">
+                  <ArrowUpCircle className="w-8 h-8 text-[#F59E0B] animate-bounce" />
+                  <span className="font-cinzel text-sm font-bold text-[#F59E0B] uppercase tracking-widest">
                     Release Card Here to Play / Ink
                   </span>
                 </motion.div>
@@ -775,16 +790,19 @@ export const LorcanaBoard: React.FC = () => {
 
       </div>
 
-      {/* SPEC 3 — HAND DOCK: HOVER TAB AT BOTTOM (show on hover, hide on leave) */}
+      {/* SPEC 3 — HAND DOCK: HOVER TAB AT BOTTOM (show on hover, hide on leave with padding bridge) */}
       <div
         className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-auto"
-        onMouseEnter={() => setIsHandOpen(true)}
-        onMouseLeave={() => setIsHandOpen(false)}
+        onMouseEnter={handleHandMouseEnter}
+        onMouseLeave={handleHandMouseLeave}
       >
+        {/* Transparent padding bridge to prevent mouse leave gap jitter */}
+        <div className="absolute -top-4 inset-x-0 h-4 pointer-events-auto" />
+
         {/* TAB TOGGLE BUTTON (hover to expand, no click needed) */}
         <button
           onClick={() => setIsHandOpen((prev) => !prev)}
-          className="bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border-t border-x border-[#30363d] rounded-t-xl px-5 py-1.5 font-cinzel font-bold text-[11px] uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-2xl z-50"
+          className="bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border-t border-x border-[#30363d] rounded-t-xl px-6 py-1.5 font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-2xl z-50"
         >
           <span>Your Hand ({handCards.length}/7)</span>
           {isHandOpen ? <ChevronDown className="w-4 h-4 text-[#F59E0B]" /> : <ChevronUp className="w-4 h-4 text-[#F59E0B]" />}
@@ -794,18 +812,18 @@ export const LorcanaBoard: React.FC = () => {
         <AnimatePresence>
           {isHandOpen && (
             <motion.div
-              initial={{ y: 220, opacity: 0 }}
+              initial={{ y: 240, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 220, opacity: 0 }}
+              exit={{ y: 240, opacity: 0, transition: { duration: 0.2, delay: 0.15 } }}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-              className="bg-[#0d1420]/95 backdrop-blur-md border-t border-x border-[#30363d] rounded-t-2xl px-6 pt-2 pb-4 flex flex-col items-center max-w-4xl shadow-2xl"
+              className="bg-[#0d1420]/95 backdrop-blur-md border-t border-x border-[#30363d] rounded-t-2xl px-8 pt-2.5 pb-6 flex flex-col items-center max-w-6xl w-max shadow-2xl relative"
             >
-              <div className="text-[9px] font-mono text-[#94A3B8] mb-1">
+              <div className="text-[10px] font-mono text-[#94A3B8] mb-1.5">
                 Drag card up onto battlefield or click for action menu
               </div>
 
               {/* Hand Cards Stack with Spring & Layout Animation */}
-              <motion.div layout className="flex items-center justify-center -space-x-5 px-3 py-1 max-w-full overflow-visible">
+              <motion.div layout className="flex items-center justify-center -space-x-3 px-3 py-1 max-w-full overflow-visible">
                 {handCards.map((card) => (
                   <motion.div
                     key={card.id}
@@ -813,8 +831,10 @@ export const LorcanaBoard: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     drag
-                    dragConstraints={{ left: -200, right: 200, top: -400, bottom: 20 }}
-                    dragElastic={0.15}
+                    dragMomentum={false}
+                    dragTransition={{ power: 0.1, timeConstant: 200 }}
+                    dragElastic={0.3}
+                    dragConstraints={{ left: -300, right: 300, top: -600, bottom: 300 }}
                     dragSnapToOrigin
                     onDragStart={() => setIsDraggingCard(true)}
                     onMouseEnter={() => setHoveredCard(card)}
@@ -828,13 +848,14 @@ export const LorcanaBoard: React.FC = () => {
                     }}
                     onDragEnd={(_, info) => handleDragEnd(card, info)}
                     whileHover={{ y: -16, zIndex: 50 }}
+                    whileDrag={{ scale: 1.1, zIndex: 100, cursor: 'grabbing' }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="w-28 h-42 rounded-xl relative cursor-grab active:cursor-grabbing border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light shrink-0"
+                    className="w-36 h-52 rounded-xl relative cursor-grab active:cursor-grabbing border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light shrink-0 shadow-lg"
                   >
                     <div className="relative w-full h-full rounded-xl overflow-hidden">
                       <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                        <span className="font-cinzel text-xs font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
-                        <span className="text-[8px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
+                        <span className="font-cinzel text-sm font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
+                        <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                       </div>
                       <img
                         src={card.img}
@@ -847,8 +868,8 @@ export const LorcanaBoard: React.FC = () => {
                       />
                     </div>
 
-                    <div className="absolute top-1 left-1 bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d] text-[9px] font-mono font-bold text-[#F59E0B] flex items-center gap-0.5 z-20">
-                      <Droplets className="w-2.5 h-2.5 text-[#F59E0B] fill-[#F59E0B]" />
+                    <div className="absolute top-1.5 left-1.5 bg-[#0B0F19]/90 px-2 py-0.5 rounded border border-[#30363d] text-xs font-mono font-bold text-[#F59E0B] flex items-center gap-1 z-20">
+                      <Droplets className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]" />
                       <span>{card.cost}</span>
                     </div>
                   </motion.div>
@@ -867,22 +888,22 @@ export const LorcanaBoard: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="fixed bottom-6 left-64 z-50 w-76 bg-[#141a26] border border-[#30363d] rounded-xl p-3.5 text-[#F1F5F9] flex flex-col gap-2 pointer-events-none shadow-2xl"
+            className="fixed bottom-6 left-76 z-50 w-96 bg-[#141a26] border border-[#30363d] rounded-xl p-5 text-[#F1F5F9] flex flex-col gap-3 pointer-events-none shadow-2xl"
           >
-            <div className="flex gap-2.5 items-center border-b border-[#30363d] pb-2">
+            <div className="flex gap-3 items-center border-b border-[#30363d] pb-2.5">
               <img
                 src={hoveredCard.img}
                 alt={hoveredCard.name}
                 referrerPolicy="no-referrer"
-                className="w-12 h-18 object-cover rounded border border-[#30363d]"
+                className="w-20 h-28 object-cover rounded-lg border border-[#30363d] shrink-0"
               />
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  {hoveredCard.ink && <InkSymbol ink={hoveredCard.ink} size={14} />}
-                  <span className="font-cinzel font-bold text-xs text-[#F59E0B] leading-tight">{hoveredCard.name}</span>
+                  {hoveredCard.ink && <InkSymbol ink={hoveredCard.ink} size={16} />}
+                  <span className="font-cinzel font-bold text-lg text-[#F59E0B] leading-tight truncate">{hoveredCard.name}</span>
                 </div>
-                <span className="text-[10px] font-mono text-[#94A3B8]">{hoveredCard.title}</span>
-                <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-[#F59E0B] font-bold">
+                <span className="text-[13px] font-mono text-[#94A3B8] mt-0.5">{hoveredCard.title}</span>
+                <div className="flex items-center gap-2.5 mt-1 text-xs font-mono text-[#F59E0B] font-bold">
                   <span>Cost: {hoveredCard.cost} Ink</span>
                   {hoveredCard.isInkable ? (
                     <span className="text-emerald-400">Inkable</span>
@@ -894,27 +915,36 @@ export const LorcanaBoard: React.FC = () => {
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-1 bg-[#0B0F19] p-1.5 rounded border border-[#30363d] text-center font-mono text-[11px]">
+            <div className="grid grid-cols-3 gap-2 bg-[#0B0F19] p-2 rounded-lg border border-[#30363d] text-center font-mono text-sm">
               <div>
-                <span className="text-[8px] text-[#94A3B8] block">STRENGTH</span>
-                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-0.5"><Sword className="w-2.5 h-2.5 text-[#F59E0B]" />{hoveredCard.strength ?? '-'}</span>
+                <span className="text-[10px] text-[#94A3B8] block">STRENGTH</span>
+                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1 mt-0.5">
+                  <Sword className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  {hoveredCard.strength ?? '-'}
+                </span>
               </div>
               <div>
-                <span className="text-[8px] text-[#94A3B8] block">WILLPOWER</span>
-                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-0.5"><Shield className="w-2.5 h-2.5 text-[#F59E0B]" />{hoveredCard.willpower ?? '-'}</span>
+                <span className="text-[10px] text-[#94A3B8] block">WILLPOWER</span>
+                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1 mt-0.5">
+                  <Shield className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  {hoveredCard.willpower ?? '-'}
+                </span>
               </div>
               <div>
-                <span className="text-[8px] text-[#94A3B8] block">LORE</span>
-                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-0.5"><Sparkles className="w-2.5 h-2.5 text-[#F59E0B]" />{hoveredCard.lore ?? '-'}</span>
+                <span className="text-[10px] text-[#94A3B8] block">LORE</span>
+                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1 mt-0.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  {hoveredCard.lore ?? '-'}
+                </span>
               </div>
             </div>
 
             {/* Abilities & Text Box */}
             {hoveredCard.abilities && hoveredCard.abilities.length > 0 && (
-              <div className="space-y-1 text-[10px] font-mono bg-[#0B0F19] p-1.5 rounded border border-[#30363d]">
+              <div className="space-y-1.5 text-[13px] font-mono bg-[#0B0F19] p-2.5 rounded-lg border border-[#30363d]">
                 {hoveredCard.abilities.map((ab, idx) => (
-                  <div key={idx}>
-                    <span className="font-bold text-[#F59E0B]">{ab.name}: </span>
+                  <div key={idx} className="leading-snug">
+                    <span className="font-bold text-sm text-[#F59E0B]">{ab.name}: </span>
                     <span className="text-[#F1F5F9]">{ab.text}</span>
                   </div>
                 ))}
@@ -922,7 +952,7 @@ export const LorcanaBoard: React.FC = () => {
             )}
 
             {hoveredCard.flavorText && (
-              <div className="text-[9px] font-outfit text-[#94A3B8] border-t border-[#30363d] pt-1">
+              <div className="text-[12px] font-outfit text-[#94A3B8] italic border-t border-[#30363d] pt-1.5 leading-relaxed">
                 {hoveredCard.flavorText}
               </div>
             )}
