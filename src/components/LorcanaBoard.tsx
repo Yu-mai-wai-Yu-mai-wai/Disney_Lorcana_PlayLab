@@ -45,6 +45,7 @@ export const LorcanaBoard: React.FC = () => {
   // CARD HOVER, DRAG & ACTION MODAL STATES
   const [hoveredCard, setHoveredCard] = useState<LorcanaCard | null>(null);
   const [selectedHandCard, setSelectedHandCard] = useState<LorcanaCard | null>(null);
+  const [dragPendingCard, setDragPendingCard] = useState<LorcanaCard | null>(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
   const [isDraggingOverInkwell, setIsDraggingOverInkwell] = useState(false);
 
@@ -280,20 +281,37 @@ export const LorcanaBoard: React.FC = () => {
     return true;
   };
 
-  // Drag-to-Play Card & Drag-to-Inkwell Handler
+  // Drag-to-Play Card & Drag-to-Inkwell Handler with Action Choice Modal & Auto-Resolve
   const handleDragEnd = (card: LorcanaCard, info: any) => {
     setIsDraggingCard(false);
     setIsDraggingOverInkwell(false);
 
-    // 1. Drag LEFT towards Inkwell Zone
-    if (info.offset.x < -100 || info.point.x < 360) {
-      handleAddToInkwell(card);
+    // Ignore tiny accidental jitters / clicks
+    if (Math.hypot(info.offset.x, info.offset.y) < 20) {
       return;
     }
 
-    // 2. Drag UP onto the Battlefield
-    if (info.offset.y < -30 || info.point.y < 520) {
+    const canInk = card.isInkable && !hasInkedThisTurn;
+    const canPlay = availableInk >= card.cost;
+
+    if (canInk && canPlay) {
+      // Both choices available: open choice menu modal
+      setDragPendingCard(card);
+    } else if (canInk && !canPlay) {
+      // Auto-resolve: Only Inkwell is valid
+      handleAddToInkwell(card);
+    } else if (!canInk && canPlay) {
+      // Auto-resolve: Only Play to Field is valid
       handlePlayCard(card);
+    } else {
+      // Neither action is valid: provide descriptive feedback
+      if (!card.isInkable && availableInk < card.cost) {
+        showNotice(`Cannot play (requires ${card.cost} Ink, have ${availableInk}) and "${card.name}" is non-inkable!`, 'warning');
+      } else if (hasInkedThisTurn && availableInk < card.cost) {
+        showNotice(`Already inked this turn and not enough Ink (${availableInk}/${card.cost}) to play!`, 'warning');
+      } else {
+        showNotice(`No valid action available for "${card.name}".`, 'warning');
+      }
     }
   };
 
@@ -351,7 +369,7 @@ export const LorcanaBoard: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] flex bg-[#0B0F19] text-[#F1F5F9] font-outfit select-none overflow-hidden">
+    <div className="relative w-full min-h-screen flex bg-[#0B0F19] text-[#F1F5F9] font-outfit select-none overflow-y-auto">
       
       {/* Notice Banner */}
       <AnimatePresence>
@@ -377,7 +395,7 @@ export const LorcanaBoard: React.FC = () => {
       </AnimatePresence>
 
       {/* LEFT SIDEBAR: DEDICATED INKWELL, DECK & DISCARD ZONES */}
-      <aside className={`w-64 border-r border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-20 shrink-0 space-y-4 transition-colors ${
+      <aside className={`w-64 border-r border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-20 shrink-0 space-y-4 transition-colors sticky top-0 h-screen overflow-y-auto ${
         isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
@@ -409,24 +427,31 @@ export const LorcanaBoard: React.FC = () => {
             </span>
             <span className="font-mono text-[#F59E0B] text-sm font-bold">{availableInk}/{inkwellCapacity}</span>
           </div>
-          <div className="grid grid-cols-2 gap-1.5 p-2 bg-[#0B0F19] rounded-lg border border-[#30363d] relative">
-            {Array.from({ length: Math.max(6, inkwellCapacity) }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-12 rounded border flex flex-col items-center justify-center transition-colors ${
-                  i < availableInk
-                    ? 'bg-[#F59E0B]/10 border-[#F59E0B]/50 text-[#F59E0B]'
-                    : i < inkwellCapacity
-                    ? 'bg-[#141a26] border-[#30363d] text-[#94A3B8]'
-                    : 'bg-[#0B0F19] border-[#30363d]/50 text-[#94A3B8]/40'
-                }`}
-              >
-                <Droplets className={`w-3.5 h-3.5 ${i < availableInk ? 'text-[#F59E0B] fill-[#F59E0B]' : 'text-[#94A3B8]'}`} />
-                <span className="text-[9px] font-mono text-[#94A3B8] mt-0.5 font-bold">{i < availableInk ? 'Ready Ink' : i < inkwellCapacity ? 'Exerted' : 'Empty'}</span>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-1.5 p-2 bg-[#0B0F19] rounded-xl border border-[#30363d] relative">
+            {Array.from({ length: Math.max(6, inkwellCapacity) }).map((_, i) => {
+              const isReady = i < availableInk;
+              const isExerted = !isReady && i < inkwellCapacity;
+
+              return (
+                <div
+                  key={i}
+                  className={`h-12 rounded-lg border flex flex-col items-center justify-center transition-colors ${
+                    isReady
+                      ? 'bg-[#F59E0B]/15 border-[#F59E0B]/60 text-[#F59E0B]'
+                      : isExerted
+                      ? 'bg-[#141a26] border-[#30363d] text-[#94A3B8]'
+                      : 'bg-[#0B0F19]/50 border-[#30363d]/40 text-[#94A3B8]/30'
+                  }`}
+                >
+                  <Droplets className={`w-3.5 h-3.5 ${isReady ? 'text-[#F59E0B] fill-[#F59E0B]' : isExerted ? 'text-[#94A3B8]' : 'text-[#94A3B8]/30'}`} />
+                  <span className={`text-[9px] font-mono mt-0.5 ${isReady ? 'text-[#F59E0B] font-bold' : isExerted ? 'text-[#94A3B8] font-semibold' : 'text-[#94A3B8]/40'}`}>
+                    {isReady ? 'Ready Ink' : isExerted ? 'Exerted' : 'Empty'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <div className="text-[10px] font-mono text-center px-2 py-1.5 rounded border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold">
+          <div className="text-[10px] font-mono text-center px-2 py-1.5 rounded-lg border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold">
             {hasInkedThisTurn ? 'Inked this turn (1/1 Limit)' : 'Drag Card Here to Add Ink'}
           </div>
         </div>
@@ -472,20 +497,20 @@ export const LorcanaBoard: React.FC = () => {
         </div>
       </aside>
 
-      {/* CENTER PLAY AREA: 100% FULL SCREEN BATTLEFIELD */}
-      <div className="flex-1 flex flex-col justify-between relative z-10 p-4 pb-32">
+      {/* CENTER PLAY AREA: NATURAL SCROLL PLAYFIELD */}
+      <div className="flex-1 flex flex-col min-h-screen relative z-10 p-4 space-y-6">
         
         {/* TOP STATUS HEADER BAR */}
         <div className="flex justify-between items-center w-full z-20 pb-2 border-b border-[#30363d]">
-          <div className="px-4 py-2 rounded-lg border border-[#30363d] flex items-center gap-3 bg-[#141a26]">
+          <div className="px-4 py-2 rounded-xl border border-[#30363d] flex items-center gap-3 bg-[#141a26]">
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-cinzel font-bold text-[#94A3B8] uppercase">Opponent Lore</span>
-              <span className="font-cinzel text-xl font-bold text-rose-400">{opponentLore} / 20</span>
+              <span className="text-[10px] font-cinzel font-bold text-[#94A3B8] uppercase tracking-wider">Opponent Lore</span>
+              <span className="font-cinzel text-2xl font-black text-rose-400 leading-none mt-0.5">{opponentLore} / 20</span>
             </div>
           </div>
 
-          <div className="px-4 py-1.5 rounded-lg border border-[#F59E0B]/40 text-[#F59E0B] font-cinzel font-bold text-xs flex items-center gap-2 bg-[#141a26]">
-            <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
+          <div className="px-5 py-2 rounded-xl border border-[#F59E0B]/50 text-[#F59E0B] font-cinzel font-bold text-sm flex items-center gap-2.5 bg-[#141a26]">
+            <Sparkles className="w-4 h-4 text-[#F59E0B]" />
             <span>Main Phase | Turn {turnNumber}</span>
           </div>
 
@@ -553,7 +578,7 @@ export const LorcanaBoard: React.FC = () => {
         <div className="flex-1 flex flex-col justify-center items-center py-2 relative min-h-[240px]">
           <div className="text-[10px] font-cinzel font-bold text-[#F59E0B] mb-2 uppercase tracking-widest flex items-center gap-2">
             <span>Your Battlefield Area</span>
-            <span className="text-[9px] font-mono text-[#94A3B8] font-normal">(Hover to read stats • Drag card here to Play)</span>
+            <span className="text-[9px] font-mono text-[#94A3B8] font-normal">(Hover to read stats • Drag card here to Play or Ink)</span>
           </div>
 
           {/* ACTIVE DRAG-TO-PLAY DROPZONE HIGHLIGHT */}
@@ -565,7 +590,7 @@ export const LorcanaBoard: React.FC = () => {
             >
               <ArrowUpCircle className="w-8 h-8 text-[#F59E0B]" />
               <span className="font-cinzel text-base font-bold text-[#F59E0B] uppercase tracking-wider">
-                Release Card Here to Play onto Battlefield
+                Release Card Here to Choose Action
               </span>
             </motion.div>
           )}
@@ -641,34 +666,95 @@ export const LorcanaBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* PLAYER LORE & PASS TURN CONTROLS BAR */}
-        <div className="absolute bottom-2 left-6 right-6 flex justify-between items-center z-20 pointer-events-none">
-          <div className="px-4 py-2 rounded-lg border border-[#30363d] flex items-center gap-3 bg-[#141a26] pointer-events-auto">
+        {/* PLAYER LORE & PASS TURN CONTROLS BAR (IN-FLOW) */}
+        <div className="w-full flex justify-between items-center z-20 py-3 px-4 border border-[#30363d] bg-[#141a26] rounded-xl">
+          <div className="flex items-center gap-3">
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-cinzel font-bold text-[#F59E0B] uppercase">Your Lore Score</span>
-              <span className="font-cinzel text-xl font-bold text-[#F59E0B]">{playerLore} / 20</span>
+              <span className="text-[10px] font-cinzel font-bold text-[#F59E0B] uppercase tracking-wider">Your Lore Score</span>
+              <span className="font-cinzel text-2xl font-black text-[#F59E0B] leading-none mt-0.5">{playerLore} / 20</span>
             </div>
           </div>
 
           <button
             onClick={handleEndTurn}
             disabled={!isMyTurn}
-            className="pointer-events-auto bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-6 py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+            className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-6 py-2.5 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
           >
             <RotateCw className="w-4 h-4 fill-black" />
             <span>Pass Turn</span>
           </button>
         </div>
+
+        {/* HAND DOCK (NATURAL SCROLL FLOW AT BOTTOM) */}
+        <div className="w-full flex justify-center z-20 pb-8">
+          <div className="bg-[#0d1420] border border-[#30363d] rounded-xl px-8 pt-4 pb-6 flex flex-col items-center max-w-5xl w-full shadow-2xl">
+            <div className="w-16 h-1 bg-[#30363d] rounded-full mb-2" />
+            <div className="text-[11px] font-cinzel font-bold text-[#F59E0B] mb-2 uppercase tracking-widest flex items-center gap-2">
+              <span>Your Hand ({handCards.length}/7 Cards)</span>
+              <span className="text-[10px] font-mono text-[#94A3B8] font-normal">• Drag Card to Play or Add to Inkwell</span>
+            </div>
+
+            {/* Hand Cards Stack */}
+            <div className="flex items-center justify-center -space-x-6 px-4 py-3 overflow-x-auto max-w-full">
+              {handCards.map((card) => (
+                <motion.div
+                  key={card.id}
+                  role="button"
+                  tabIndex={0}
+                  drag
+                  dragConstraints={{ left: -300, right: 300, top: -400, bottom: 50 }}
+                  dragElastic={0.15}
+                  dragSnapToOrigin
+                  onDragStart={() => setIsDraggingCard(true)}
+                  onMouseEnter={() => setHoveredCard(card)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  onClick={() => setSelectedHandCard(card)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedHandCard(card);
+                    }
+                  }}
+                  onDragEnd={(_, info) => handleDragEnd(card, info)}
+                  whileHover={{ y: -20, zIndex: 50 }}
+                  className="w-32 h-48 rounded-xl relative cursor-pointer border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light shrink-0"
+                >
+                  <div className="relative w-full h-full rounded-xl overflow-hidden">
+                    <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                      <span className="font-cinzel text-xs font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
+                      <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
+                    </div>
+                    <img
+                      src={card.img}
+                      alt={card.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                      className="w-full h-full object-cover rounded-xl relative z-10"
+                    />
+                  </div>
+
+                  <div className="absolute top-1.5 left-1.5 bg-[#0B0F19] px-1.5 py-0.5 rounded border border-[#30363d] text-[10px] font-mono font-bold text-[#F59E0B] flex items-center gap-1 z-20">
+                    <Droplets className="w-3 h-3 text-[#F59E0B] fill-[#F59E0B]" />
+                    <span>{card.cost}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* HOVER CARD INSPECTOR TOOLTIP PANEL */}
+      {/* HOVER CARD INSPECTOR TOOLTIP PANEL (VIEWPORT FIXED) */}
       <AnimatePresence>
         {hoveredCard && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-28 left-72 z-50 w-80 bg-[#141a26] border border-[#30363d] rounded-xl p-4 text-[#F1F5F9] flex flex-col gap-2.5 pointer-events-none shadow-xl"
+            className="fixed bottom-6 left-72 z-50 w-80 bg-[#141a26] border border-[#30363d] rounded-xl p-4 text-[#F1F5F9] flex flex-col gap-2.5 pointer-events-none shadow-2xl"
           >
             <div className="flex gap-3 items-center border-b border-[#30363d] pb-2">
               <img
@@ -731,7 +817,76 @@ export const LorcanaBoard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* CARD ACTION MODAL */}
+      {/* DRAG CHOICE ACTION MODAL */}
+      <AnimatePresence>
+        {dragPendingCard && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-[2px]">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              className="relative bg-[#141a26] border border-[#30363d] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl flex flex-col items-center gap-4 text-center"
+            >
+              <button
+                onClick={() => setDragPendingCard(null)}
+                aria-label="Cancel action choice"
+                className="absolute top-4 right-4 p-1 bg-[#0B0F19] text-[#94A3B8] hover:text-white rounded border border-[#30363d] cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-32 h-48 rounded-xl overflow-hidden border border-[#30363d] relative bg-[#0B0F19]">
+                <img
+                  src={dragPendingCard.img}
+                  alt={dragPendingCard.name}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                  className="w-full h-full object-cover relative z-10"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="font-cinzel text-base font-bold text-[#F59E0B]">{dragPendingCard.name}</div>
+                <div className="text-xs font-mono text-[#94A3B8]">{dragPendingCard.title}</div>
+              </div>
+
+              <div className="w-full space-y-2 pt-1">
+                {dragPendingCard.isInkable && !hasInkedThisTurn && (
+                  <button
+                    onClick={() => {
+                      const card = dragPendingCard;
+                      setDragPendingCard(null);
+                      handleAddToInkwell(card);
+                    }}
+                    className="w-full bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border border-[#F59E0B]/50 p-3 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+                    <span>Add to Inkwell (+1 Ink Capacity)</span>
+                  </button>
+                )}
+
+                {availableInk >= dragPendingCard.cost && (
+                  <button
+                    onClick={() => {
+                      const card = dragPendingCard;
+                      setDragPendingCard(null);
+                      handlePlayCard(card);
+                    }}
+                    className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-black p-3 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Play className="w-4 h-4 fill-black" />
+                    <span>Play to Field ({dragPendingCard.cost} Ink)</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CARD CLICK ACTION MODAL */}
       <Modal
         isOpen={!!selectedHandCard}
         onClose={() => setSelectedHandCard(null)}
@@ -799,70 +954,6 @@ export const LorcanaBoard: React.FC = () => {
         )}
       </Modal>
 
-      {/* HAND DOCK */}
-      <div className="fixed bottom-0 left-64 right-0 z-30 flex justify-center pointer-events-none">
-        <motion.div
-          initial={{ y: 90 }}
-          whileHover={{ y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-[#0d1420] border-t border-[#30363d] rounded-t-xl px-8 pt-3 pb-6 pointer-events-auto flex flex-col items-center max-w-5xl w-full shadow-2xl"
-        >
-          <div className="w-16 h-1 bg-[#30363d] rounded-full mb-2 cursor-grab active:cursor-grabbing" />
-          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B] mb-2 uppercase tracking-widest flex items-center gap-2">
-            <span>Your Hand ({handCards.length}/7 Cards)</span>
-            <span className="text-[10px] font-mono text-[#94A3B8] font-normal">• Drag Card Up to Play onto Field • Drag Left for Ink</span>
-          </div>
-
-          {/* Hand Cards Stack */}
-          <div className="flex items-center justify-center -space-x-6 px-4 py-2">
-            {handCards.map((card) => (
-              <motion.div
-                key={card.id}
-                role="button"
-                tabIndex={0}
-                drag
-                dragConstraints={{ left: -400, right: 400, top: -350, bottom: 50 }}
-                dragElastic={0.15}
-                onDragStart={() => setIsDraggingCard(true)}
-                onMouseEnter={() => setHoveredCard(card)}
-                onMouseLeave={() => setHoveredCard(null)}
-                onClick={() => setSelectedHandCard(card)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedHandCard(card);
-                  }
-                }}
-                onDragEnd={(_, info) => handleDragEnd(card, info)}
-                whileHover={{ y: -20, zIndex: 50 }}
-                className="w-32 h-48 rounded-xl relative cursor-pointer border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light"
-              >
-                <div className="relative w-full h-full rounded-xl overflow-hidden">
-                  <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                    <span className="font-cinzel text-xs font-bold text-[#F59E0B] line-clamp-2">{card.name}</span>
-                    <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
-                  </div>
-                  <img
-                    src={card.img}
-                    alt={card.name}
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = 'none';
-                    }}
-                    className="w-full h-full object-cover rounded-xl relative z-10"
-                  />
-                </div>
-
-                <div className="absolute top-1.5 left-1.5 bg-[#0B0F19] px-1.5 py-0.5 rounded border border-[#30363d] text-[10px] font-mono font-bold text-[#F59E0B] flex items-center gap-1 z-20">
-                  <Droplets className="w-3 h-3 text-[#F59E0B] fill-[#F59E0B]" />
-                  <span>{card.cost}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
       {/* RIGHT SIDEBAR: ACTION LOG */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -870,7 +961,7 @@ export const LorcanaBoard: React.FC = () => {
             initial={{ x: 300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
-            className="w-72 border-l border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-30 shrink-0 shadow-xl"
+            className="w-72 border-l border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-30 shrink-0 shadow-xl sticky top-0 h-screen"
           >
             <div className="flex justify-between items-center border-b border-[#30363d] pb-3">
               <span className="font-cinzel font-bold text-[#F59E0B] text-xs">Match Action Log</span>

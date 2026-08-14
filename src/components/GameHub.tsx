@@ -9,6 +9,10 @@ interface GameHubProps {
 export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
   return (
     <div className="relative min-h-screen text-[#F1F5F9] font-outfit select-none overflow-x-hidden bg-[#0B0F19]">
+      {/* Magic Enrichment (Landing only, per design.md R3): gold light + parchment texture */}
+      <div className="magic-glow-gold" aria-hidden="true" />
+      <div className="magic-parchment" aria-hidden="true" />
+
       {/* Editorial Hero Section */}
       <main className="pt-20 pb-12 px-6 w-full max-w-6xl mx-auto relative z-10 flex flex-col items-center text-center min-h-[60vh] justify-center gap-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141a26] border border-[#30363d] text-[#F59E0B] text-xs font-mono font-bold uppercase">
@@ -17,7 +21,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
         </div>
 
         <h1 className="font-cinzel text-4xl sm:text-5xl md:text-6xl max-w-4xl text-[#F1F5F9] font-bold leading-tight">
-          Master the Inkwell. Play, Build &amp; Master Lorcana Decks.
+          Master the Inkwell. <span className="foil-text">Play, Build &amp; Master</span> Lorcana Decks.
         </h1>
 
         <p className="text-[#94A3B8] text-base md:text-lg max-w-2xl font-normal leading-relaxed">
@@ -27,7 +31,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
           <button
             onClick={() => setActiveTab('board')}
-            className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-7 py-3.5 rounded-lg font-cinzel font-bold text-sm uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="btn-primary-magic bg-[#F59E0B] hover:bg-[#D97706] text-black px-7 py-3.5 rounded-lg font-cinzel font-bold text-sm uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
             <Gamepad2 className="w-4 h-4 text-black" />
             <span>Start Playing Sandbox</span>
@@ -40,6 +44,11 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
             <Layers className="w-4 h-4 text-[#F59E0B]" />
             <span>Create Custom Deck</span>
           </button>
+        </div>
+
+        {/* Magic divider — gold rule + sparkle between hero and showcase */}
+        <div className="magic-divider mt-4" aria-hidden="true">
+          <Sparkles />
         </div>
       </main>
 

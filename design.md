@@ -145,13 +145,30 @@ NO radius larger than 12px on surfaces (kills the "everything is a blob" look).
 }
 ```
 
+## Magic Enrichment (Landing only) — Dark Editorial + Magic pass R3
+Status: added 2026-08-14 (user-approved direction A: keep Dark Editorial frame, add restrained "Disney magic" taste to marketing pages).
+
+### Allowed (Marketing pages ONLY: GameHub, any future landing/hero)
+- `.magic-glow-gold` — soft gold light rising from card art behind the hero. Blur ≤ 60px, opacity ≤ 0.25, radial, NON-interactive, `pointer-events-none`. One instance per viewport.
+- `.magic-parchment` — subtle noise/parchment texture on the hero backdrop (same family as the existing body noise; opacity ≤ 0.05).
+- `.foil-text` — gold gradient text on the hero headline ONLY (one gradient per viewport — respects the existing ≤1 gradient rule by REPLACING the CTA gradient allowance on marketing pages).
+- `.magic-divider` — thin gold rule + tiny sparkle glyph (lucide `Sparkles`, NOT emoji), used between hero sections.
+- Real card art as hero backdrop (already in ArtworkCarousel) — keep.
+
+### Still BANNED everywhere (incl. landing)
+- glassmorphism blur panels, emoji in UI copy, decorative glow on buttons/cards, shimmer sweeps,
+  gradient text outside the single hero headline, animate-pulse/spin on decoration, rounded-3xl surfaces.
+
+### App pages (Board/DeckBuilder/Analytics)
+- NO enrichment. Function carries the page. Board UX polish (scroll, drag-choice menu) is functional work, not decoration.
+
 ## Anti-slop checklist (verify before ship)
 - [ ] 0 emoji in UI copy (lucide icons + text only)
 - [ ] 0 backdrop-blur panels on surfaces (solid paper-2)
 - [ ] 0 decorative animate-pulse/spin/bounce (except card flip/drag/turn)
 - [ ] 0 shimmer classes
-- [ ] 0 glow shadows (`shadow-[0_0_...]`) except foil-light on card hover
-- [ ] ≤1 gradient per viewport (primary CTA only)
+- [ ] 0 glow shadows (`shadow-[0_0_...]`) except foil-light on card hover + `.magic-glow-gold` hero light
+- [ ] ≤1 gradient per viewport (hero foil-text on marketing; primary CTA elsewhere)
 - [ ] radius ≤ 12px on surfaces
 - [ ] Cinzel headings never italic; hierarchy via size/weight
 - [ ] aria-labels preserved (R1 work not regressed)

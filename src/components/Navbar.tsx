@@ -29,12 +29,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
         <img
           src="/Logo_cloudgame.png"
           alt="Lorcana PlayLab Cloud Logo"
-          className="w-10 h-10 object-contain rounded-lg border border-[#30363d] bg-[#141a26] p-1"
+          className="w-10 h-10 object-contain rounded-lg border border-[#F59E0B]/40 bg-[#141a26] p-1 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
         />
 
         <div>
           <h1 className="font-cinzel font-bold text-lg tracking-wider text-[#F1F5F9]">
-            LORCANA PLAYLAB
+            LORCANA <span className="foil-text">PLAYLAB</span>
           </h1>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[#94A3B8] font-semibold uppercase tracking-widest">
