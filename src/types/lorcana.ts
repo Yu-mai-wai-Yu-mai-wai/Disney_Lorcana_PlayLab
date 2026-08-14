@@ -53,6 +53,9 @@ export type WebSocketActionType =
   | 'CARD_EXERTED'
   | 'INK_PLAYED'
   | 'LORE_UPDATED'
+  | 'QUEST_DONE'
+  | 'CHALLENGE_DONE'
+  | 'TURN_PASSED'
   | 'ROOM_STATE'
   | 'OPPONENT_DISCONNECTED'
   | 'ERROR';

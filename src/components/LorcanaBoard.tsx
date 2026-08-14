@@ -26,23 +26,9 @@ import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
 
-interface LorcanaCard {
-  id: string;
-  name: string;
-  title: string;
-  cost: number;
-  strength?: number;
-  willpower?: number;
-  lore?: number;
-  isInkable: boolean;
-  type: 'character' | 'action' | 'song';
-  ink?: string;
-  subtypes?: string[];
-  abilities?: { name: string; text: string }[];
-  flavorText?: string;
-  img: string;
-  isWet?: boolean;
-}
+import { fetchCardPool, STARTER_POOL, type PoolCard } from '../data/cardPool';
+
+export type LorcanaCard = PoolCard & { isWet?: boolean };
 
 export const LorcanaBoard: React.FC = () => {
   const [playerLore, setPlayerLore] = useState(12);
@@ -52,6 +38,14 @@ export const LorcanaBoard: React.FC = () => {
   const [hasInkedThisTurn, setHasInkedThisTurn] = useState(false);
   const [turnNumber, setTurnNumber] = useState(4);
   const [isMyTurn, setIsMyTurn] = useState(true);
+  const [cardPool, setCardPool] = useState<LorcanaCard[]>([]);
+  const [damage, setDamage] = useState<Record<string, number>>({});
+  const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
+  const [turnPhase, setTurnPhase] = useState<'beginning' | 'main' | 'end'>('beginning');
+
+  React.useEffect(() => {
+    fetchCardPool().then(pool => setCardPool(pool));
+  }, []);
 
   const [deckCount, setDeckCount] = useState(40);
   const [discardCount, setDiscardCount] = useState(3);
@@ -97,132 +91,20 @@ export const LorcanaBoard: React.FC = () => {
   ]);
 
   // Initial hand cards state with official Inkable properties & abilities
-  const [handCards, setHandCards] = useState<LorcanaCard[]>([
-    {
-      id: 'h-1',
-      name: 'Stitch',
-      title: 'New Dog',
-      cost: 1,
-      strength: 2,
-      willpower: 2,
-      lore: 1,
-      isInkable: true,
-      type: 'character',
-      ink: 'Amber',
-      subtypes: ['Storyborn', 'Alien'],
-      abilities: [{ name: 'RAPSCALLION', text: 'When played, you may draw a card if Stitch is ready.' }],
-      flavorText: '"He may look like a dog, but he is a hero!"',
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/21_c9313d800707f408e740502a15578f53314c125a.jpg',
-    },
-    {
-      id: 'h-2',
-      name: 'Maleficent',
-      title: 'Monstrous Dragon',
-      cost: 9,
-      strength: 7,
-      willpower: 5,
-      lore: 2,
-      isInkable: true,
-      type: 'character',
-      ink: 'Ruby',
-      subtypes: ['Storyborn', 'Villain', 'Dragon'],
-      abilities: [{ name: 'DRAGON FIRE', text: 'When you play this character, you may banish chosen opposing character.' }],
-      flavorText: '"Now shall you deal with ME, O Prince, and all the powers of HELL!"',
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg',
-    },
-    {
-      id: 'h-3',
-      name: 'Aladdin',
-      title: 'Heroic Outlaw',
-      cost: 7,
-      strength: 5,
-      willpower: 5,
-      lore: 2,
-      isInkable: true,
-      type: 'character',
-      ink: 'Ruby',
-      subtypes: ['Floodborn', 'Hero'],
-      abilities: [{ name: 'DARING EXPLOIT', text: 'During your turn, whenever this character banishes another character in a challenge, gain 2 Lore and opponent loses 2 Lore.' }],
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg',
-    },
-    {
-      id: 'h-4',
-      name: 'Dragon Fire',
-      title: 'Action Spell',
-      cost: 5,
-      isInkable: false,
-      type: 'action',
-      ink: 'Ruby',
-      abilities: [{ name: 'BANISHMENT', text: 'Banish chosen character.' }],
-      flavorText: 'Pure crimson destruction.',
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/130_decfce2e256561e57abe8d2d5e378a3781c2ee6d.jpg',
-    },
-    {
-      id: 'h-5',
-      name: 'Tinker Bell',
-      title: 'Giant Fairy',
-      cost: 6,
-      strength: 4,
-      willpower: 6,
-      lore: 2,
-      isInkable: true,
-      type: 'character',
-      ink: 'Steel',
-      subtypes: ['Floodborn', 'Ally', 'Fairy'],
-      abilities: [
-        { name: 'ROCK THE BOAT', text: 'When you play this character, deal 1 damage to each opposing character.' },
-        { name: 'PUNISHMENT', text: 'Whenever this character banishes another character in a challenge, deal 2 damage to chosen character.' }
-      ],
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/58_e13723fd1214327ef6f4ac4954201558bd90caa6.jpg',
-    },
-    {
-      id: 'h-6',
-      name: 'A Whole New World',
-      title: 'Song Action',
-      cost: 5,
-      isInkable: false,
-      type: 'song',
-      ink: 'Steel',
-      abilities: [{ name: 'WORLD RENEWAL', text: 'Each player discards their hand and draws 7 cards.' }],
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/195_94542b1a94127cea3923cf9975650520a9a08151.jpg',
-    },
-  ]);
+  const [handCards, setHandCards] = useState<LorcanaCard[]>(STARTER_POOL);
 
   // Initial player battlefield cards state
-  const [fieldCards, setFieldCards] = useState<LorcanaCard[]>([
+  const [fieldCards, setFieldCards] = useState<LorcanaCard[]>([]);
+  
+  const [opponentFieldCards, setOpponentFieldCards] = useState<LorcanaCard[]>([
     {
-      id: 'mickey-1',
-      name: 'Mickey Mouse',
-      title: 'Wayward Sorcerer',
-      cost: 4,
-      strength: 3,
-      willpower: 4,
-      lore: 2,
-      isInkable: true,
-      type: 'character',
-      ink: 'Amethyst',
-      subtypes: ['Dreamborn', 'Sorcerer'],
-      abilities: [{ name: 'ANIMATE BROOMS', text: 'Broom characters cost 1 less Ink to play.' }],
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/12_da68c89ea3fc28a3a7396c30ab3da45e0f204eea.jpg',
-      isWet: false,
+      id: 'opp-1', name: 'Maleficent', title: 'Monstrous Dragon', cost: 9, strength: 7, willpower: 5, lore: 2, isInkable: true, inkwell: true, type: 'Character' as any, ink: 'Ruby', img: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg', imageUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg',
     },
     {
-      id: 'elsa-1',
-      name: 'Elsa',
-      title: 'Spirit of Winter',
-      cost: 8,
-      strength: 4,
-      willpower: 6,
-      lore: 3,
-      isInkable: true,
-      type: 'character',
-      ink: 'Amethyst',
-      subtypes: ['Floodborn', 'Queen', 'Sorcerer'],
-      abilities: [{ name: 'DEEP FREEZE', text: 'When played, exert up to 2 chosen characters. They cannot ready at start of next turn.' }],
-      img: 'https://api.lorcana.ravensburger.com/images/en/set1/40_01dc5bb928054aa2b228f2a1f97910208b36b42b.jpg',
-      isWet: false,
-    },
+      id: 'opp-2', name: 'Aladdin', title: 'Heroic Outlaw', cost: 7, strength: 5, willpower: 5, lore: 2, isInkable: true, inkwell: true, type: 'Character' as any, ink: 'Ruby', img: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg', imageUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg',
+    }
   ]);
+  const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>({'opp-1': true});
 
   const handleJoinRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,6 +117,38 @@ export const LorcanaBoard: React.FC = () => {
   const showNotice = (msg: string, type: 'success' | 'warning' | 'error') => {
     setNotice({ msg, type });
     setTimeout(() => setNotice(null), 3500);
+  };
+
+  const handleAttackTarget = (target: LorcanaCard) => {
+    if (!selectedAttacker) return;
+    const attacker = fieldCards.find(c => c.id === selectedAttacker);
+    if (!attacker) return;
+    
+    const attackerDmg = target.strength || 0;
+    const targetDmg = attacker.strength || 0;
+    
+    let newAttackerDamage = (damage[attacker.id] || 0) + attackerDmg;
+    let newTargetDamage = (damage[target.id] || 0) + targetDmg;
+    
+    const attackerBanished = newAttackerDamage >= (attacker.willpower || 0);
+    const targetBanished = newTargetDamage >= (target.willpower || 0);
+    
+    if (attackerBanished) {
+       setFieldCards(prev => prev.filter(c => c.id !== attacker.id));
+       setDiscardCount(prev => prev + 1);
+       setLogMessages(prev => [`${attacker.name} was banished in challenge!`, ...prev]);
+    } else {
+       setDamage(prev => ({ ...prev, [attacker.id]: newAttackerDamage }));
+       setExertedCards(prev => ({ ...prev, [attacker.id]: true }));
+    }
+    
+    if (targetBanished) {
+       setOpponentFieldCards(prev => prev.filter(c => c.id !== target.id));
+       setLogMessages(prev => [`Opponent's ${target.name} was banished in challenge!`, ...prev]);
+    } else {
+       setDamage(prev => ({ ...prev, [target.id]: newTargetDamage }));
+    }
+    setSelectedAttacker(null);
   };
 
   const toggleExert = (id: string) => {
@@ -289,6 +203,59 @@ export const LorcanaBoard: React.FC = () => {
     return true;
   };
 
+  const resolveAbilities = (card: LorcanaCard) => {
+    if (!card.abilities) return;
+    card.abilities.forEach(ability => {
+      const text = ability.text.toLowerCase();
+      if (/draw a card/.test(text)) {
+        handleDrawCard();
+      }
+      const loreMatch = text.match(/gain (\d+) lore/);
+      if (loreMatch) {
+        setPlayerLore(prev => Math.min(20, prev + parseInt(loreMatch[1])));
+      }
+      if (/banish chosen (opposing )?character/.test(text)) {
+        setOpponentFieldCards(prev => {
+          if (prev.length > 0) {
+            setLogMessages(logs => [`${card.name} banished ${prev[0].name}!`, ...logs]);
+            return prev.slice(1);
+          }
+          return prev;
+        });
+      }
+      const dmgMatch = text.match(/deal (\d+) damage to each opposing character/);
+      if (dmgMatch) {
+        const dmg = parseInt(dmgMatch[1]);
+        setOpponentFieldCards(prev => {
+          const next: LorcanaCard[] = [];
+          setDamage(d => {
+            const nd = { ...d };
+            prev.forEach(op => {
+              nd[op.id] = (nd[op.id] || 0) + dmg;
+              if (nd[op.id] >= (op.willpower || 0)) {
+                setLogMessages(logs => [`Opponent's ${op.name} was banished by ${card.name}!`, ...logs]);
+              } else {
+                next.push(op);
+              }
+            });
+            return nd;
+          });
+          return next;
+        });
+      }
+      const exertMatch = text.match(/exert up to (\d+) chosen characters/);
+      if (exertMatch) {
+        setOpponentExerted(prev => {
+          const next = { ...prev };
+          opponentFieldCards.slice(0, parseInt(exertMatch[1])).forEach(op => {
+            next[op.id] = true;
+          });
+          return next;
+        });
+      }
+    });
+  };
+
   // Play Card to Battlefield or Discard
   const handlePlayCard = (card: LorcanaCard) => {
     if (availableInk < card.cost) {
@@ -301,11 +268,13 @@ export const LorcanaBoard: React.FC = () => {
     setHandCards((prev) => prev.filter((c) => c.id !== card.id));
     setSelectedHandCard(null);
 
-    if (card.type === 'action' || card.type === 'song') {
+    const cardType = String(card.type).toLowerCase();
+    if (cardType === 'action' || cardType === 'song') {
       // Actions/Songs go to Discard pile
       setDiscardCount((prev) => prev + 1);
       setLogMessages((prev) => [`You played ${card.type.toUpperCase()}: ${card.name}! (Sent to Discard Pile)`, ...prev]);
       showNotice(`Cast Action "${card.name}"! (${card.cost} Ink used, sent to Discard)`, 'success');
+      resolveAbilities(card);
     } else {
       // Characters enter battlefield with isWet: true
       const newFieldCard = { ...card, isWet: true };
@@ -313,6 +282,7 @@ export const LorcanaBoard: React.FC = () => {
       setLogMessages((prev) => [`You cast Character: ${card.name} (${card.title}) onto the battlefield!`, ...prev]);
       showNotice(`Played ${card.name} onto field! (${card.cost} Ink used)`, 'success');
       webSocketService.sendAction('CARD_MOVED', { cardId: card.id, position: { x: 50, y: 50, zone: 'field' } });
+      resolveAbilities(card);
     }
     return true;
   };
@@ -362,13 +332,14 @@ export const LorcanaBoard: React.FC = () => {
       return;
     }
 
+    const available = cardPool.filter(c => !handCards.some(hc => hc.id === c.id) && !fieldCards.some(fc => fc.id === c.id));
+    if (available.length === 0) {
+       showNotice('No more unique cards in pool!', 'error');
+       return;
+    }
+    const drawn = available[Math.floor(Math.random() * available.length)];
+    
     setDeckCount((prev) => prev - 1);
-    const drawPool: LorcanaCard[] = [
-      { id: `drawn-${Date.now()}-1`, name: 'Magic Broom', title: 'Bucket Brigade', cost: 2, strength: 2, willpower: 2, lore: 1, isInkable: true, type: 'character', ink: 'Amethyst', img: 'https://api.lorcana.ravensburger.com/images/en/set1/35_781112b3226a2d6eb5228198fdfb552b7d532a8f.jpg' },
-      { id: `drawn-${Date.now()}-2`, name: 'Friends On The Other Side', title: 'Song', cost: 3, isInkable: false, type: 'song', ink: 'Amethyst', img: 'https://api.lorcana.ravensburger.com/images/en/set1/28_cbb0b22a00c6d7010f3c5f590b5ebbb9056d6edc.jpg' },
-      { id: `drawn-${Date.now()}-3`, name: 'Lilo', title: 'Making Wishes', cost: 1, strength: 1, willpower: 1, lore: 2, isInkable: true, type: 'character', ink: 'Amber', img: 'https://api.lorcana.ravensburger.com/images/en/set1/17_ef31c4fce4c489bd07dd6e2ff62a5b6f387db287.jpg' },
-    ];
-    const drawn = drawPool[Math.floor(Math.random() * drawPool.length)];
     setHandCards((prev) => [...prev, drawn]);
     setLogMessages((prev) => [`You drew ${drawn.name} from your deck.`, ...prev]);
     showNotice(`Drew "${drawn.name}" from Deck!`, 'success');
@@ -381,27 +352,26 @@ export const LorcanaBoard: React.FC = () => {
 
     setTimeout(() => {
       setOpponentLore((prev) => Math.min(20, prev + 1));
-      setLogMessages((prev) => [`Opponent completed their turn and gained 1 Lore.`, ...logMessages]);
+      setLogMessages((prev) => [`Opponent completed their turn and gained 1 Lore.`, ...prev]);
       
       setTimeout(() => {
-        setTurnNumber((prev) => prev + 1);
-        setIsMyTurn(true);
-        setHasInkedThisTurn(false);
-        setAvailableInk(inkwellCapacity);
-        
-        setExertedCards({});
-        setFieldCards((prev) => prev.map((c) => ({ ...c, isWet: false })));
-
-        if (deckCount > 0 && handCards.length < 7) {
-          setDeckCount((prev) => prev - 1);
-          setHandCards((prev) => [
-            ...prev,
-            { id: `turn-draw-${Date.now()}`, name: 'Tinker Bell', title: 'Tiny Fairy', cost: 3, strength: 2, willpower: 3, lore: 1, isInkable: true, type: 'character', ink: 'Steel', img: 'https://api.lorcana.ravensburger.com/images/en/set1/58_e13723fd1214327ef6f4ac4954201558bd90caa6.jpg' }
-          ]);
-        }
-        showNotice(`Turn Refreshed! All Ink ready & 1 Card drawn.`, 'success');
+        handleStartTurn();
       }, 1200);
     }, 1000);
+  };
+
+  const handleStartTurn = () => {
+    setTurnPhase('beginning');
+    setExertedCards({});
+    setFieldCards(prev => prev.map(c => ({ ...c, isWet: false })));
+    setHasInkedThisTurn(false);
+    setAvailableInk(inkwellCapacity);
+    setTurnNumber(prev => prev + 1);
+    setIsMyTurn(true);
+    setLogMessages(prev => [`Turn ${turnNumber + 1} started!`, ...prev]);
+    showNotice(`Turn ${turnNumber + 1} Started!`, 'success');
+    handleDrawCard();
+    setTurnPhase('main');
   };
 
   return (
@@ -621,37 +591,47 @@ export const LorcanaBoard: React.FC = () => {
               Opponent Battlefield
             </div>
             <div className="flex items-center justify-center gap-12 w-full h-full max-h-56">
-              <motion.div
-                layout
-                animate={{ rotate: 90 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                className="w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border border-[#30363d]"
-              >
-                <img
-                  src="https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg"
-                  alt="Opponent Exerted"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover opacity-60"
-                />
-                <span className="absolute bottom-1 bg-[#0B0F19]/90 text-[#F59E0B] text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-[#30363d]">
-                  Exerted
-                </span>
-              </motion.div>
-
-              <motion.div
-                layout
-                className="w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border border-[#30363d]"
-              >
-                <img
-                  src="https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg"
-                  alt="Opponent Ready"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover opacity-60"
-                />
-                <span className="absolute bottom-1 bg-[#0B0F19]/90 text-emerald-400 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-500/40">
-                  Ready
-                </span>
-              </motion.div>
+              <AnimatePresence>
+                {opponentFieldCards.map((card) => {
+                  const isOpExerted = opponentExerted[card.id] || false;
+                  return (
+                    <motion.div
+                      key={card.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1, rotate: isOpExerted ? 90 : 0 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                      onClick={() => selectedAttacker && handleAttackTarget(card)}
+                      className={`w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border ${
+                        selectedAttacker ? 'border-rose-500 cursor-pointer hover:border-rose-400' : 'border-[#30363d]'
+                      }`}
+                    >
+                      <img
+                        src={card.img}
+                        alt={card.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover opacity-60"
+                      />
+                      <span className={`absolute bottom-1 bg-[#0B0F19]/90 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                        isOpExerted ? 'text-[#F59E0B] border-[#30363d]' : 'text-emerald-400 border-emerald-500/40'
+                      }`}>
+                        {isOpExerted ? 'Exerted' : 'Ready'}
+                      </span>
+                      {selectedAttacker && (
+                        <div className="absolute inset-0 bg-rose-500/20 flex items-center justify-center hover:bg-rose-500/40 transition-colors z-20">
+                          <Sword className="w-10 h-10 text-rose-500 drop-shadow-md" />
+                        </div>
+                      )}
+                      {(damage[card.id] || 0) > 0 && (
+                        <div className="absolute top-1 right-1 bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[11px] font-bold z-30 border-2 border-[#141a26]">
+                          -{damage[card.id]}
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -730,18 +710,46 @@ export const LorcanaBoard: React.FC = () => {
                       </div>
                     )}
 
+                    {(damage[card.id] || 0) > 0 && (
+                      <div className="absolute top-1 left-1 bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-[11px] font-bold z-30 border-2 border-[#141a26]">
+                        -{damage[card.id]}
+                      </div>
+                    )}
+
                     {!card.isWet && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuest(card);
-                        }}
-                        aria-label="Quest"
-                        className="absolute top-1 right-1 bg-[#F59E0B] hover:bg-[#D97706] text-black p-1 rounded-full transition-colors cursor-pointer font-bold text-[9px] flex items-center justify-center z-20"
-                        title={`Quest for +${card.lore || 1} Lore`}
-                      >
-                        <Zap className="w-3 h-3 fill-black" />
-                      </button>
+                      <div className="absolute top-1 right-1 flex flex-col gap-1.5 z-30">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuest(card);
+                          }}
+                          disabled={isExerted}
+                          aria-label="Quest"
+                          className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center"
+                          title={isExerted ? "Already exerted" : `Quest for +${card.lore || 1} Lore`}
+                        >
+                          <Zap className="w-3.5 h-3.5 fill-black" />
+                        </button>
+                        {opponentFieldCards.length > 0 && !isExerted && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (selectedAttacker === card.id) {
+                                setSelectedAttacker(null);
+                              } else {
+                                setSelectedAttacker(card.id);
+                                showNotice(`Select an opponent's character to challenge!`, 'warning');
+                              }
+                            }}
+                            className={`p-1.5 rounded-full transition-colors cursor-pointer flex items-center justify-center ${
+                              selectedAttacker === card.id ? 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]' : 'bg-rose-400 hover:bg-rose-500 text-black'
+                            }`}
+                            title="Challenge Opponent"
+                          >
+                            <Sword className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     )}
 
                     <div className="absolute bottom-1 left-1 right-1 bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d] flex justify-between items-center text-[9px] font-mono font-bold z-20 text-[#F1F5F9]">
@@ -775,17 +783,30 @@ export const LorcanaBoard: React.FC = () => {
             </div>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            onClick={handleEndTurn}
-            disabled={!isMyTurn}
-            className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
-          >
-            <RotateCw className="w-3.5 h-3.5 fill-black" />
-            <span>Pass Turn</span>
-          </motion.button>
+          <div className="flex items-center gap-2">
+            {!isMyTurn && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleStartTurn}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Start Turn</span>
+              </motion.button>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              onClick={handleEndTurn}
+              disabled={!isMyTurn}
+              className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <RotateCw className="w-3.5 h-3.5 fill-black" />
+              <span>Pass Turn</span>
+            </motion.button>
+          </div>
         </div>
 
       </div>
@@ -1072,20 +1093,20 @@ export const LorcanaBoard: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="w-full space-y-2 pt-1">
-              <button
-                onClick={() => handleAddToInkwell(selectedHandCard)}
-                disabled={!selectedHandCard.isInkable || hasInkedThisTurn}
-                className="w-full bg-[#141a26] hover:bg-[#1e2638] disabled:opacity-40 text-[#F59E0B] border border-[#F59E0B]/50 p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
-              >
-                <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-                <span>
-                  {!selectedHandCard.isInkable
-                    ? 'Non-Inkable Card'
-                    : hasInkedThisTurn
-                    ? 'Inked this turn (1/1 Limit)'
-                    : 'Add to Inkwell (+1 Ink Capacity)'}
-                </span>
-              </button>
+              {selectedHandCard.isInkable && (
+                <button
+                  onClick={() => handleAddToInkwell(selectedHandCard)}
+                  disabled={hasInkedThisTurn}
+                  className="w-full bg-[#141a26] hover:bg-[#1e2638] disabled:opacity-40 text-[#F59E0B] border border-[#F59E0B]/50 p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                >
+                  <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
+                  <span>
+                    {hasInkedThisTurn
+                      ? 'Inked this turn (1/1 Limit)'
+                      : 'Add to Inkwell (+1 Ink Capacity)'}
+                  </span>
+                </button>
+              )}
 
               <button
                 onClick={() => handlePlayCard(selectedHandCard)}

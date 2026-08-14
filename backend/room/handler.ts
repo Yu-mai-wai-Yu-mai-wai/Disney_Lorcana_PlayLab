@@ -127,12 +127,15 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     }
   }
 
-  // 4. Relay Live Actions (CARD_MOVED, CARD_EXERTED, INK_PLAYED, LORE_UPDATED)
+  // 4. Relay Live Actions (CARD_MOVED, CARD_EXERTED, INK_PLAYED, LORE_UPDATED, QUEST, CHALLENGE, TURN)
   if (
     action === 'CARD_MOVED' ||
     action === 'CARD_EXERTED' ||
     action === 'INK_PLAYED' ||
     action === 'LORE_UPDATED' ||
+    action === 'QUEST_DONE' ||
+    action === 'CHALLENGE_DONE' ||
+    action === 'TURN_PASSED' ||
     action === 'sendAction'
   ) {
     const roomId = body.roomId || '108249';
