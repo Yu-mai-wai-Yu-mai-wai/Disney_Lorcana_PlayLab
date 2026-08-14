@@ -30,7 +30,19 @@ import { fetchCardPool, STARTER_POOL, type PoolCard } from '../data/cardPool';
 
 export type LorcanaCard = PoolCard & { isWet?: boolean };
 
-export const LorcanaBoard: React.FC = () => {
+export interface LorcanaBoardProps {
+  initialDeck?: any;
+  roomId?: string;
+  playerRole?: 'player1' | 'player2';
+  matchMode?: boolean;
+}
+
+export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
+  initialDeck,
+  roomId,
+  playerRole,
+  matchMode = false,
+}) => {
   const [playerLore, setPlayerLore] = useState(12);
   const [opponentLore, setOpponentLore] = useState(4);
   const [inkwellCapacity, setInkwellCapacity] = useState(5);
@@ -91,20 +103,90 @@ export const LorcanaBoard: React.FC = () => {
   ]);
 
   // Initial hand cards state with official Inkable properties & abilities
-  const [handCards, setHandCards] = useState<LorcanaCard[]>(STARTER_POOL);
+  const [handCards, setHandCards] = useState<LorcanaCard[]>(() => {
+    if (matchMode && initialDeck && initialDeck.cards) {
+      let fullDeck: LorcanaCard[] = [];
+      initialDeck.cards.forEach((c: any) => {
+        for(let i=0; i<c.count; i++) {
+          fullDeck.push({ ...c.card, id: `${c.card.id}-${i}` });
+        }
+      });
+      fullDeck = fullDeck.sort(() => Math.random() - 0.5);
+      return fullDeck.slice(0, 7);
+    }
+    return STARTER_POOL;
+  });
 
   // Initial player battlefield cards state
   const [fieldCards, setFieldCards] = useState<LorcanaCard[]>([]);
   
-  const [opponentFieldCards, setOpponentFieldCards] = useState<LorcanaCard[]>([
-    {
-      id: 'opp-1', name: 'Maleficent', title: 'Monstrous Dragon', cost: 9, strength: 7, willpower: 5, lore: 2, isInkable: true, inkwell: true, type: 'Character' as any, ink: 'Ruby', img: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg', imageUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg',
-    },
-    {
-      id: 'opp-2', name: 'Aladdin', title: 'Heroic Outlaw', cost: 7, strength: 5, willpower: 5, lore: 2, isInkable: true, inkwell: true, type: 'Character' as any, ink: 'Ruby', img: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg', imageUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg',
-    }
-  ]);
+  const [opponentFieldCards, setOpponentFieldCards] = useState<LorcanaCard[]>(() => {
+    if (matchMode) return [];
+    return [
+      {
+        id: 'opp-1', name: 'Maleficent', title: 'Monstrous Dragon', cost: 9, strength: 7, willpower: 5, lore: 2, isInkable: true, inkwell: true, type: 'Character' as any, ink: 'Ruby', img: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg', imageUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg',
+      },
+      {
+        id: 'opp-2', name: 'Aladdin', title: 'Heroic Outlaw', cost: 7, strength: 5, willpower: 5, lore: 2, isInkable: true, inkwell: true, type: 'Character' as any, ink: 'Ruby', img: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg', imageUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/69_567caacf82f67ff08587b6ded1c7ebeb1f77a196.jpg',
+      }
+    ];
+  });
   const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>({'opp-1': true});
+
+  React.useEffect(() => {
+    if (!matchMode) return;
+
+    const unsubMoved = webSocketService.subscribe('CARD_MOVED', (data) => {
+      if (data.role !== playerRole && data.payload?.zone === 'field' && data.payload?.card) {
+        setOpponentFieldCards((prev) => {
+          if (!prev.find(c => c.id === data.payload.card.id)) {
+            return [...prev, data.payload.card];
+          }
+          return prev;
+        });
+        setLogMessages(prev => [`Opponent played ${data.payload.card.name}!`, ...prev]);
+      }
+    });
+
+    const unsubExerted = webSocketService.subscribe('CARD_EXERTED', (data) => {
+      if (data.role !== playerRole && data.cardId) {
+        setOpponentExerted((prev) => ({ ...prev, [data.cardId!]: !!data.isExerted }));
+      }
+    });
+
+    const unsubInk = webSocketService.subscribe('INK_PLAYED', (data) => {
+      if (data.role !== playerRole) {
+        setLogMessages((prev) => [`Opponent added a card to Inkwell.`, ...prev]);
+        // To strictly sync opponent ink, we could add opponentInk state, but just logging is OK based on current UI
+      }
+    });
+
+    const unsubLore = webSocketService.subscribe('LORE_UPDATED', (data) => {
+      if (data.role !== playerRole && data.loreScore !== undefined) {
+        setOpponentLore(data.loreScore);
+      }
+    });
+
+    const unsubPassed = webSocketService.subscribe('TURN_PASSED', (data) => {
+      if (data.role !== playerRole) {
+        setLogMessages(prev => [`Opponent ended their turn.`, ...prev]);
+        handleStartTurn();
+      }
+    });
+
+    const unsubDisconnect = webSocketService.subscribe('OPPONENT_DISCONNECTED', () => {
+      showNotice('Opponent disconnected!', 'warning');
+    });
+
+    return () => {
+      unsubMoved();
+      unsubExerted();
+      unsubInk();
+      unsubLore();
+      unsubPassed();
+      unsubDisconnect();
+    };
+  }, [matchMode, playerRole]);
 
   const handleJoinRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +363,7 @@ export const LorcanaBoard: React.FC = () => {
       setFieldCards((prev) => [...prev, newFieldCard]);
       setLogMessages((prev) => [`You cast Character: ${card.name} (${card.title}) onto the battlefield!`, ...prev]);
       showNotice(`Played ${card.name} onto field! (${card.cost} Ink used)`, 'success');
-      webSocketService.sendAction('CARD_MOVED', { cardId: card.id, position: { x: 50, y: 50, zone: 'field' } });
+      webSocketService.sendAction('CARD_MOVED', { cardId: card.id, payload: { zone: 'field', card: newFieldCard } });
       resolveAbilities(card);
     }
     return true;
@@ -350,14 +432,18 @@ export const LorcanaBoard: React.FC = () => {
     setIsMyTurn(false);
     showNotice(`Ending Turn ${turnNumber}... Opponent is playing.`, 'warning');
 
-    setTimeout(() => {
-      setOpponentLore((prev) => Math.min(20, prev + 1));
-      setLogMessages((prev) => [`Opponent completed their turn and gained 1 Lore.`, ...prev]);
-      
+    if (matchMode) {
+      webSocketService.sendAction('TURN_PASSED', {});
+    } else {
       setTimeout(() => {
-        handleStartTurn();
-      }, 1200);
-    }, 1000);
+        setOpponentLore((prev) => Math.min(20, prev + 1));
+        setLogMessages((prev) => [`Opponent completed their turn and gained 1 Lore.`, ...prev]);
+        
+        setTimeout(() => {
+          handleStartTurn();
+        }, 1200);
+      }, 1000);
+    }
   };
 
   const handleStartTurn = () => {

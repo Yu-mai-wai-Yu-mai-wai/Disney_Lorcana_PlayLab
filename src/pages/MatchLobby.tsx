@@ -7,7 +7,7 @@ import { STARTER_POOL } from '../data/cardPool';
 import { Swords, LogIn, Plus, Loader2, X, AlertCircle } from 'lucide-react';
 
 interface MatchLobbyProps {
-  onStartMatch: (deckId: string, deckName: string) => void;
+  onStartMatch: (deckId: string, deckName: string, roomId?: string, role?: string, deckObject?: any) => void;
 }
 
 export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
@@ -42,14 +42,16 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
       setCurrentRoomId(data.roomId || null);
       if (selectedDeckId) {
         setTimeout(() => {
-          onStartMatch(selectedDeckId, selectedDeckName);
+          const deckObj = decks.find(d => d.deckId === selectedDeckId);
+          onStartMatch(selectedDeckId, selectedDeckName, data.roomId || undefined, data.role, deckObj);
         }, 1500);
       }
     });
 
     const unsubGameStart = webSocketService.subscribe('GAME_START', (data) => {
       if (selectedDeckId) {
-        onStartMatch(selectedDeckId, selectedDeckName);
+        const deckObj = decks.find(d => d.deckId === selectedDeckId);
+        onStartMatch(selectedDeckId, selectedDeckName, data.roomId || currentRoomId || undefined, data.role || webSocketService.getCurrentRole(), deckObj);
       }
     });
 
