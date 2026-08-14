@@ -13,7 +13,7 @@ export function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col text-[#F1F5F9] bg-[#0B0F19] relative">
+    <div className={`${activeTab === 'board' ? 'h-screen' : 'min-h-screen'} flex flex-col text-[#F1F5F9] bg-[#0B0F19] relative`}>
       {/* Top Navbar */}
       <Navbar
         onOpenAuth={() => setIsAuthOpen(true)}
@@ -22,7 +22,7 @@ export function App() {
       />
 
       {/* Main Content Area — board tab fills the viewport exactly (no scroll) */}
-      <main className={activeTab === 'board' ? 'flex-1 overflow-hidden pb-0' : 'flex-1 pb-12'}>
+      <main className={activeTab === 'board' ? 'flex-1 overflow-hidden pb-0 min-h-0' : 'flex-1 pb-12'}>
         {activeTab === 'hub' && <GameHub setActiveTab={setActiveTab} />}
         {activeTab === 'board' && <LorcanaBoard />}
         {activeTab === 'deckbuilder' && <DeckBuilder />}
