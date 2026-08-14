@@ -443,8 +443,8 @@ export const LorcanaBoard: React.FC = () => {
         </div>
 
         {/* Inkwell Reserve Zone */}
-        <div className="space-y-2 flex-1 flex flex-col justify-center py-2">
-          <div className="flex justify-between items-center text-xs font-cinzel font-bold text-[#F59E0B]">
+        <div className="space-y-2 flex-1 flex flex-col py-2 min-h-0">
+          <div className="flex justify-between items-center text-xs font-cinzel font-bold text-[#F59E0B] shrink-0">
             <span className="flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" /> INKWELL ZONE
             </span>
@@ -458,7 +458,7 @@ export const LorcanaBoard: React.FC = () => {
               {availableInk}/{inkwellCapacity}
             </motion.span>
           </div>
-          <div className="grid grid-cols-2 gap-1.5 p-2 bg-[#0B0F19] rounded-xl border border-[#30363d] relative">
+          <div className="flex-1 grid grid-cols-2 grid-rows-3 gap-1.5 p-2 bg-[#0B0F19] rounded-xl border border-[#30363d] relative min-h-0">
             {Array.from({ length: Math.max(6, inkwellCapacity) }).map((_, i) => {
               const isReady = i < availableInk;
               const isExerted = !isReady && i < inkwellCapacity;
@@ -470,7 +470,7 @@ export const LorcanaBoard: React.FC = () => {
                   initial={{ scale: 0.85, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 24, delay: i * 0.02 }}
-                  className={`h-11 rounded-lg border flex flex-col items-center justify-center transition-colors ${
+                  className={`h-full min-h-10 rounded-lg border flex flex-col items-center justify-center transition-colors ${
                     isReady
                       ? 'bg-[#F59E0B]/15 border-[#F59E0B]/60 text-[#F59E0B]'
                       : isExerted
@@ -486,7 +486,7 @@ export const LorcanaBoard: React.FC = () => {
               );
             })}
           </div>
-          <div className="text-[9px] font-mono text-center px-2 py-1 rounded-lg border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold">
+          <div className="text-[9px] font-mono text-center px-2 py-1 rounded-lg border bg-[#0B0F19] border-[#30363d] text-[#F59E0B] font-semibold shrink-0">
             {hasInkedThisTurn ? 'Inked this turn (1/1 Limit)' : 'Drag Card Here to Add Ink'}
           </div>
         </div>
