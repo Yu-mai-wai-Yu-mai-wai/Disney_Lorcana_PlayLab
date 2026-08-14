@@ -47,3 +47,26 @@
 2. **Frontend Integration:** นำหน้า Deck Builder มาต่อเข้ากับ AWS API Gateway จริง
 3. **Refinement & Testing:** แก้ไขข้อบกพร่องเล็กน้อย ปรับจูนประสิทธิภาพการเชื่อมต่อ WebSocket
 4. **จัดทำรูปเล่ม Stage 2:** รวบรวม Diagram (Architecture) และผลทดสอบ เพื่อส่งมอบงานตามกำหนดการ
+
+## 6. ผลการ Audit & Fix (14 ส.ค. 2569 — หลังตรวจสอบจริงผ่าน AWS CLI)
+
+การตรวจสอบความถูกต้องของ Sprint 1-3 ด้วยการทดสอบจริงบน AWS Learner Lab พบและแก้ไข 2 ปัญหา:
+
+| ปัญหา | สาเหตุ | การแก้ไข | ผลทดสอบหลังแก้ |
+|---|---|---|---|
+| GET /decks และ DELETE /decks/{id} ตอบ 405 | API Gateway integration ใช้ payload-format-version 2.0 แต่ Lambda เขียนด้วยรูปแบบ event v1 (event.httpMethod) | เปลี่ยน integration เป็น 1.0 + redeploy stage | GET /decks → 200 |
+| POST /decks ถูกส่งไปยัง Lambda lorcana-auth-register | Integration mapping สลับ (integration ถูกสร้างด้วยลำดับไม่ตรงกับ route) | แก้ IntegrationUri ให้ชี้ lorcana-deck + redeploy | POST /decks → 201 บันทึกลง DynamoDB ได้จริง |
+
+**ผลการทดสอบ End-to-End (ผ่าน URL จริง):**
+- POST /auth/register → 201 User registered successfully
+- POST /auth/login → 200 Login successful + JWT token
+- POST /decks → 201 บันทึกเด็คลง DynamoDB
+- GET /decks → 200 คืนรายการเด็คที่บันทึก
+- DELETE /decks/{id} → 200 ลบสำเร็จ
+- WebSocket connect → 200 / JOIN_ROOM → 200 / CARD_MOVED → 200 (relay)
+
+> บทเรียน: เมื่อสร้าง API Gateway HTTP API ด้วย AWS_PROXY ต้องระบุ payload-format-version ให้ตรงกับ event format ที่ Lambda คาดหวัง และควรตรวจ integration mapping หลังสร้าง routes ทุกครั้ง
+
+## 7. หมายเหตุ Security (รอปรับปรุง Sprint 4)
+- JWT_SECRET มีค่า fallback ฮาร์ดโค้ดในโค้ด — ควรย้ายเป็น AWS Secrets Manager หรือ environment variable ที่เข้มงวดกว่านี้ก่อนส่งงานจริง
+- GET /decks รองรับ anonymous_guest (ไม่บังคับ auth) — เหมาะกับโหมด sandbox แต่ควรมี option บังคับ JWT สำหรับ production
