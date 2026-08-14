@@ -492,7 +492,7 @@ export const LorcanaBoard: React.FC = () => {
         </div>
 
         {/* Player Piles */}
-        <div className="space-y-1.5 border-t border-[#30363d] pt-2.5">
+        <div className="space-y-1.5 border-t border-[#30363d] pt-2.5 mt-auto">
           <div className="text-[10px] font-cinzel font-bold text-[#F59E0B]">YOUR PILES</div>
           <div className="flex gap-2">
             {/* Draw Deck */}
