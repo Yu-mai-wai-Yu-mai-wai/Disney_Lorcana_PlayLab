@@ -56,7 +56,7 @@ export const LorcanaBoard: React.FC = () => {
   const [deckCount, setDeckCount] = useState(40);
   const [discardCount, setDiscardCount] = useState(3);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isHandOpen, setIsHandOpen] = useState(true);
+  const [isHandOpen, setIsHandOpen] = useState(false);
   const [notice, setNotice] = useState<{ msg: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // SPRINT 3: AWS WEBSOCKETS REAL-TIME ROOM SYNC STATE
@@ -418,7 +418,7 @@ export const LorcanaBoard: React.FC = () => {
       </AnimatePresence>
 
       {/* LEFT SIDEBAR: DEDICATED INKWELL, DECK & DISCARD ZONES (NO SCROLL, H-FULL) */}
-      <aside className={`w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 flex flex-col justify-between z-20 shrink-0 h-full overflow-hidden transition-colors ${
+      <aside className={`w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 pb-2 flex flex-col justify-between z-20 shrink-0 h-full overflow-hidden transition-colors ${
         isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
@@ -775,9 +775,13 @@ export const LorcanaBoard: React.FC = () => {
 
       </div>
 
-      {/* SPEC 3 — HAND DOCK: SLIDING TAB AT BOTTOM (CLICK TO EXPAND / COLLAPSE) */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-auto">
-        {/* TAB TOGGLE BUTTON */}
+      {/* SPEC 3 — HAND DOCK: HOVER TAB AT BOTTOM (show on hover, hide on leave) */}
+      <div
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-auto"
+        onMouseEnter={() => setIsHandOpen(true)}
+        onMouseLeave={() => setIsHandOpen(false)}
+      >
+        {/* TAB TOGGLE BUTTON (hover to expand, no click needed) */}
         <button
           onClick={() => setIsHandOpen((prev) => !prev)}
           className="bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border-t border-x border-[#30363d] rounded-t-xl px-5 py-1.5 font-cinzel font-bold text-[11px] uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-2xl z-50"
