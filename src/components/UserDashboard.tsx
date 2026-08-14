@@ -8,7 +8,7 @@ interface UserDashboardProps {
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) => {
-  const { user, isAuthenticated, setAuth, logout } = useAuthStore();
+  const { user, token, isAuthenticated, setAuth, logout } = useAuthStore();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
@@ -19,33 +19,46 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Sample cloud decks list
-  const [savedDecks, setSavedDecks] = useState([
-    {
-      id: 'deck-1',
-      name: 'Ruby/Sapphire Ramp',
-      inks: ['Ruby', 'Sapphire'],
-      cardCount: 60,
-      updatedAt: '2 hours ago',
-      bgUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/48_4026147a113c16a740020b8d3e8b4b6016cd76ad.jpg',
-    },
-    {
-      id: 'deck-2',
-      name: 'Steel/Amber Songs',
-      inks: ['Steel', 'Amber'],
-      cardCount: 60,
-      updatedAt: 'Yesterday',
-      bgUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/21_c9313d800707f408e740502a15578f53314c125a.jpg',
-    },
-    {
-      id: 'deck-3',
-      name: 'Emerald/Amethyst Evasive',
-      inks: ['Emerald', 'Amethyst'],
-      cardCount: 60,
-      updatedAt: '3 days ago',
-      bgUrl: 'https://api.lorcana.ravensburger.com/images/en/set1/40_01dc5bb928054aa2b228f2a1f97910208b36b42b.jpg',
-    },
-  ]);
+  // Real decks loaded from AWS DynamoDB via GET /decks (JWT Bearer)
+  const [savedDecks, setSavedDecks] = useState<any[]>([]);
+  const [decksLoading, setDecksLoading] = useState(false);
+
+  // Load real decks from the cloud when authenticated
+  const loadUserDecks = React.useCallback(async () => {
+    if (!token) return;
+    setDecksLoading(true);
+    try {
+      const res = await apiService.getUserDecks(token);
+      const decks = res.decks || [];
+      setSavedDecks(
+        decks.map((d: any) => ({
+          id: d.deckId,
+          name: d.name,
+          cardCount: d.totalCards || (Array.isArray(d.cards) ? d.cards.reduce((acc: number, c: any) => acc + (c.count || 1), 0) : 0),
+          updatedAt: d.updatedAt ? new Date(d.updatedAt).toLocaleDateString('en-GB') : '—',
+          cards: d.cards || [],
+          // First card art as deck cover
+          bgUrl:
+            d.cards?.[0]?.card?.imageUrl ||
+            d.cards?.[0]?.imageUrl ||
+            'https://api.lorcana.ravensburger.com/images/en/set1/1_ea50bda8825b4ccdf7e71c7052ee9688f92e75ab.jpg',
+        }))
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to load decks');
+    } finally {
+      setDecksLoading(false);
+    }
+  }, [token]);
+
+  // Reload decks whenever auth state changes (login / re-open page)
+  React.useEffect(() => {
+    if (isAuthenticated && token) {
+      loadUserDecks();
+    } else {
+      setSavedDecks([]);
+    }
+  }, [isAuthenticated, token, loadUserDecks]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,10 +92,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const confirmTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  const handleDeleteDeckClick = (id: string) => {
+  const handleDeleteDeckClick = async (id: string) => {
     if (confirmDeleteId === id) {
       if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
       setConfirmDeleteId(null);
+      // Delete from cloud (DynamoDB) — requires JWT bearer
+      if (token) {
+        try {
+          await apiService.deleteDeck(id, token);
+        } catch (e: any) {
+          setError(e.message || 'Failed to delete deck from cloud');
+        }
+      }
       setSavedDecks((prev) => prev.filter((d) => d.id !== id));
     } else {
       if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
@@ -316,12 +337,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     <div className="absolute inset-0 bg-[#0B0F19]/40" />
 
                     <div className="absolute top-3 right-3 flex gap-1.5">
-                      {deck.inks.map((ink) => (
+                      {Array.from(new Set((deck.cards || []).map((c: any) => c.card?.ink || c.ink).filter(Boolean))).map((ink) => (
                         <span
-                          key={ink}
+                          key={ink as string}
                           className="bg-[#0B0F19] border border-[#30363d] text-[#F59E0B] text-[10px] uppercase font-bold px-2 py-0.5 rounded"
                         >
-                          {ink}
+                          {ink as string}
                         </span>
                       ))}
                     </div>
@@ -337,6 +358,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                         <span>• {deck.updatedAt}</span>
                       </div>
                     </div>
+
+                    {/* Deck contents — card names + counts from cloud data */}
+                    {deck.cards && deck.cards.length > 0 && (
+                      <details className="mb-3 bg-[#0B0F19] border border-[#30363d] rounded-lg overflow-hidden">
+                        <summary className="px-3 py-2 text-[11px] font-mono text-[#94A3B8] hover:text-[#F59E0B] cursor-pointer select-none">
+                          View {deck.cards.length} card types
+                        </summary>
+                        <div className="max-h-28 overflow-y-auto px-3 pb-2 space-y-1">
+                          {deck.cards.map((c: any, i: number) => (
+                            <div key={i} className="flex justify-between items-center gap-2 text-[11px]">
+                              <span className="text-[#F1F5F9] truncate">
+                                {c.card?.name || c.name || 'Card'}
+                                {c.card?.cost !== undefined && (
+                                  <span className="text-[#F59E0B] ml-1">⚡{c.card.cost}</span>
+                                )}
+                              </span>
+                              <span className="font-mono text-[#94A3B8] shrink-0">×{c.count || 1}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#30363d]">
                       <button
