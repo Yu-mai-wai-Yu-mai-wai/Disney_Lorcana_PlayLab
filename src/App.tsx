@@ -21,8 +21,8 @@ export function App() {
         setActiveTab={setActiveTab}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 pb-12">
+      {/* Main Content Area — board tab fills the viewport exactly (no scroll) */}
+      <main className={activeTab === 'board' ? 'flex-1 overflow-hidden pb-0' : 'flex-1 pb-12'}>
         {activeTab === 'hub' && <GameHub setActiveTab={setActiveTab} />}
         {activeTab === 'board' && <LorcanaBoard />}
         {activeTab === 'deckbuilder' && <DeckBuilder />}
@@ -34,10 +34,12 @@ export function App() {
       {/* Auth Modal connected to AWS API Gateway */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
-      {/* Footer */}
-      <footer className="py-4 px-6 border-t border-[#30363d] text-center text-xs text-[#94A3B8] font-outfit bg-[#0B0F19]">
-        <p>Disney Lorcana PlayLab &copy; 2026 — All rights reserved</p>
-      </footer>
+      {/* Footer — hidden on board tab so the playmat fills the viewport exactly */}
+      {activeTab !== 'board' && (
+        <footer className="py-4 px-6 border-t border-[#30363d] text-center text-xs text-[#94A3B8] font-outfit bg-[#0B0F19]">
+          <p>Disney Lorcana PlayLab &copy; 2026 — All rights reserved</p>
+        </footer>
+      )}
     </div>
   );
 }
