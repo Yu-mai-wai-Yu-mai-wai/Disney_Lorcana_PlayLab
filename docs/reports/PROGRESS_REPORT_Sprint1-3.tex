@@ -1,0 +1,158 @@
+% ============================================================
+% รายงานความคืบหน้า Disney Lorcana PlayLab Cloud (Sprint 1-3)
+% Compile: xelatex (Thai + TH Sarabun New)
+% Font sizes: section 20px (15pt) / subsection 18px (13.5pt) / body 16px (12pt)
+% ============================================================
+\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{parskip}
+
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+\setdefaultlanguage{thai}
+\setotherlanguage{english}
+\setmainfont{TH Sarabun New}
+
+% ---- Font sizes (px -> pt): section 20px=15pt, subsection 18px=13.5pt, body 16px=12pt
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+% ---- Table style
+\newcommand{\thairow}[1]{\textbf{#1}}
+
+\begin{document}
+
+% ---- Header / Title (16px body)
+\begin{center}
+{\LARGE\bfseries รายงานความคืบหน้าโครงการ\\[2pt]
+Disney Lorcana PlayLab Cloud (Sprint 1--3)}\\[10pt]
+{\large วิชา: Cloud Technology (KMITL)}\\[4pt]
+สถานะปัจจุบัน: เสร็จสิ้น Sprint 1--3 (พร้อมสำหรับส่งรายงานความก้าวหน้า Stage 2 วันที่ 10 ก.ย.)\\[4pt]
+วันที่อัปเดต: 14 สิงหาคม 2026
+\end{center}
+
+\vspace{12pt}
+
+% ==================== 1. สรุปความคืบหน้า ====================
+\section{สรุปความคืบหน้า Sprint 1--3}
+
+การพัฒนาระบบ Disney Lorcana PlayLab Cloud ดำเนินการมาถึง Sprint 3 แล้ว โดยมุ่งเน้นที่การสร้าง Core Gameplay UI, ระบบ Authentication \& Deck Management และระบบ Real-time Multiplayer ด้วย WebSocket ซึ่งสามารถนำไป Deploy และทดสอบการทำงานบน AWS Cloud ได้สำเร็จในเบื้องต้น
+
+\subsection{ผลการดำเนินงานแต่ละ Sprint}
+
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item \textbf{Sprint 1 (Board UI):} พัฒนา Frontend อย่างสมบูรณ์ (React/TypeScript) มีการสร้างไฟล์ \texttt{LorcanaBoard.tsx} รองรับระบบ Drag-and-Drop พร้อมชุดข้อมูลการ์ดตั้งต้นกว่า 3,242 ใบ (\texttt{cardPool.ts}) โค้ดผ่านการทำ Type Checking (\texttt{tsc}) และ Build สำเร็จ
+  \item \textbf{Sprint 2 (Auth+Deck):} พัฒนา Backend Microservices สำหรับจัดการผู้ใช้และเด็ค (Node.js/AWS Lambda) มีระบบ Login/Register แบบเข้ารหัส Password ด้วย \texttt{bcrypt} และออก Token ด้วย \texttt{JWT} รวมทั้งระบบสร้าง/ดึง/ลบเด็คการ์ด ได้รับการ Deploy ขึ้น AWS Learner Lab ผ่าน HTTP API Gateway เรียบร้อยและใช้งานได้จริง
+  \item \textbf{Sprint 3 (WebSocket):} พัฒนาระบบห้องเล่นการ์ดแบบ Real-time โดยใช้ AWS API Gateway WebSocket API และ AWS Lambda (\texttt{backend/room/handler.ts}) ร่วมกับ Amazon DynamoDB (\texttt{RoomStateTable}) ในการจัดการ Connection และสถานะของห้อง สามารถเชื่อมต่อและรับส่งข้อมูล (เช่น การเข้าห้อง, การขยับการ์ด) ระหว่างผู้เล่นได้สำเร็จ
+\end{itemize}
+
+\subsection{ข้อจำกัดและการแก้ปัญหา (AWS Learner Lab)}
+
+เนื่องจากข้อจำกัดของสภาพแวดล้อม AWS Learner Lab ที่ไม่สามารถใช้สิทธิ์ \texttt{iam:CreateRole} ได้ การใช้งาน AWS SAM จึงถูกจำกัด เราได้แก้ปัญหาโดยการใช้ \texttt{LabRole} ที่มีให้ และปรับใช้สคริปต์ \texttt{deploy\_manual.sh} ในการอัปเดต Lambda Function ด้วยตัวเองแทน ทำให้สามารถ Deploy ระบบได้อย่างต่อเนื่องตาม Best Practice แบบยืดหยุ่น
+
+% ==================== 2. ตารางสถานะ ====================
+\section{ตารางสถานะ Sprint เทียบกำหนดการส่งงาน}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{p{4.5cm} p{6cm} p{3.5cm}}
+\toprule
+\textbf{ระยะเวลา/กำหนดการ} & \textbf{กิจกรรม / งานที่ต้องส่ง} & \textbf{สถานะ} \\
+\midrule
+Sprint 1--3 (ถึงปัจจุบัน) & Board UI, Auth/Deck Lambda, WebSocket API & เสร็จสิ้น (100\%) \\
+Sprint 4--5 (ถึง 10 ก.ย.) & Deck Analyzer, Integration, เตรียมรายงาน & กำลังดำเนินการ \\
+\textbf{10 ก.ย. 2026} & \textbf{ส่งความก้าวหน้า Stage 2 (12 คะแนน)} & ใกล้ถึงกำหนด \\
+22--26 ก.ย. 2026 & นำเสนอ Stage 2 (3 คะแนน) & - \\
+Sprint 6--7 (ถึง 10 ต.ค.) & WebSocket Auto-reconnect, ทดลองโหลด, สรุปผล & - \\
+\textbf{10 ต.ค. 2026} & \textbf{ส่งผลการทดลอง Stage 3 (10 คะแนน)} & - \\
+20--25 ต.ค. 2026 & นำเสนอ Stage 3 (5 คะแนน) & - \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================== 3. Architecture ====================
+\section{โครงสร้างระบบ Cloud AWS (Architecture)}
+
+ปัจจุบันระบบทำงานบนสถาปัตยกรรม Serverless (Microservices) ดังนี้:
+
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item \textbf{Compute:} AWS Lambda ทั้งสิ้น 4 ฟังก์ชันหลัก (Login, Register, Deck Management, Room Handler)
+  \item \textbf{API Routing:}
+  \begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item HTTP API Gateway สำหรับ RESTful endpoints (Auth \& Deck) มีทั้งหมด 5 Routes
+    \item WebSocket API Gateway (\texttt{wss://a86238wqo4.execute-api.us-east-1.amazonaws.com/prod}) สำหรับ Real-time communication
+  \end{itemize}
+  \item \textbf{Database:} Amazon DynamoDB จำนวน 3 ตาราง (Users, Decks, RoomStateTable)
+  \item \textbf{Security \& Roles:} ควบคุมสิทธิ์การรันทั้งหมดผ่าน \texttt{LabRole}
+\end{itemize}
+
+% ==================== 4. Frontend ====================
+\section{โครงสร้างเว็บ (Frontend)}
+
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item \textbf{Components:} เน้นที่ \texttt{LorcanaBoard.tsx} (1,100+ บรรทัด) จัดการ State การเล่นแบบ Local และทำหน้าที่เรนเดอร์บอร์ด
+  \item \textbf{Services:} \texttt{src/services/websocket.ts} จัดการการเชื่อมต่อไปยัง AWS WebSocket API พร้อมส่ง Event การขยับการ์ด
+  \item \textbf{Data Flow:} เมื่อผู้เล่นขยับการ์ด (Drag/Drop) คอมโพเนนต์จะอัปเดต UI ทันที (Optimistic Update) และเรียก Service เพื่อส่ง Payload \texttt{CARD\_MOVED} เข้าสู่ AWS WebSocket API ซึ่งจะส่งต่อ (Relay) ไปยังผู้เล่นอื่นในห้องเดียวกันแบบ Real-time
+\end{itemize}
+
+% ==================== 5. Next Steps ====================
+\section{สิ่งที่ต้องทำต่อ (Next Steps สำหรับ Sprint 4--5)}
+
+\begin{enumerate}[leftmargin=1.5em, itemsep=3pt]
+  \item \textbf{Deck Analyzer (Sprint 4):} พัฒนาระบบวิเคราะห์ความสมดุลเด็คแบบ Asynchronous (ใช้ AWS SQS + Lambda)
+  \item \textbf{Frontend Integration:} นำหน้า Deck Builder มาต่อเข้ากับ AWS API Gateway จริง
+  \item \textbf{Refinement \& Testing:} แก้ไขข้อบกพร่องเล็กน้อย ปรับจูนประสิทธิภาพการเชื่อมต่อ WebSocket
+  \item \textbf{จัดทำรูปเล่ม Stage 2:} รวบรวม Diagram (Architecture) และผลทดสอบ เพื่อส่งมอบงานตามกำหนดการ
+\end{enumerate}
+
+% ==================== 6. Audit ====================
+\section{ผลการ Audit \& Fix (14 ส.ค. 2569)}
+
+การตรวจสอบความถูกต้องของ Sprint 1--3 ด้วยการทดสอบจริงบน AWS Learner Lab พบและแก้ไข 2 ปัญหา:
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{p{3.5cm} p{4.5cm} p{3.5cm} p{3cm}}
+\toprule
+\textbf{ปัญหา} & \textbf{สาเหตุ} & \textbf{การแก้ไข} & \textbf{ผลทดสอบหลังแก้} \\
+\midrule
+GET /decks และ DELETE /decks/\{id\} ตอบ 405 & API Gateway integration ใช้ payload-format-version 2.0 แต่ Lambda เขียนด้วยรูปแบบ event v1 (event.httpMethod) & เปลี่ยน integration เป็น 1.0 + redeploy stage & GET /decks $\rightarrow$ 200 \\
+POST /decks ถูกส่งไปยัง Lambda lorcana-auth-register & Integration mapping สลับ (integration ถูกสร้างด้วยลำดับไม่ตรงกับ route) & แก้ IntegrationUri ให้ชี้ lorcana-deck + redeploy & POST /decks $\rightarrow$ 201 บันทึกลง DynamoDB ได้จริง \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{ผลการทดสอบ End-to-End (ผ่าน URL จริง):}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item POST /auth/register $\rightarrow$ 201 User registered successfully
+  \item POST /auth/login $\rightarrow$ 200 Login successful + JWT token
+  \item POST /decks $\rightarrow$ 201 บันทึกเด็คลง DynamoDB
+  \item GET /decks $\rightarrow$ 200 คืนรายการเด็คที่บันทึก
+  \item DELETE /decks/\{id\} $\rightarrow$ 200 ลบสำเร็จ
+  \item WebSocket connect $\rightarrow$ 200 / JOIN\_ROOM $\rightarrow$ 200 / CARD\_MOVED $\rightarrow$ 200 (relay)
+\end{itemize}
+
+\begin{quote}
+\textbf{บทเรียน:} เมื่อสร้าง API Gateway HTTP API ด้วย AWS\_PROXY ต้องระบุ payload-format-version ให้ตรงกับ event format ที่ Lambda คาดหวัง และควรตรวจ integration mapping หลังสร้าง routes ทุกครั้ง
+\end{quote}
+
+% ==================== 7. Security ====================
+\section{หมายเหตุ Security (รอปรับปรุง Sprint 4)}
+
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item \texttt{JWT\_SECRET} มีค่า fallback ฮาร์ดโค้ดในโค้ด --- ควรย้ายเป็น AWS Secrets Manager หรือ environment variable ที่เข้มงวดกว่านี้ก่อนส่งงานจริง
+  \item \texttt{GET /decks} รองรับ \texttt{anonymous\_guest} (ไม่บังคับ auth) --- เหมาะกับโหมด sandbox แต่ควรมี option บังคับ JWT สำหรับ production
+\end{itemize}
+
+\end{document}
