@@ -98,20 +98,76 @@ export const DeckBuilder: React.FC = () => {
 
   const totalCards = getTotalCards();
 
+  const [savedDeckId, setSavedDeckId] = React.useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = React.useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+  const [userDecks, setUserDecks] = React.useState<any[]>([]);
+
+  const loadUserDecks = async () => {
+    const token = localStorage.getItem('lorcana_token') || undefined;
+    if (!token) return;
+    const res = await apiService.getUserDecks(token);
+    if (res.decks) setUserDecks(res.decks);
+  };
+
+  React.useEffect(() => {
+    loadUserDecks();
+  }, []);
+
   const handleSaveDeck = async () => {
     setIsSaving(true);
     setSaveStatus(null);
+    const token = localStorage.getItem('lorcana_token') || undefined;
     try {
-      const res = await apiService.saveDeck(deckName, currentDeck);
+      const res = await apiService.saveDeck(deckName, currentDeck, token);
       if (res.error) {
         setSaveStatus(`Saved locally (Cloud mock mode)`);
       } else {
         setSaveStatus(`Saved successfully to AWS DynamoDB!`);
+        if (res.deckId) {
+          setSavedDeckId(res.deckId);
+          setAnalysisResult(null);
+        }
+        loadUserDecks();
       }
     } catch {
       setSaveStatus(`Saved locally (Cloud ready)`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAnalyzeDeck = async () => {
+    if (!savedDeckId) {
+      setSaveStatus('Please save the deck first before analyzing');
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    const token = localStorage.getItem('lorcana_token') || undefined;
+    try {
+      await apiService.analyzeDeck(savedDeckId, token);
+      setSaveStatus('Analysis queued! Waiting for results...');
+      
+      // Poll for results
+      let attempts = 0;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        const res = await apiService.getDeckAnalysis(savedDeckId, token);
+        if (res.analysis) {
+          setAnalysisResult(res.analysis);
+          setSaveStatus('Analysis complete!');
+          clearInterval(pollInterval);
+          setIsAnalyzing(false);
+        } else if (attempts >= 10) {
+          setSaveStatus('Analysis timed out. Try again.');
+          clearInterval(pollInterval);
+          setIsAnalyzing(false);
+        }
+      }, 2000);
+    } catch {
+      setSaveStatus('Failed to start analysis');
+      setIsAnalyzing(false);
     }
   };
 
@@ -370,6 +426,30 @@ export const DeckBuilder: React.FC = () => {
 
       {/* Right Column: Deck List Panel (30%) */}
       <div className="w-full md:w-[30%] flex flex-col gap-6">
+        
+        {userDecks.length > 0 && (
+          <div className="bg-[#141a26] p-5 rounded-xl border border-[#30363d] flex flex-col gap-3">
+            <h3 className="font-cinzel text-sm font-bold text-[#F59E0B]">Your Saved Decks</h3>
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
+              {userDecks.map(deck => (
+                <div key={deck.deckId} className="p-2 bg-[#0B0F19] rounded border border-[#30363d] flex justify-between items-center text-xs cursor-pointer hover:border-[#F59E0B]" onClick={() => {
+                  setDeckName(deck.name);
+                  clearDeck();
+                  deck.cards.forEach((c: any) => {
+                    for(let i = 0; i < c.count; i++) addCard(c.card);
+                  });
+                  setSavedDeckId(deck.deckId);
+                  if(deck.analysis) setAnalysisResult(deck.analysis);
+                  else setAnalysisResult(null);
+                }}>
+                  <span className="font-bold text-white truncate">{deck.name}</span>
+                  <span className="text-[#94A3B8] font-mono shrink-0">{deck.totalCards} cards</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-[#141a26] p-5 rounded-xl border border-[#30363d] flex flex-col gap-4 sticky top-20">
           <div className="flex justify-between items-center pb-3 border-b border-[#30363d]">
             <div>
@@ -466,7 +546,7 @@ export const DeckBuilder: React.FC = () => {
                     : 'bg-[#0B0F19] border-[#30363d] hover:border-rose-500 text-rose-400'
                 }`}
               >
-                <Trash2 className="w-4 h-4" /> {isConfirmingClear ? 'Confirm Clear?' : 'Clear Deck'}
+                <Trash2 className="w-4 h-4" /> {isConfirmingClear ? 'Confirm Clear?' : 'Clear'}
               </button>
 
               <button
@@ -474,9 +554,50 @@ export const DeckBuilder: React.FC = () => {
                 disabled={isSaving}
                 className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-black py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <Save className="w-4 h-4 text-black" /> {isSaving ? 'Saving...' : 'Save Deck'}
+                <Save className="w-4 h-4 text-black" /> {isSaving ? 'Saving...' : 'Save'}
+              </button>
+              
+              <button
+                onClick={handleAnalyzeDeck}
+                disabled={isAnalyzing || !savedDeckId}
+                className="flex-1 bg-indigo-500 hover:bg-indigo-600 disabled:bg-[#141a26] disabled:text-[#94A3B8] text-white py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Sparkles className="w-4 h-4" /> {isAnalyzing ? '...' : 'Analyze'}
               </button>
             </div>
+
+            {analysisResult && (
+              <div className="mt-4 p-3 bg-[#0B0F19] border border-[#30363d] rounded-lg">
+                <h4 className="text-[#F59E0B] font-cinzel font-bold mb-2">Deck Analysis</h4>
+                
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-[#94A3B8]">Synergy Score</span>
+                  <span className={`text-lg font-bold ${analysisResult.synergyScore >= 80 ? 'text-emerald-400' : analysisResult.synergyScore >= 50 ? 'text-[#F59E0B]' : 'text-rose-400'}`}>
+                    {analysisResult.synergyScore}/100
+                  </span>
+                </div>
+
+                <div className="text-xs text-[#F1F5F9] mb-4">
+                  {analysisResult.summaryText}
+                </div>
+
+                <div className="text-xs text-[#94A3B8] mb-1">Cost Curve</div>
+                <div className="flex items-end h-16 gap-1 mb-2">
+                  {['0-2', '3-4', '5-6', '7+'].map(bracket => {
+                    const count = analysisResult.costCurve[bracket] || 0;
+                    const height = Math.max(5, (count / analysisResult.totalCards) * 100);
+                    return (
+                      <div key={bracket} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full bg-[#30363d] rounded-t-sm" style={{ height: `${height}%` }}>
+                          <div className="bg-[#F59E0B] w-full h-full rounded-t-sm opacity-80"></div>
+                        </div>
+                        <span className="text-[9px] font-mono">{bracket} ({count})</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

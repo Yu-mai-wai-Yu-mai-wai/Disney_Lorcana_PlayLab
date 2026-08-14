@@ -1,6 +1,6 @@
 import { UserProfile } from '../types/lorcana';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://w3jgjq2m78.execute-api.us-east-1.amazonaws.com/prod';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://iorxmxsoll.execute-api.us-east-1.amazonaws.com/prod';
 
 export interface AuthResponse {
   message: string;
@@ -79,6 +79,33 @@ export const apiService = {
     try {
       const response = await fetch(`${API_BASE_URL}/decks/${deckId}`, {
         method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      return await response.json();
+    } catch (err: any) {
+      return { error: err.message };
+    }
+  },
+
+  async analyzeDeck(deckId: string, token?: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/decks/${deckId}/analyze`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      return await response.json();
+    } catch (err: any) {
+      return { error: err.message };
+    }
+  },
+
+  async getDeckAnalysis(deckId: string, token?: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/decks/${deckId}/analysis`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
