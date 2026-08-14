@@ -418,14 +418,14 @@ export const LorcanaBoard: React.FC = () => {
       </AnimatePresence>
 
       {/* LEFT SIDEBAR: DEDICATED INKWELL, DECK & DISCARD ZONES (NO SCROLL, H-FULL) */}
-      <aside className={`w-60 border-r border-[#30363d] bg-[#141a26] p-3.5 flex flex-col justify-between z-20 shrink-0 h-full overflow-hidden transition-colors ${
+      <aside className={`w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 flex flex-col justify-between z-20 shrink-0 h-full overflow-hidden transition-colors ${
         isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
         <div className="space-y-1.5 border-b border-[#30363d] pb-2.5">
           <div className="text-[10px] font-cinzel font-bold text-[#F59E0B]">OPPONENT PILES</div>
           <div className="flex gap-2">
-            <div className="w-14 h-20 rounded-lg border border-[#30363d] flex flex-col items-center justify-between p-1 relative overflow-hidden bg-[#0B0F19]">
+            <div className="flex-1 h-24 rounded-lg border border-[#30363d] flex flex-col items-center justify-between p-1 relative overflow-hidden bg-[#0B0F19]">
               <img
                 src="/Lorcana_Card_Back.png"
                 alt="Opponent Deck Back"
@@ -435,7 +435,7 @@ export const LorcanaBoard: React.FC = () => {
               <Layers className="w-3.5 h-3.5 text-[#F59E0B] z-10" />
               <span className="text-[9px] font-mono font-bold text-white z-10 bg-[#0B0F19]/90 px-1 py-0.5 rounded border border-[#30363d]">48</span>
             </div>
-            <div className="w-14 h-20 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative">
+            <div className="flex-1 h-24 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative">
               <Skull className="w-4 h-4 text-rose-400 mb-1" />
               <span className="text-[9px] font-mono font-bold text-[#94A3B8]">Grave: 2</span>
             </div>
@@ -509,7 +509,7 @@ export const LorcanaBoard: React.FC = () => {
                   handleDrawCard();
                 }
               }}
-              className="w-16 h-22 rounded-lg border-2 border-[#F59E0B] flex flex-col items-center justify-between p-1.5 relative cursor-pointer hover:border-amber-300 transition-colors overflow-hidden bg-[#0B0F19]"
+              className="flex-1 h-26 rounded-lg border-2 border-[#F59E0B] flex flex-col items-center justify-between p-1.5 relative cursor-pointer hover:border-amber-300 transition-colors overflow-hidden bg-[#0B0F19]"
               title="Click to Draw Card from Deck"
             >
               <img
@@ -526,7 +526,7 @@ export const LorcanaBoard: React.FC = () => {
             </motion.div>
 
             {/* Discard */}
-            <div className="w-16 h-22 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative cursor-pointer hover:border-rose-400 transition-colors overflow-hidden">
+            <div className="flex-1 h-26 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1 relative cursor-pointer hover:border-rose-400 transition-colors overflow-hidden">
               <Skull className="w-4 h-4 text-rose-400 mb-1" />
               <span className="text-[9px] font-cinzel font-bold text-[#F1F5F9]">DISCARD</span>
               <span className="text-[9px] font-mono font-bold text-[#94A3B8] mt-0.5">{discardCount}</span>
