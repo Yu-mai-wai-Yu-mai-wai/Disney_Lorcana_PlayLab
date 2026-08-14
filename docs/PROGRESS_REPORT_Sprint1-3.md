@@ -1,0 +1,49 @@
+# รายงานความคืบหน้าโครงการ Disney Lorcana PlayLab Cloud (Sprint 1-3)
+**วิชา:** Cloud Technology (KMITL)
+**สถานะปัจจุบัน:** เสร็จสิ้น Sprint 1-3 (พร้อมสำหรับส่งรายงานความก้าวหน้า Stage 2 วันที่ 10 ก.ย.)
+**วันที่อัปเดต:** 14 สิงหาคม 2026
+
+## 1. สรุปความคืบหน้า Sprint 1-3
+
+การพัฒนาระบบ Disney Lorcana PlayLab Cloud ดำเนินการมาถึง Sprint 3 แล้ว โดยมุ่งเน้นที่การสร้าง Core Gameplay UI, ระบบ Authentication & Deck Management, และระบบ Real-time Multiplayer ด้วย WebSocket ซึ่งสามารถนำไป Deploy และทดสอบการทำงานบน AWS Cloud ได้สำเร็จในเบื้องต้น
+
+### 1.1 ผลการดำเนินงานแต่ละ Sprint
+* **Sprint 1 (Board UI):** พัฒนา Frontend อย่างสมบูรณ์ (React/TypeScript) มีการสร้างไฟล์ `LorcanaBoard.tsx` รองรับระบบ Drag-and-Drop พร้อมชุดข้อมูลการ์ดตั้งต้นกว่า 3,242 ใบ (`cardPool.ts`) โค้ดผ่านการทำ Type Checking (`tsc`) และ Build สำเร็จ
+* **Sprint 2 (Auth+Deck):** พัฒนา Backend Microservices สำหรับจัดการผู้ใช้และเด็ค (Node.js/AWS Lambda) มีระบบ Login/Register แบบเข้ารหัส Password ด้วย `bcrypt` และออก Token ด้วย `JWT` รวมทั้งระบบสร้าง/ดึง/ลบ เด็คการ์ด ได้รับการ Deploy ขึ้น AWS Learner Lab ผ่าน HTTP API Gateway เรียบร้อยและใช้งานได้จริง
+* **Sprint 3 (WebSocket):** พัฒนาระบบห้องเล่นการ์ดแบบ Real-time โดยใช้ AWS API Gateway WebSocket API และ AWS Lambda (`backend/room/handler.ts`) ร่วมกับ Amazon DynamoDB (`RoomStateTable`) ในการจัดการ Connection และสถานะของห้อง สามารถเชื่อมต่อและรับส่งข้อมูล (เช่น การเข้าห้อง, การขยับการ์ด) ระหว่างผู้เล่นได้สำเร็จ
+
+### 1.2 ข้อจำกัดและการแก้ปัญหา (AWS Learner Lab)
+เนื่องจากข้อจำกัดของสภาพแวดล้อม AWS Learner Lab ที่ไม่สามารถใช้สิทธิ์ `iam:CreateRole` ได้ การใช้งาน AWS SAM จึงถูกจำกัด เราได้แก้ปัญหาโดยการใช้ `LabRole` ที่มีให้ และปรับใช้สคริปต์ `deploy_manual.sh` ในการอัปเดต Lambda Function ด้วยตัวเองแทน ทำให้สามารถ Deploy ระบบได้อย่างต่อเนื่องตาม Best Practice แบบยืดหยุ่น
+
+## 2. ตารางสถานะ Sprint เทียบกำหนดการส่งงาน
+
+| ระยะเวลา/กำหนดการ | กิจกรรม / งานที่ต้องส่ง | สถานะ |
+| :--- | :--- | :--- |
+| **Sprint 1-3 (ถึงปัจจุบัน)** | Board UI, Auth/Deck Lambda, WebSocket API | **เสร็จสิ้น** (100%) |
+| **Sprint 4-5 (ถึง 10 ก.ย.)** | Deck Analyzer, Integration, เตรียมรายงาน | กำลังดำเนินการ |
+| **10 ก.ย. 2026** | **ส่งความก้าวหน้า Stage 2 (12 คะแนน)** | 🔜 ใกล้ถึงกำหนด |
+| **22-26 ก.ย. 2026** | **นำเสนอ Stage 2 (3 คะแนน)** | - |
+| **Sprint 6-7 (ถึง 10 ต.ค.)** | WebSocket Auto-reconnect, ทดลองโหลด, สรุปผล | - |
+| **10 ต.ค. 2026** | **ส่งผลการทดลอง Stage 3 (10 คะแนน)** | - |
+| **20-25 ต.ค. 2026** | **นำเสนอ Stage 3 (5 คะแนน)** | - |
+
+## 3. โครงสร้างระบบ Cloud AWS (Architecture)
+
+ปัจจุบันระบบทำงานบนสถาปัตยกรรม Serverless (Microservices) ดังนี้:
+* **Compute:** AWS Lambda ทั้งสิ้น 4 ฟังก์ชันหลัก (Login, Register, Deck Management, Room Handler)
+* **API Routing:** 
+  * HTTP API Gateway สำหรับ RESTful endpoints (Auth & Deck) มีทั้งหมด 5 Routes
+  * WebSocket API Gateway (`wss://a86238wqo4.execute-api.us-east-1.amazonaws.com/prod`) สำหรับ Real-time communication
+* **Database:** Amazon DynamoDB จำนวน 3 ตาราง (Users, Decks, RoomStateTable)
+* **Security & Roles:** ควบคุมสิทธิ์การรันทั้งหมดผ่าน `LabRole` 
+
+## 4. โครงสร้างเว็บ (Frontend)
+* **Components:** เน้นที่ `LorcanaBoard.tsx` (1,100+ บรรทัด) จัดการ State การเล่นแบบ Local และทำหน้าที่เรนเดอร์บอร์ด
+* **Services:** `src/services/websocket.ts` จัดการการเชื่อมต่อไปยัง AWS WebSocket API พร้อมส่ง Event การขยับการ์ด
+* **Data Flow:** เมื่อผู้เล่นขยับการ์ด (Drag/Drop) คอมโพเนนต์จะอัปเดต UI ทันที (Optimistic Update) และเรียก Service เพื่อส่ง Payload `CARD_MOVED` เข้าสู่ AWS WebSocket API ซึ่งจะส่งต่อ (Relay) ไปยังผู้เล่นอื่นในห้องเดียวกันแบบ Real-time
+
+## 5. สิ่งที่ต้องทำต่อ (Next Steps สำหรับ Sprint 4-5)
+1. **Deck Analyzer (Sprint 4):** พัฒนาระบบวิเคราะห์ความสมดุลเด็คแบบ Asynchronous (ใช้ AWS SQS + Lambda)
+2. **Frontend Integration:** นำหน้า Deck Builder มาต่อเข้ากับ AWS API Gateway จริง
+3. **Refinement & Testing:** แก้ไขข้อบกพร่องเล็กน้อย ปรับจูนประสิทธิภาพการเชื่อมต่อ WebSocket
+4. **จัดทำรูปเล่ม Stage 2:** รวบรวม Diagram (Architecture) และผลทดสอบ เพื่อส่งมอบงานตามกำหนดการ
