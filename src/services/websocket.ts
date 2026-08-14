@@ -107,6 +107,98 @@ class WebSocketService {
     }
   }
 
+  // --- SPRINT 3 Match Lobby Methods ---
+  public createRoom(deckId: string, deckName: string): void {
+    const payload: WebSocketMessagePayload = {
+      action: 'CREATE_ROOM',
+      username: this.currentUsername,
+      payload: { deckId, deckName },
+    };
+    this.send(payload);
+
+    if (WS_ENDPOINT.includes('demo.execute-api')) {
+      setTimeout(() => {
+        const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        this.currentRoomId = roomId;
+        this.handleIncomingMessage({
+          action: 'ROOM_CREATED',
+          roomId,
+          username: this.currentUsername,
+          role: 'player1',
+          payload: { deckId, deckName },
+        });
+      }, 500);
+    }
+  }
+
+  public joinRoomWithDeck(roomId: string, deckId: string, deckName: string): void {
+    this.currentRoomId = roomId;
+    const payload: WebSocketMessagePayload = {
+      action: 'JOIN_ROOM',
+      roomId,
+      username: this.currentUsername,
+      payload: { deckId, deckName },
+    };
+    this.send(payload);
+
+    if (WS_ENDPOINT.includes('demo.execute-api')) {
+      setTimeout(() => {
+        this.handleIncomingMessage({
+          action: 'ROOM_STATE',
+          roomId,
+          role: 'player2',
+          username: this.currentUsername,
+          payload: {
+            roomId,
+            players: [
+              { connectionId: 'conn-1', username: 'Host_Illumineer', role: 'player1' },
+              { connectionId: 'conn-2', username: this.currentUsername, role: 'player2' },
+            ],
+            loreP1: 0, loreP2: 0, inkP1: 0, inkP2: 0,
+          },
+        });
+        setTimeout(() => {
+          this.handleIncomingMessage({ action: 'GAME_START', roomId });
+        }, 500);
+      }, 600);
+    }
+  }
+
+  public findMatch(deckId: string, deckName: string): void {
+    const payload: WebSocketMessagePayload = {
+      action: 'MATCHMAKING_JOIN',
+      username: this.currentUsername,
+      payload: { deckId, deckName },
+    };
+    this.send(payload);
+
+    if (WS_ENDPOINT.includes('demo.execute-api')) {
+      setTimeout(() => {
+        this.handleIncomingMessage({ action: 'WAITING', username: this.currentUsername });
+      }, 200);
+
+      setTimeout(() => {
+        const roomId = 'MATCH1';
+        this.currentRoomId = roomId;
+        this.handleIncomingMessage({
+          action: 'MATCH_FOUND',
+          roomId,
+          role: 'player1',
+          username: this.currentUsername,
+        });
+      }, 3200);
+    }
+  }
+
+  public cancelMatchmaking(): void {
+    const payload: WebSocketMessagePayload = {
+      action: 'MATCHMAKING_LEAVE',
+      username: this.currentUsername,
+    };
+    this.send(payload);
+  }
+  // ------------------------------------
+
   // Send action to opponent in <100ms
   public sendAction(action: WebSocketActionType, payloadData: Partial<WebSocketMessagePayload>): void {
     const payload: WebSocketMessagePayload = {

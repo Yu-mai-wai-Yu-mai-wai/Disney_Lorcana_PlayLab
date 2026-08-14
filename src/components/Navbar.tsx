@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { Sparkles, User, LogOut, Layers, Gamepad2, CloudLightning, BarChart3 } from 'lucide-react';
+import { Sparkles, User, LogOut, Layers, Gamepad2, CloudLightning, BarChart3, Swords } from 'lucide-react';
 
 interface NavbarProps {
   onOpenAuth: () => void;
-  activeTab: 'hub' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard';
-  setActiveTab: (tab: 'hub' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard') => void;
+  activeTab: 'hub' | 'match' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard';
+  setActiveTab: (tab: 'hub' | 'match' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
@@ -57,6 +57,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
         >
           <Sparkles className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
           <span className="hidden sm:inline">Home</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('match')}
+          aria-label="Real-Time Match"
+          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+            activeTab === 'match'
+              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+          }`}
+        >
+          <Swords className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+          <span className="hidden sm:inline">Real-Time Match</span>
         </button>
 
         <button

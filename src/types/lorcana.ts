@@ -47,6 +47,14 @@ export interface DeckItem {
 // SPRINT 3: AWS WEBSOCKETS REAL-TIME ROOM SYNC TYPES
 // ------------------------------------------------------------
 export type WebSocketActionType =
+  | 'CREATE_ROOM'
+  | 'ROOM_CREATED'
+  | 'MATCHMAKING_JOIN'
+  | 'MATCHMAKING_LEAVE'
+  | 'WAITING'
+  | 'MATCH_FOUND'
+  | 'DECK_SELECTED'
+  | 'GAME_START'
   | 'JOIN_ROOM'
   | 'LEAVE_ROOM'
   | 'CARD_MOVED'
@@ -59,6 +67,12 @@ export type WebSocketActionType =
   | 'ROOM_STATE'
   | 'OPPONENT_DISCONNECTED'
   | 'ERROR';
+
+export interface MatchPlayer {
+  username: string;
+  deckId: string;
+  deckName: string;
+}
 
 export interface RoomPlayer {
   connectionId: string;

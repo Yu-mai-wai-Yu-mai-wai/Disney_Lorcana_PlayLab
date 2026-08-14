@@ -1,11 +1,12 @@
 import { APIGatewayProxyWebsocketEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, DeleteCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, DeleteCommand, QueryCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomState';
+const MATCHMAKING_TABLE = process.env.MATCHMAKING_TABLE || 'LorcanaMatchmaking';
 
 export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<APIGatewayProxyResultV2> => {
   const routeKey = event.requestContext.routeKey;
@@ -78,46 +79,77 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
 
   const action = body.action || routeKey;
 
-  // 3. JOIN_ROOM Action
+  // 4. CREATE_ROOM — host creates a lobby room with a 6-digit code
+  if (action === 'CREATE_ROOM') {
+    const username = body.username || `Player_${connectionId.substring(0, 4)}`;
+    const deckId = body.deckId || '';
+    const deckName = body.deckName || 'Untitled Deck';
+
+    // Generate unique 6-digit room code
+    let roomId = '';
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = String(Math.floor(100000 + Math.random() * 900000));
+      const existing = await getRoomMembers(candidate);
+      if (existing.length === 0) { roomId = candidate; break; }
+      attempts++;
+    }
+    if (!roomId) return { statusCode: 500, body: JSON.stringify({ error: 'Could not allocate room' }) };
+
+    await docClient.send(
+      new PutCommand({
+        TableName: ROOM_TABLE,
+        Item: { roomId, connectionId, username, role: 'player1', deckId, deckName, joinedAt: new Date().toISOString() },
+      })
+    );
+
+    // Reply to host with the room code
+    await sendMessageToConnection(apigwManagementApi, connectionId, {
+      action: 'ROOM_CREATED', roomId, role: 'player1', username, deckId, deckName,
+    });
+
+    return { statusCode: 200, body: JSON.stringify({ roomId }) };
+  }
+
+  // 5. JOIN_ROOM with deck — friend joins via 6-digit code
   if (action === 'JOIN_ROOM') {
     const roomId = body.roomId || '108249';
     const username = body.username || `Player_${connectionId.substring(0, 4)}`;
+    const deckId = body.deckId || '';
+    const deckName = body.deckName || 'Untitled Deck';
 
     try {
       const roomMembers = await getRoomMembers(roomId);
+      if (roomMembers.length >= 2) {
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room is full' });
+        return { statusCode: 200, body: 'Room full' };
+      }
       const role = roomMembers.length === 0 ? 'player1' : 'player2';
 
-      // Save connection to DynamoDB
-      const newItem = {
-        roomId,
-        connectionId,
-        username,
-        role,
-        joinedAt: new Date().toISOString(),
-      };
-
-      await docClient.send(
-        new PutCommand({
-          TableName: ROOM_TABLE,
-          Item: newItem,
-        })
-      );
+      const newItem = { roomId, connectionId, username, role, deckId, deckName, joinedAt: new Date().toISOString() };
+      await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: newItem }));
 
       const updatedMembers = [...roomMembers, newItem];
 
-      // Broadcast updated room state to all members in room
+      // Broadcast updated room state to all members
       for (const member of updatedMembers) {
         await sendMessageToConnection(apigwManagementApi, member.connectionId, {
           action: 'ROOM_STATE',
           roomId,
           role: member.role,
           username: member.username,
-          players: updatedMembers.map((m) => ({
-            connectionId: m.connectionId,
-            username: m.username,
-            role: m.role,
-          })),
+          players: updatedMembers.map((m) => ({ connectionId: m.connectionId, username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName })),
         });
+      }
+
+      // When 2 players present → GAME_START to both
+      if (updatedMembers.length === 2) {
+        for (const member of updatedMembers) {
+          await sendMessageToConnection(apigwManagementApi, member.connectionId, {
+            action: 'GAME_START', roomId,
+            players: updatedMembers.map((m) => ({ username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName })),
+          });
+        }
       }
 
       return { statusCode: 200, body: 'Joined Room' };
@@ -127,7 +159,81 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     }
   }
 
-  // 4. Relay Live Actions (CARD_MOVED, CARD_EXERTED, INK_PLAYED, LORE_UPDATED, QUEST, CHALLENGE, TURN)
+  // 6. MATCHMAKING_JOIN — enter the matchmaking queue (auto pair)
+  if (action === 'MATCHMAKING_JOIN') {
+    const username = body.username || `Player_${connectionId.substring(0, 4)}`;
+    const deckId = body.deckId || '';
+    const deckName = body.deckName || 'Untitled Deck';
+
+    try {
+      // Look for a waiting opponent (scan for status=waiting, limit 1)
+      const waiting = await docClient.send(
+        new ScanCommand({
+          TableName: MATCHMAKING_TABLE,
+          FilterExpression: '#st = :s',
+          ExpressionAttributeNames: { '#st': 'status' },
+          ExpressionAttributeValues: { ':s': 'waiting' },
+          Limit: 1,
+        })
+      );
+
+      if (waiting.Items && waiting.Items.length > 0) {
+        const opponent = waiting.Items[0];
+        // Clean up opponent's queue entry
+        await docClient.send(new DeleteCommand({
+          TableName: MATCHMAKING_TABLE,
+          Key: { connectionId: opponent.connectionId },
+        }));
+
+        // Create a room for both
+        let roomId = '';
+        let attempts = 0;
+        while (attempts < 10) {
+          const candidate = String(Math.floor(100000 + Math.random() * 900000));
+          const existing = await getRoomMembers(candidate);
+          if (existing.length === 0) { roomId = candidate; break; }
+          attempts++;
+        }
+
+        const p1 = { roomId, connectionId: opponent.connectionId, username: opponent.username, role: 'player1', deckId: opponent.deckId, deckName: opponent.deckName, joinedAt: new Date().toISOString() };
+        const p2 = { roomId, connectionId, username, role: 'player2', deckId, deckName, joinedAt: new Date().toISOString() };
+        await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: p1 }));
+        await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: p2 }));
+
+        // MATCH_FOUND to both
+        const players = [p1, p2].map((m) => ({ username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName }));
+        await sendMessageToConnection(apigwManagementApi, opponent.connectionId, { action: 'MATCH_FOUND', roomId, players });
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'MATCH_FOUND', roomId, players });
+
+        return { statusCode: 200, body: JSON.stringify({ roomId }) };
+      }
+
+      // No opponent yet → enter queue
+      await docClient.send(new PutCommand({
+        TableName: MATCHMAKING_TABLE,
+        Item: { connectionId, username, deckId, deckName, status: 'waiting', queuedAt: new Date().toISOString() },
+      }));
+      await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'WAITING', message: 'Searching for opponent...' });
+
+      return { statusCode: 200, body: 'In queue' };
+    } catch (err: any) {
+      console.error('[Matchmaking Error]', err);
+      return { statusCode: 500, body: err.message };
+    }
+  }
+
+  // 7. MATCHMAKING_LEAVE — cancel the queue
+  if (action === 'MATCHMAKING_LEAVE') {
+    try {
+      await docClient.send(new DeleteCommand({ TableName: MATCHMAKING_TABLE, Key: { connectionId } }));
+      return { statusCode: 200, body: 'Left queue' };
+    } catch (err: any) {
+      console.error('[Matchmaking Leave Error]', err);
+      return { statusCode: 500, body: err.message };
+    }
+  }
+
+  // 8. Relay Live Actions (CARD_MOVED, CARD_EXERTED, INK_PLAYED, LORE_UPDATED, QUEST, CHALLENGE, TURN)
   if (
     action === 'CARD_MOVED' ||
     action === 'CARD_EXERTED' ||
@@ -136,6 +242,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     action === 'QUEST_DONE' ||
     action === 'CHALLENGE_DONE' ||
     action === 'TURN_PASSED' ||
+    action === 'DECK_SELECTED' ||
     action === 'sendAction'
   ) {
     const roomId = body.roomId || '108249';
