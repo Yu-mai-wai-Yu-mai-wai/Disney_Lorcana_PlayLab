@@ -38,6 +38,7 @@ export function App() {
         {activeTab === 'match' && <MatchLobby onStartMatch={handleStartMatch} />}
         {activeTab === 'board' && (
           <LorcanaBoard 
+            key={matchInfo?.roomId || 'sandbox'}
             matchMode={!!matchInfo} 
             initialDeck={matchInfo?.deck} 
             roomId={matchInfo?.roomId} 

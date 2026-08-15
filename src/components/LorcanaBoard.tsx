@@ -43,13 +43,18 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   playerRole,
   matchMode = false,
 }) => {
-  const [playerLore, setPlayerLore] = useState(12);
-  const [opponentLore, setOpponentLore] = useState(4);
-  const [inkwellCapacity, setInkwellCapacity] = useState(5);
-  const [availableInk, setAvailableInk] = useState(5);
+  // ==== REAL GAME STATE — no mock values. Match starts fresh every time. ====
+  const [playerLore, setPlayerLore] = useState(0);
+  const [opponentLore, setOpponentLore] = useState(0);
+  const [inkwellCapacity, setInkwellCapacity] = useState(0);
+  const [availableInk, setAvailableInk] = useState(0);
   const [hasInkedThisTurn, setHasInkedThisTurn] = useState(false);
-  const [turnNumber, setTurnNumber] = useState(4);
-  const [isMyTurn, setIsMyTurn] = useState(true);
+  const [turnNumber, setTurnNumber] = useState(1);
+  const [isMyTurn, setIsMyTurn] = useState(() => {
+    // In a real match, player1 starts first; sandbox always starts as player 1
+    if (matchMode) return playerRole !== 'player2';
+    return true;
+  });
   const [cardPool, setCardPool] = useState<LorcanaCard[]>([]);
   const [damage, setDamage] = useState<Record<string, number>>({});
   const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
@@ -59,8 +64,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     fetchCardPool().then(pool => setCardPool(pool));
   }, []);
 
-  const [deckCount, setDeckCount] = useState(40);
-  const [discardCount, setDiscardCount] = useState(3);
+  const [deckCount, setDeckCount] = useState(() => {
+    if (matchMode && initialDeck?.cards) {
+      return initialDeck.cards.reduce((acc: number, c: any) => acc + (c.count || 1), 0);
+    }
+    return 40;
+  });
+  const [discardCount, setDiscardCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHandOpen, setIsHandOpen] = useState(false);
   const handHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -421,7 +431,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     }
     const drawn = available[Math.floor(Math.random() * available.length)];
     
-    setDeckCount((prev) => prev - 1);
+    setDeckCount((prev: number) => prev - 1);
     setHandCards((prev) => [...prev, drawn]);
     setLogMessages((prev) => [`You drew ${drawn.name} from your deck.`, ...prev]);
     showNotice(`Drew "${drawn.name}" from Deck!`, 'success');
@@ -675,8 +685,21 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           <div className="flex-1 flex flex-col justify-center items-center py-1 border-b border-[#30363d]/40 min-h-0">
             <div className="text-[9px] font-cinzel font-bold text-[#F59E0B]/70 mb-1 uppercase tracking-widest">
               Opponent Battlefield
+              {matchMode && initialDeck && (
+                <span className="text-[#94A3B8] normal-case tracking-normal ml-2">
+                  (waiting for opponent's cards...)
+                </span>
+              )}
             </div>
             <div className="flex items-center justify-center gap-12 w-full h-full max-h-56">
+              {opponentFieldCards.length === 0 && (
+                <div className="flex flex-col items-center justify-center text-center opacity-40 border-2 border-dashed border-[#30363d] rounded-xl w-full h-full min-h-[140px]">
+                  <Sword className="w-8 h-8 text-[#94A3B8] mb-2" />
+                  <span className="text-[11px] font-mono text-[#94A3B8]">
+                    {matchMode ? 'Opponent cards will appear here in real-time' : 'No opponent cards'}
+                  </span>
+                </div>
+              )}
               <AnimatePresence>
                 {opponentFieldCards.map((card) => {
                   const isOpExerted = opponentExerted[card.id] || false;
