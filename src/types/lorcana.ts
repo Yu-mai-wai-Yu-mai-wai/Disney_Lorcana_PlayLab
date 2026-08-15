@@ -65,8 +65,8 @@ export type WebSocketActionType =
   | 'CHALLENGE_DONE'
   | 'TURN_PASSED'
   | 'ROOM_STATE'
-  | 'OPPONENT_DISCONNECTED'
-  | 'ERROR';
+  | 'ERROR'
+  | 'CHAT_MESSAGE';
 
 export interface MatchPlayer {
   username: string;
@@ -103,5 +103,6 @@ export interface WebSocketMessagePayload {
   inkCount?: number;
   deckId?: string;
   deckName?: string;
+  message?: string;
   payload?: any;
 }

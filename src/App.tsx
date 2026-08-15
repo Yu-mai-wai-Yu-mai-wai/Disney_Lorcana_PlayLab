@@ -8,6 +8,7 @@ import { RulesGuide } from './components/RulesGuide';
 import { UserDashboard } from './components/UserDashboard';
 import { AuthModal } from './components/AuthModal';
 import { MatchLobby } from './pages/MatchLobby';
+import { webSocketService } from './services/websocket';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'hub' | 'match' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard'>('hub');
@@ -23,14 +24,26 @@ export function App() {
     setActiveTab('board');
   };
 
+  const handleExitMatch = () => {
+    if (confirm('Are you sure you want to exit the match?')) {
+      webSocketService.disconnect();
+      setMatchInfo(null);
+      setActiveTab('match');
+    }
+  };
+
+  const isFullscreenMatch = activeTab === 'board' && matchInfo;
+
   return (
     <div className={`${activeTab === 'board' ? 'h-screen' : 'min-h-screen'} flex flex-col text-[#F1F5F9] bg-[#0B0F19] relative`}>
       {/* Top Navbar */}
-      <Navbar
-        onOpenAuth={() => setIsAuthOpen(true)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+      {!isFullscreenMatch && (
+        <Navbar
+          onOpenAuth={() => setIsAuthOpen(true)}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+      )}
 
       {/* Main Content Area — board tab fills the viewport exactly (no scroll) */}
       <main className={activeTab === 'board' ? 'flex-1 overflow-hidden pb-0 min-h-0' : 'flex-1 pb-12'}>
@@ -43,6 +56,7 @@ export function App() {
             initialDeck={matchInfo?.deck} 
             roomId={matchInfo?.roomId} 
             playerRole={matchInfo?.role} 
+            onExitMatch={matchInfo ? handleExitMatch : undefined}
           />
         )}
         {activeTab === 'deckbuilder' && <DeckBuilder />}

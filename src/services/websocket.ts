@@ -200,6 +200,10 @@ class WebSocketService {
     };
     this.send(payload);
   }
+
+  public sendChat(message: string): void {
+    this.sendAction('CHAT_MESSAGE' as WebSocketActionType, { message, username: this.currentUsername });
+  }
   // ------------------------------------
 
   // Send action to opponent in <100ms
@@ -281,6 +285,15 @@ class WebSocketService {
 
   public getIsConnected(): boolean {
     return this.isConnected;
+  }
+
+  public disconnect(): void {
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+    this.isConnected = false;
+    this.currentRoomId = null;
   }
 
   public getCurrentRoomId(): string | null {

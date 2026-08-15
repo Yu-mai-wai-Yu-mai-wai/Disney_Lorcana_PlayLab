@@ -243,6 +243,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     action === 'CHALLENGE_DONE' ||
     action === 'TURN_PASSED' ||
     action === 'DECK_SELECTED' ||
+    action === 'CHAT_MESSAGE' ||
     action === 'sendAction'
   ) {
     const roomId = body.roomId || '108249';
