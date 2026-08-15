@@ -42,16 +42,28 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
       setCurrentRoomId(data.roomId || null);
       if (selectedDeckId) {
         setTimeout(() => {
+          let myRole = data.role || webSocketService.getCurrentRole();
+          if (!data.role && (data as any).players) {
+            const me = (data as any).players.find((p: any) => p.username === user?.username);
+            if (me) myRole = me.role;
+            else if ((data as any).players.length > 0) myRole = (data as any).players[0].role;
+          }
           const deckObj = decks.find(d => d.deckId === selectedDeckId);
-          onStartMatch(selectedDeckId, selectedDeckName, data.roomId || undefined, data.role, deckObj);
+          onStartMatch(selectedDeckId, selectedDeckName, data.roomId || undefined, myRole, deckObj);
         }, 1500);
       }
     });
 
     const unsubGameStart = webSocketService.subscribe('GAME_START', (data) => {
       if (selectedDeckId) {
+        let myRole = data.role || webSocketService.getCurrentRole();
+        if (!data.role && (data as any).players) {
+          const me = (data as any).players.find((p: any) => p.username === user?.username);
+          if (me) myRole = me.role;
+          else if ((data as any).players.length > 0) myRole = (data as any).players[0].role;
+        }
         const deckObj = decks.find(d => d.deckId === selectedDeckId);
-        onStartMatch(selectedDeckId, selectedDeckName, data.roomId || currentRoomId || undefined, data.role || webSocketService.getCurrentRole(), deckObj);
+        onStartMatch(selectedDeckId, selectedDeckName, data.roomId || currentRoomId || undefined, myRole, deckObj);
       }
     });
 
@@ -193,23 +205,27 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
                 <div className="flex-1 h-px bg-[#30363d]"></div>
               </div>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  maxLength={6}
-                  disabled={!selectedDeckId || roomState !== 'IDLE'}
-                  className="flex-1 bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg px-4 font-mono uppercase text-lg focus:border-[#F59E0B] focus:outline-none disabled:opacity-50"
-                />
-                <button
-                  onClick={handleJoinRoom}
-                  disabled={!selectedDeckId || joinCode.length < 6 || roomState !== 'IDLE'}
-                  className="px-6 border-2 border-[#F59E0B] text-[#F59E0B] font-bold rounded-lg hover:bg-[#F59E0B] hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  <LogIn className="w-5 h-5" /> JOIN
-                </button>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-[#F1F5F9] font-cinzel">Room Code</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    maxLength={6}
+                    disabled={!selectedDeckId || roomState !== 'IDLE'}
+                    className="flex-1 bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg px-4 py-3 text-base font-mono uppercase focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/50 focus:outline-none disabled:opacity-50 h-12"
+                  />
+                  <button
+                    onClick={handleJoinRoom}
+                    disabled={!selectedDeckId || joinCode.length < 6 || roomState !== 'IDLE'}
+                    className="px-6 bg-[#F59E0B] text-black font-bold rounded-lg hover:bg-[#D97706] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-12"
+                  >
+                    <LogIn className="w-5 h-5" /> JOIN
+                  </button>
+                </div>
+                <p className="text-xs text-[#94A3B8]">Ask your friend for a 6-digit code</p>
               </div>
             </div>
 

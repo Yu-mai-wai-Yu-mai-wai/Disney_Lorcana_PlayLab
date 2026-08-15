@@ -16,8 +16,11 @@ export interface PoolCard extends LorcanaCard {
 let cachedPool: PoolCard[] | null = null;
 
 function toPoolCard(c: any): PoolCard {
+  // dataset id is ALREADY 'card-1-165' format — use it directly!
+  // (old code built 'card-Set 1-card-1-165' which broke recommendedDecks lookups)
+  const rawId = c.id || c.name;
   return {
-    id: `card-${c.setCode || 'x'}-${c.id || c.name}`.replace(/[^a-zA-Z0-9-]/g, '-'),
+    id: rawId.startsWith('card-') ? rawId : `card-${c.setCode || 'x'}-${rawId}`.replace(/[^a-zA-Z0-9-]/g, '-'),
     name: c.name,
     title: c.title,
     cost: c.cost ?? 0,

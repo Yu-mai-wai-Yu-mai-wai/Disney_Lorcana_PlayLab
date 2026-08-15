@@ -717,7 +717,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                       }`}
                     >
                       <img
-                        src={card.img}
+                        src={card.imageUrl || card.img}
                         alt={card.name}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover opacity-60"
@@ -800,7 +800,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                         <span className="text-[8px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                       </div>
                       <img
-                        src={card.img}
+                        src={card.imageUrl || card.img}
                         alt={card.name}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
@@ -988,7 +988,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                         <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                       </div>
                       <img
-                        src={card.img}
+                        src={card.imageUrl || card.img}
                         alt={card.name}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
@@ -1022,7 +1022,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           >
             <div className="flex gap-3 items-center border-b border-[#30363d] pb-2.5">
               <img
-                src={hoveredCard.img}
+                src={hoveredCard.imageUrl || hoveredCard.img}
                 alt={hoveredCard.name}
                 referrerPolicy="no-referrer"
                 className="w-20 h-28 object-cover rounded-lg border border-[#30363d] shrink-0"
@@ -1111,7 +1111,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
               <div className="w-28 h-42 rounded-xl overflow-hidden border border-[#30363d] relative bg-[#0B0F19]">
                 <img
-                  src={dragPendingCard.img}
+                  src={dragPendingCard.imageUrl || dragPendingCard.img}
                   alt={dragPendingCard.name}
                   referrerPolicy="no-referrer"
                   onError={(e) => {
@@ -1185,7 +1185,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
             <div className="w-28 h-42 rounded-xl overflow-hidden border border-[#30363d] relative bg-[#0B0F19]">
               <img
-                src={selectedHandCard.img}
+                src={selectedHandCard.imageUrl || selectedHandCard.img}
                 alt={selectedHandCard.name}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
