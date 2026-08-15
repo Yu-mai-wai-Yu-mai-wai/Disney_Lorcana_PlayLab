@@ -104,5 +104,6 @@ export interface WebSocketMessagePayload {
   deckId?: string;
   deckName?: string;
   message?: string;
+  turnNumber?: number;
   payload?: any;
 }

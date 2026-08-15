@@ -984,7 +984,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleStartTurn}
+                onClick={() => handleStartTurn()}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-white" />
