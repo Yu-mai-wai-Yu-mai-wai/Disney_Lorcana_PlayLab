@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useDeckStore } from '../store/useDeckStore';
 import { InkColor, LorcanaCard } from '../types/lorcana';
-import { Search, Plus, Minus, Trash2, Save, ChevronLeft, ChevronRight, Eye, Gift, Sword, Shield, Sparkles } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Save, ChevronLeft, ChevronRight, Eye, Gift, Sword, Shield, Sparkles, Star } from 'lucide-react';
 import { apiService } from '../services/api';
 import { Card3DInspectorModal } from './Card3DInspectorModal';
 import { BoosterPackModal } from './BoosterPackModal';
 import { InkSymbol } from './InkSymbol';
+import { RECOMMENDED_DECKS, RecommendedDeck } from '../data/recommendedDecks';
 
 const INK_COLORS: (InkColor | 'All')[] = ['All', 'Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
 
@@ -43,6 +44,7 @@ export const DeckBuilder: React.FC = () => {
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
   const [inspectedCard, setInspectedCard] = React.useState<LorcanaCard | null>(null);
   const [isBoosterModalOpen, setIsBoosterModalOpen] = React.useState(false);
+  const [isRecommendedModalOpen, setIsRecommendedModalOpen] = React.useState(false);
 
   const CARDS_PER_PAGE = 24;
 
@@ -565,6 +567,14 @@ export const DeckBuilder: React.FC = () => {
                 <Sparkles className="w-4 h-4" /> {isAnalyzing ? '...' : 'Analyze'}
               </button>
             </div>
+            <div className="pt-2">
+              <button
+                onClick={() => setIsRecommendedModalOpen(true)}
+                className="w-full bg-[#1e1a14] border border-[#F59E0B] hover:bg-[#2c2419] text-[#F59E0B] py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+              >
+                <Star className="w-4 h-4" /> Recommended Decks
+              </button>
+            </div>
 
             {analysisResult && (
               <div className="mt-4 p-3 bg-[#0B0F19] border border-[#30363d] rounded-lg">
@@ -620,6 +630,73 @@ export const DeckBuilder: React.FC = () => {
           cards.forEach((c) => addCard(c));
         }}
       />
+
+      {/* RECOMMENDED DECKS MODAL */}
+      {isRecommendedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsRecommendedModalOpen(false)}>
+          <div className="bg-[#141a26] border-2 border-[#F59E0B] rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-[0_0_30px_rgba(245,158,11,0.15)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
+              <h2 className="font-cinzel text-xl font-bold text-[#F59E0B] flex items-center gap-2">
+                <Star className="w-6 h-6" /> Recommended Meta Decks
+              </h2>
+              <button onClick={() => setIsRecommendedModalOpen(false)} className="text-[#94A3B8] hover:text-[#F1F5F9] transition-colors p-2">
+                <Minus className="w-6 h-6 rotate-45" /> {/* Use Minus rotated as X if X is not imported, wait I should use standard text or X icon, actually just use HTML entity for X */}
+                <span className="sr-only">Close</span>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+              {RECOMMENDED_DECKS.map((deck) => {
+                const totalCards = deck.cards.reduce((sum, c) => sum + c.count, 0);
+                return (
+                  <div key={deck.id} className="bg-[#0B0F19] rounded-xl border border-[#30363d] p-5 flex flex-col gap-4 hover:border-[#F59E0B] transition-colors group">
+                    <div>
+                      <h3 className="font-cinzel text-lg font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">{deck.name}</h3>
+                      <div className="flex gap-2 mt-2">
+                        {deck.inkColors.map(ink => (
+                          <span key={ink} className={`text-[10px] font-bold px-2 py-0.5 rounded border border-[#30363d] ${ink === 'Ruby' ? 'text-rose-400' : ink === 'Amethyst' ? 'text-purple-400' : ink === 'Amber' ? 'text-amber-400' : ink === 'Steel' ? 'text-slate-400' : ink === 'Sapphire' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                            {ink}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-[#94A3B8] flex-1">{deck.description}</p>
+                    
+                    <div className="flex justify-between items-center text-xs font-mono border-t border-[#30363d] pt-4">
+                      <span className="text-[#F1F5F9]">{deck.archetype}</span>
+                      <span className="text-[#F59E0B] font-bold">{totalCards} Cards</span>
+                    </div>
+
+                    <button 
+                      onClick={() => {
+                        if(window.confirm('Load this deck? This will replace your current deck.')) {
+                          clearDeck();
+                          setDeckName(deck.name);
+                          let missingCards = 0;
+                          deck.cards.forEach(deckCard => {
+                            const foundCard = cardsDatabase.find(c => c.id === deckCard.cardId);
+                            if (foundCard) {
+                              for(let i=0; i<deckCard.count; i++) addCard(foundCard);
+                            } else {
+                              console.warn(`Card ${deckCard.cardId} not found in dataset.`);
+                              missingCards++;
+                            }
+                          });
+                          setIsRecommendedModalOpen(false);
+                        }
+                      }}
+                      className="w-full bg-[#141a26] hover:bg-[#F59E0B] border border-[#F59E0B] text-[#F59E0B] hover:text-black py-2 rounded font-cinzel font-bold text-xs uppercase tracking-wider transition-colors mt-2"
+                    >
+                      Load This Deck
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
