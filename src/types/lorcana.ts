@@ -101,6 +101,7 @@ export interface WebSocketMessagePayload {
   isExerted?: boolean;
   loreScore?: number;
   inkCount?: number;
+  availableInk?: number;
   deckId?: string;
   deckName?: string;
   message?: string;

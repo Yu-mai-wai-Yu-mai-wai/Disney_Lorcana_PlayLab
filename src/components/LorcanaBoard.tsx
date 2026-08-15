@@ -50,6 +50,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [opponentLore, setOpponentLore] = useState(0);
   const [inkwellCapacity, setInkwellCapacity] = useState(0);
   const [availableInk, setAvailableInk] = useState(0);
+  const [opponentInk, setOpponentInk] = useState(0);
+  const [opponentInkCapacity, setOpponentInkCapacity] = useState(0);
   const [hasInkedThisTurn, setHasInkedThisTurn] = useState(false);
   const [turnNumber, setTurnNumber] = useState(1);
   const [isMyTurn, setIsMyTurn] = useState(() => {
@@ -184,6 +186,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           }
           return prev;
         });
+        if (data.availableInk !== undefined) {
+          setOpponentInk(data.availableInk);
+        }
         setLogMessages(prev => [`Opponent played ${data.payload.card.name}!`, ...prev]);
       }
     });
@@ -197,11 +202,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     const unsubInk = webSocketService.subscribe('INK_PLAYED', (data) => {
       if (data.role !== playerRole) {
         setLogMessages((prev) => [`Opponent added a card to Inkwell.`, ...prev]);
-        // To strictly sync opponent ink, we could add opponentInk state, but just logging is OK based on current UI
+        if (data.inkCount !== undefined) {
+          setOpponentInkCapacity(data.inkCount);
+        }
+        if (data.availableInk !== undefined) {
+          setOpponentInk(data.availableInk);
+        }
       }
     });
 
     const unsubLore = webSocketService.subscribe('LORE_UPDATED', (data) => {
+      if (data.role !== playerRole && data.loreScore !== undefined) {
+        setOpponentLore(data.loreScore);
+      }
+    });
+
+    const unsubQuest = webSocketService.subscribe('QUEST_DONE', (data) => {
       if (data.role !== playerRole && data.loreScore !== undefined) {
         setOpponentLore(data.loreScore);
       }
@@ -225,14 +241,38 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }
     });
 
+    // Handle INITIAL SYNC on GAME_START/ROOM_STATE
+    const unsubGameStart = webSocketService.subscribe('GAME_START', () => {
+      setPlayerLore(0);
+      setOpponentLore(0);
+      setAvailableInk(0);
+      setInkwellCapacity(0);
+      setOpponentInk(0);
+      setOpponentInkCapacity(0);
+      setTurnNumber(1);
+    });
+
+    const unsubRoomState = webSocketService.subscribe('ROOM_STATE', () => {
+      setPlayerLore(0);
+      setOpponentLore(0);
+      setAvailableInk(0);
+      setInkwellCapacity(0);
+      setOpponentInk(0);
+      setOpponentInkCapacity(0);
+      setTurnNumber(1);
+    });
+
     return () => {
       unsubMoved();
       unsubExerted();
       unsubInk();
       unsubLore();
+      unsubQuest();
       unsubPassed();
       unsubDisconnect();
       unsubChat();
+      unsubGameStart();
+      unsubRoomState();
     };
   }, [matchMode, playerRole]);
 
@@ -311,6 +351,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setPlayerLore((prev) => {
         const next = Math.min(20, prev + loreGain);
         webSocketService.sendAction('LORE_UPDATED', { loreScore: next });
+        webSocketService.sendAction('QUEST_DONE', { cardId: card.id, loreScore: next });
         if (next >= 20) {
           showNotice(`VICTORY! You reached 20 Lore and won the Illumineer match!`, 'success');
         }
@@ -343,7 +384,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     setHasInkedThisTurn(true);
     setSelectedHandCard(null);
 
-    webSocketService.sendAction('INK_PLAYED', { cardId: card.id });
+    webSocketService.sendAction('INK_PLAYED', { 
+      cardId: card.id,
+      inkCount: inkwellCapacity + 1,
+      availableInk: availableInk + 1
+    });
     setLogMessages((prev) => [`You converted ${card.name} into Inkwell! (Capacity: ${inkwellCapacity + 1})`, ...prev]);
     showNotice(`Converted "${card.name}" into Inkwell! (+1 Ink Capacity)`, 'success');
     return true;
@@ -427,7 +472,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setFieldCards((prev) => [...prev, newFieldCard]);
       setLogMessages((prev) => [`You cast Character: ${card.name} (${card.title}) onto the battlefield!`, ...prev]);
       showNotice(`Played ${card.name} onto field! (${card.cost} Ink used)`, 'success');
-      webSocketService.sendAction('CARD_MOVED', { cardId: card.id, payload: { zone: 'field', card: newFieldCard } });
+      webSocketService.sendAction('CARD_MOVED', { 
+        cardId: card.id, 
+        availableInk: availableInk - card.cost,
+        payload: { zone: 'field', card: newFieldCard } 
+      });
       resolveAbilities(card);
     }
     return true;
@@ -494,6 +543,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   // Official Turn Change Logic
   const handleEndTurn = () => {
     setIsMyTurn(false);
+    setOpponentInk(opponentInkCapacity); // Refill opponent's ink on their turn start
 
     if (matchMode) {
       // Advance the turn number IMMEDIATELY on our side too, so both players
@@ -572,8 +622,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }`}>
         {/* Opponent Piles */}
         <div className="space-y-1.5 border-b border-[#30363d] pb-2.5 shrink-0">
-          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B]">OPPONENT PILES</div>
-          <div className="flex gap-2">
+          <div className="text-[11px] font-cinzel font-bold text-[#F59E0B] flex justify-between items-center">
+            <span>OPPONENT PILES</span>
+            <span className="text-[#94A3B8] font-mono text-[10px] bg-[#0B0F19] px-1.5 py-0.5 rounded border border-[#30363d]">
+              Ink: {opponentInk}/{opponentInkCapacity}
+            </span>
+          </div>
+          <div className="flex gap-2 mt-1">
             <div className="flex-1 h-28 rounded-lg border border-[#30363d] flex flex-col items-center justify-between p-1.5 relative overflow-hidden bg-[#0B0F19]">
               <img
                 src="/Lorcana_Card_Back.png"
@@ -764,8 +819,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           {/* 1. OPPONENT BATTLEFIELD ZONE */}
           <div className="flex-1 flex flex-col justify-center items-center py-1 border-b border-[#30363d]/40 min-h-0">
             <div className="text-[9px] font-cinzel font-bold text-[#F59E0B]/70 mb-1 uppercase tracking-widest">
-              Opponent Battlefield
-              {matchMode && initialDeck && (
+              Opponent Battlefield ({opponentFieldCards.length} Cards)
+              {matchMode && opponentFieldCards.length === 0 && (
                 <span className="text-[#94A3B8] normal-case tracking-normal ml-2">
                   (waiting for opponent's cards...)
                 </span>
