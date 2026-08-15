@@ -494,11 +494,15 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   // Official Turn Change Logic
   const handleEndTurn = () => {
     setIsMyTurn(false);
-    showNotice(`Ending Turn ${turnNumber}... Opponent is playing.`, 'warning');
 
     if (matchMode) {
-      // Send the NEXT turn number so both players stay in sync
-      webSocketService.sendAction('TURN_PASSED', { turnNumber: turnNumber + 1 });
+      // Advance the turn number IMMEDIATELY on our side too, so both players
+      // show the same turn at the same time (no stale number while waiting).
+      const nextTurn = turnNumber + 1;
+      setTurnNumber(nextTurn);
+      showNotice(`Turn ${nextTurn} — Opponent is playing.`, 'warning');
+      // Send the NEXT turn number so the opponent syncs to the same value
+      webSocketService.sendAction('TURN_PASSED', { turnNumber: nextTurn });
     } else {
       setTimeout(() => {
         setOpponentLore((prev) => Math.min(20, prev + 1));
