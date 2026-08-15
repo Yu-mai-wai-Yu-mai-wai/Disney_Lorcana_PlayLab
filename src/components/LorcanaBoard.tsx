@@ -61,6 +61,34 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [damage, setDamage] = useState<Record<string, number>>({});
   const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
   const [turnPhase, setTurnPhase] = useState<'beginning' | 'main' | 'end'>('beginning');
+  const [hasMulliganed, setHasMulliganed] = useState(false);
+
+  const handleMulligan = () => {
+    if (hasMulliganed || turnNumber !== 1) return;
+    let newHand: LorcanaCard[] = [];
+    if (matchMode && initialDeck && initialDeck.cards) {
+       let fullDeck: LorcanaCard[] = [];
+       initialDeck.cards.forEach((c: any) => {
+         for(let i=0; i<c.count; i++) {
+           fullDeck.push({ ...c.card, id: `${c.card.id}-${i}` });
+         }
+       });
+       fullDeck = fullDeck.sort(() => Math.random() - 0.5);
+       newHand = fullDeck.slice(0, 7);
+    } else {
+       if (cardPool.length > 0) {
+         const available = cardPool.filter(c => !fieldCards.some(fc => fc.id === c.id));
+         const shuffled = [...available].sort(() => Math.random() - 0.5);
+         newHand = shuffled.length >= 7 ? shuffled.slice(0, 7) : STARTER_POOL;
+       } else {
+         newHand = STARTER_POOL;
+       }
+    }
+    setHandCards(newHand);
+    setHasMulliganed(true);
+    setLogMessages(prev => ['You took a Mulligan and drew a new hand.', ...prev]);
+    showNotice('Mulligan! Drew 7 new cards.', 'success');
+  };
 
   React.useEffect(() => {
     fetchCardPool().then(pool => setCardPool(pool));
@@ -70,7 +98,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     if (matchMode && initialDeck?.cards) {
       return initialDeck.cards.reduce((acc: number, c: any) => acc + (c.count || 1), 0);
     }
-    return 40;
+    return 60;
   });
   const [discardCount, setDiscardCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -229,6 +257,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     if (!selectedAttacker) return;
     const attacker = fieldCards.find(c => c.id === selectedAttacker);
     if (!attacker) return;
+    
+    if (attacker.isWet) {
+       showNotice(`${attacker.name} was played this turn! (Ink drying - cannot Challenge until next turn)`, 'warning');
+       setSelectedAttacker(null);
+       return;
+    }
+    
+    if (!opponentExerted[target.id]) {
+       showNotice(`You can only challenge Exerted characters!`, 'warning');
+       return;
+    }
     
     const attackerDmg = target.strength || 0;
     const targetDmg = attacker.strength || 0;
@@ -476,11 +515,19 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     setFieldCards(prev => prev.map(c => ({ ...c, isWet: false })));
     setHasInkedThisTurn(false);
     setAvailableInk(inkwellCapacity);
+    
+    // Player 1 does not draw on Turn 1
+    const isPlayer1Turn1 = turnNumber === 1 && (!matchMode || playerRole !== 'player2');
+    
     setTurnNumber(prev => prev + 1);
     setIsMyTurn(true);
     setLogMessages(prev => [`Turn ${turnNumber + 1} started!`, ...prev]);
     showNotice(`Turn ${turnNumber + 1} Started!`, 'success');
-    handleDrawCard();
+    
+    if (!isPlayer1Turn1) {
+      handleDrawCard();
+    }
+    
     setTurnPhase('main');
   };
 
@@ -918,6 +965,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {turnNumber === 1 && isMyTurn && !hasMulliganed && (
+               <motion.button
+                 whileHover={{ scale: 1.02 }}
+                 whileTap={{ scale: 0.98 }}
+                 onClick={handleMulligan}
+                 className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+               >
+                 <RotateCw className="w-3.5 h-3.5" />
+                 <span>Mulligan</span>
+               </motion.button>
+            )}
             {!isMyTurn && (
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -1227,6 +1285,31 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
             {/* Action Buttons */}
             <div className="w-full space-y-2 pt-1">
+              {String(selectedHandCard.type).toLowerCase() === 'action' && 
+               (selectedHandCard.subtypes?.map(s=>s.toLowerCase()).includes('song') || selectedHandCard.name.toLowerCase().includes('song')) && (
+                <button
+                  onClick={() => {
+                    const availableSingers = fieldCards.filter(c => !c.isWet && !exertedCards[c.id] && (c.cost || 0) >= selectedHandCard.cost);
+                    if (availableSingers.length === 0) {
+                      showNotice(`No ready character with cost ${selectedHandCard.cost} or more to sing this!`, 'warning');
+                      return;
+                    }
+                    const singer = availableSingers[0];
+                    toggleExert(singer.id);
+                    setHandCards((prev) => prev.filter((c) => c.id !== selectedHandCard.id));
+                    setSelectedHandCard(null);
+                    setDiscardCount((prev) => prev + 1);
+                    setLogMessages((prev) => [`You sang ${selectedHandCard.name} using ${singer.name}!`, ...prev]);
+                    showNotice(`Sang "${selectedHandCard.name}" using ${singer.name}!`, 'success');
+                    resolveAbilities(selectedHandCard);
+                  }}
+                  disabled={!fieldCards.some(c => !c.isWet && !exertedCards[c.id] && (c.cost || 0) >= selectedHandCard.cost)}
+                  className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-40 text-white p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                >
+                  <Zap className="w-4 h-4 fill-white" />
+                  <span>Sing (Exert cost {selectedHandCard.cost}+)</span>
+                </button>
+              )}
               {selectedHandCard.isInkable && (
                 <button
                   onClick={() => handleAddToInkwell(selectedHandCard)}
