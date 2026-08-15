@@ -62,33 +62,28 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
   const [turnPhase, setTurnPhase] = useState<'beginning' | 'main' | 'end'>('beginning');
   const [hasMulliganed, setHasMulliganed] = useState(false);
+  const [isMulliganPhase, setIsMulliganPhase] = useState(false);
+  const [mulliganSelectedIds, setMulliganSelectedIds] = useState<string[]>([]);
 
-  const handleMulligan = () => {
-    if (hasMulliganed || turnNumber !== 1) return;
-    let newHand: LorcanaCard[] = [];
-    if (matchMode && initialDeck && initialDeck.cards) {
-       let fullDeck: LorcanaCard[] = [];
-       initialDeck.cards.forEach((c: any) => {
-         for(let i=0; i<c.count; i++) {
-           fullDeck.push({ ...c.card, id: `${c.card.id}-${i}` });
-         }
-       });
-       fullDeck = fullDeck.sort(() => Math.random() - 0.5);
-       newHand = fullDeck.slice(0, 7);
+  const handleMulliganConfirm = () => {
+    const keepCards = handCards.filter(c => !mulliganSelectedIds.includes(c.id));
+    const replaceCount = mulliganSelectedIds.length;
+    
+    if (replaceCount > 0) {
+      const available = cardPool.filter(c => !keepCards.some(hc => hc.id === c.id));
+      const shuffled = [...available].sort(() => Math.random() - 0.5);
+      const newDraws = shuffled.slice(0, replaceCount);
+      
+      setHandCards([...keepCards, ...newDraws]);
+      showNotice(`Mulliganed ${replaceCount} cards`, 'success');
     } else {
-       if (cardPool.length > 0) {
-         const available = cardPool.filter(c => !fieldCards.some(fc => fc.id === c.id));
-         const shuffled = [...available].sort(() => Math.random() - 0.5);
-         newHand = shuffled.length >= 7 ? shuffled.slice(0, 7) : STARTER_POOL;
-       } else {
-         newHand = STARTER_POOL;
-       }
+      showNotice('Kept original hand', 'success');
     }
-    setHandCards(newHand);
+    
     setHasMulliganed(true);
-    setLogMessages(prev => ['You took a Mulligan and drew a new hand.', ...prev]);
-    showNotice('Mulligan! Drew 7 new cards.', 'success');
+    setIsMulliganPhase(false);
   };
+
 
   React.useEffect(() => {
     fetchCardPool().then(pool => setCardPool(pool));
@@ -329,8 +324,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   // Convert card into Inkwell (Checking Inkable Property & 1 Ink Per Turn Rule)
   const handleAddToInkwell = (card: LorcanaCard) => {
     if (!card.isInkable) {
-      showNotice(`"${card.name}" is NON-INKABLE!`, 'error');
-      return false;
+      const hasInkable = handCards.some(c => c.isInkable);
+      if (hasInkable) {
+        showNotice(`Choose an inkable card`, 'error');
+        return false;
+      } else {
+        showNotice(`No inkable cards — revealed hand, using any card as ink`, 'warning');
+      }
     }
     if (hasInkedThisTurn) {
       showNotice(`You can only put 1 card into the Inkwell per turn!`, 'warning');
@@ -443,7 +443,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       return;
     }
 
-    const canInk = card.isInkable && !hasInkedThisTurn;
+    const canInk = (card.isInkable || !handCards.some(c => c.isInkable)) && !hasInkedThisTurn;
     const canPlay = availableInk >= card.cost;
 
     if (canInk && canPlay) {
@@ -977,7 +977,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                <motion.button
                  whileHover={{ scale: 1.02 }}
                  whileTap={{ scale: 0.98 }}
-                 onClick={handleMulligan}
+                 onClick={() => setIsMulliganPhase(true)}
                  className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
                >
                  <RotateCw className="w-3.5 h-3.5" />
@@ -1010,6 +1010,64 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         </div>
 
       </div>
+
+      {/* MULLIGAN OVERLAY MODAL */}
+      <AnimatePresence>
+        {isMulliganPhase && (
+          <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0F19]/90 backdrop-blur-sm">
+            <h2 className="text-3xl font-cinzel font-bold text-[#F59E0B] mb-2">Mulligan Phase</h2>
+            <p className="text-[#94A3B8] mb-8 font-mono">Select any number of cards to replace. They will be placed at the bottom of your deck.</p>
+            
+            <div className="flex gap-4 mb-12">
+              {handCards.map((card) => {
+                const isSelected = mulliganSelectedIds.includes(card.id);
+                return (
+                  <motion.div
+                    key={card.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setMulliganSelectedIds(prev => prev.filter(id => id !== card.id));
+                      } else {
+                        setMulliganSelectedIds(prev => [...prev, card.id]);
+                      }
+                    }}
+                    whileHover={{ y: -10 }}
+                    animate={{ y: isSelected ? -20 : 0 }}
+                    className={`w-40 h-56 rounded-xl cursor-pointer border-2 transition-colors overflow-hidden ${
+                      isSelected ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.5)]' : 'border-[#30363d] hover:border-[#F59E0B]'
+                    }`}
+                  >
+                     <img
+                       src={card.imageUrl || card.img}
+                       alt={card.name}
+                       className="w-full h-full object-cover rounded-xl"
+                     />
+                  </motion.div>
+                );
+              })}
+            </div>
+            
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setIsMulliganPhase(false);
+                  setHasMulliganed(true);
+                  showNotice('Kept original hand', 'success');
+                }}
+                className="px-6 py-3 rounded-xl border border-[#30363d] text-[#F1F5F9] font-cinzel font-bold hover:bg-[#141a26] transition-colors cursor-pointer"
+              >
+                Keep Hand
+              </button>
+              <button
+                onClick={handleMulliganConfirm}
+                className="px-6 py-3 rounded-xl bg-[#F59E0B] text-black font-cinzel font-bold hover:bg-[#D97706] transition-colors cursor-pointer"
+              >
+                Confirm Mulligan ({mulliganSelectedIds.length})
+              </button>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* SPEC 3 — HAND DOCK: HOVER TAB AT BOTTOM (show on hover, hide on leave with padding bridge) */}
       <div
@@ -1218,7 +1276,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               </div>
 
               <div className="w-full space-y-2 pt-1">
-                {dragPendingCard.isInkable && !hasInkedThisTurn && (
+                {(dragPendingCard.isInkable || !handCards.some(c => c.isInkable)) && !hasInkedThisTurn && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1318,7 +1376,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   <span>Sing (Exert cost {selectedHandCard.cost}+)</span>
                 </button>
               )}
-              {selectedHandCard.isInkable && (
+              {(selectedHandCard.isInkable || !handCards.some(c => c.isInkable)) && (
                 <button
                   onClick={() => handleAddToInkwell(selectedHandCard)}
                   disabled={hasInkedThisTurn}
