@@ -215,7 +215,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     const unsubPassed = webSocketService.subscribe('TURN_PASSED', (data) => {
       if (data.role !== playerRole) {
         setLogMessages(prev => [`Opponent ended their turn.`, ...prev]);
-        handleStartTurn();
+        // Use the turn number from the sender so both players see the SAME turn
+        handleStartTurn(data.turnNumber);
       }
     });
 
@@ -496,7 +497,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     showNotice(`Ending Turn ${turnNumber}... Opponent is playing.`, 'warning');
 
     if (matchMode) {
-      webSocketService.sendAction('TURN_PASSED', {});
+      // Send the NEXT turn number so both players stay in sync
+      webSocketService.sendAction('TURN_PASSED', { turnNumber: turnNumber + 1 });
     } else {
       setTimeout(() => {
         setOpponentLore((prev) => Math.min(20, prev + 1));
@@ -509,21 +511,23 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     }
   };
 
-  const handleStartTurn = () => {
+  const handleStartTurn = (syncedTurnNumber?: number) => {
     setTurnPhase('beginning');
     setExertedCards({});
     setFieldCards(prev => prev.map(c => ({ ...c, isWet: false })));
     setHasInkedThisTurn(false);
     setAvailableInk(inkwellCapacity);
-    
+
     // Player 1 does not draw on Turn 1
     const isPlayer1Turn1 = turnNumber === 1 && (!matchMode || playerRole !== 'player2');
-    
-    setTurnNumber(prev => prev + 1);
+
+    // Use synced turn number (from TURN_PASSED) if provided — keeps both players in sync
+    const nextTurn = syncedTurnNumber || turnNumber + 1;
+    setTurnNumber(nextTurn);
     setIsMyTurn(true);
-    setLogMessages(prev => [`Turn ${turnNumber + 1} started!`, ...prev]);
-    showNotice(`Turn ${turnNumber + 1} Started!`, 'success');
-    
+    setLogMessages(prev => [`Turn ${nextTurn} started!`, ...prev]);
+    showNotice(`Turn ${nextTurn} Started!`, 'success');
+
     if (!isPlayer1Turn1) {
       handleDrawCard();
     }
