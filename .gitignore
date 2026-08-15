@@ -15,12 +15,27 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 .vite/
+*.tsbuildinfo
+
+# LaTeX artifacts
+*.aux
+*.out
+*.toc
+*.log.latex
 
 # Environment Variables & Secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.test
+.env.development
+.env.*.production
 secrets/
+*.pem
+*.key
+credentials.json
 
 # IDEs
 .vscode/
