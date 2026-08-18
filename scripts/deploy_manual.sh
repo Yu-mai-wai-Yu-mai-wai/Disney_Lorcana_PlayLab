@@ -42,7 +42,7 @@ for spec in "lorcana-auth-login:auth/login.handler" "lorcana-auth-register:auth/
       --function-name "$name" --runtime nodejs20.x --handler "$handler" \
       --role "$ROLE_ARN" --zip-file "fileb://$WORK/$zipname.zip" \
       --region "$REGION" \
-      --environment "Variables={USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,JWT_SECRET=disney_lorcana_secret_key_2026,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" \
+      --environment "Variables={USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" \
       >/dev/null
   fi
 done
@@ -58,6 +58,7 @@ if [ -z "$HTTP_API" ] || [ "$HTTP_API" = "None" ]; then
 fi
 STAGE="prod"
 aws apigatewayv2 create-stage --api-id "$HTTP_API" --stage-name "$STAGE" --auto-deploy --region "$REGION" >/dev/null 2>&1 || true
+aws apigatewayv2 update-stage --api-id "$HTTP_API" --stage-name "$STAGE" --default-route-settings "ThrottlingBurstLimit=100,ThrottlingRateLimit=50" --region "$REGION" >/dev/null 2>&1 || true
 
 # helper to add integration+route
 add_route() { # $1=path $2=method $3=fnName
@@ -82,6 +83,7 @@ if [ -z "$WS_API" ] || [ "$WS_API" = "None" ]; then
   echo "  created WS API: $WS_API"
 fi
 aws apigatewayv2 create-stage --api-id "$WS_API" --stage-name "$STAGE" --auto-deploy --region "$REGION" >/dev/null 2>&1 || true
+aws apigatewayv2 update-stage --api-id "$WS_API" --stage-name "$STAGE" --default-route-settings "ThrottlingBurstLimit=100,ThrottlingRateLimit=50" --region "$REGION" >/dev/null 2>&1 || true
 
 # WS routes -> lorcana-room lambda
 WS_INT=$(aws apigatewayv2 create-integration --api-id "$WS_API" --integration-type AWS_PROXY \

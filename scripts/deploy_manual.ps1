@@ -42,19 +42,21 @@ Write-Host "======================================" -ForegroundColor Cyan
 # Update lorcana-room
 Write-Host "  Updating lorcana-room..." -ForegroundColor Yellow
 aws lambda update-function-code --function-name "lorcana-room" --zip-file "fileb://$RoomZip" --region $Region | Out-Null
-aws lambda update-function-configuration --function-name "lorcana-room" --environment "Variables={ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,JWT_SECRET=disney_lorcana_secret_key_2026,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" --region $Region | Out-Null
+aws lambda update-function-configuration --function-name "lorcana-room" --environment "Variables={ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" --region $Region | Out-Null
 Write-Host "  lorcana-room deployed & configured successfully." -ForegroundColor Green
 
 # Update lorcana-deck
 Write-Host "  Updating lorcana-deck..." -ForegroundColor Yellow
 aws lambda update-function-code --function-name "lorcana-deck" --zip-file "fileb://$DeckZip" --region $Region | Out-Null
-aws lambda update-function-configuration --function-name "lorcana-deck" --environment "Variables={ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,JWT_SECRET=disney_lorcana_secret_key_2026,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" --region $Region | Out-Null
+aws lambda update-function-configuration --function-name "lorcana-deck" --environment "Variables={ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" --region $Region | Out-Null
 Write-Host "  lorcana-deck deployed successfully." -ForegroundColor Green
 
 # Update lorcana-auth-login / register
 Write-Host "  Updating auth lambdas..." -ForegroundColor Yellow
 aws lambda update-function-code --function-name "lorcana-auth-login" --zip-file "fileb://$AuthZip" --region $Region | Out-Null
+aws lambda update-function-configuration --function-name "lorcana-auth-login" --environment "Variables={USERS_TABLE=UsersTable,JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302}" --region $Region | Out-Null
 aws lambda update-function-code --function-name "lorcana-auth-register" --zip-file "fileb://$AuthZip" --region $Region | Out-Null
+aws lambda update-function-configuration --function-name "lorcana-auth-register" --environment "Variables={USERS_TABLE=UsersTable,JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302}" --region $Region | Out-Null
 Write-Host "  auth lambdas deployed successfully." -ForegroundColor Green
 
 Write-Host "======================================" -ForegroundColor Cyan
@@ -91,10 +93,11 @@ foreach ($r in $Routes) {
     }
 }
 
-# Create deployment to apply routes to prod stage immediately
-Write-Host "  Deploying WebSocket Stage 'prod'..." -ForegroundColor Yellow
+# Create deployment to apply routes to prod stage immediately and configure rate throttling
+Write-Host "  Deploying WebSocket Stage 'prod' & configuring throttling limits..." -ForegroundColor Yellow
 aws apigatewayv2 create-deployment --api-id $WsApiId --stage-name "prod" --region $Region | Out-Null
-Write-Host "  WebSocket Stage 'prod' deployed successfully." -ForegroundColor Green
+aws apigatewayv2 update-stage --api-id $WsApiId --stage-name "prod" --default-route-settings "ThrottlingBurstLimit=100,ThrottlingRateLimit=50" --region $Region | Out-Null
+Write-Host "  WebSocket Stage 'prod' deployed & rate-throttled (Rate: 50 rps, Burst: 100) successfully." -ForegroundColor Green
 
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host " 4/5 Deployment Complete!" -ForegroundColor Cyan
