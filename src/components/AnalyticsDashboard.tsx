@@ -1,18 +1,21 @@
 import React from 'react';
 import { Flame, TrendingDown, Sparkles, BarChart3, PieChart, Lightbulb, AlertTriangle, Zap, CheckCircle2 } from 'lucide-react';
+import { useLanguageStore } from '../store/useLanguageStore';
 
 export const AnalyticsDashboard: React.FC = () => {
+  const { t, language } = useLanguageStore();
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 mt-4 font-outfit select-none bg-[#0B0F19]">
       {/* Top Banner Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-[#30363d] pb-6 gap-4 bg-[#141a26] p-6 rounded-xl border border-[#30363d]">
         <div>
           <h1 className="font-cinzel font-bold text-2xl md:text-3xl text-[#F1F5F9] mb-2">
-            Deck Performance &amp; Ink Curve Analytics
+            {t.analyticsTitle}
           </h1>
           <div className="flex items-center gap-2 text-xs font-mono text-[#F59E0B]">
             <Zap className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-            <span>Real-Time Inkwell Curve &amp; Synergy Evaluation</span>
+            <span>{t.analyticsSubtitle}</span>
           </div>
         </div>
 
@@ -27,7 +30,7 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
           <div>
             <div className="text-xs font-bold text-[#F59E0B] font-cinzel">Amber/Amethyst Tempo</div>
-            <div className="text-[10px] text-[#94A3B8] font-semibold">60 Cards Selected</div>
+            <div className="text-[10px] text-[#94A3B8] font-semibold">{language === 'th' ? 'เลือกการ์ด 60 ใบ' : '60 Cards Selected'}</div>
           </div>
         </div>
       </header>
@@ -37,7 +40,7 @@ export const AnalyticsDashboard: React.FC = () => {
         {/* Metric 1: Ink Efficiency */}
         <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
           <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest mb-4">
-            Ink Efficiency Score
+            {t.analyticsEfficiencyScore}
           </div>
           <div className="flex items-center justify-between">
             <div className="font-cinzel text-4xl font-bold text-[#F1F5F9]">
@@ -52,7 +55,7 @@ export const AnalyticsDashboard: React.FC = () => {
         {/* Metric 2: Avg Ink Cost */}
         <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
           <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest mb-4">
-            Average Ink Cost
+            {t.analyticsAvgCost}
           </div>
           <div className="flex items-baseline space-x-2">
             <div className="font-cinzel text-4xl font-bold text-[#F1F5F9]">3.4</div>
@@ -60,7 +63,7 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
           <div className="mt-3 text-xs flex items-center text-[#F59E0B] font-bold gap-1">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Faster than meta avg.</span>
+            <span>{t.analyticsFasterThanMeta}</span>
           </div>
         </div>
 
@@ -68,22 +71,22 @@ export const AnalyticsDashboard: React.FC = () => {
         <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
           <div className="flex justify-between items-start mb-4">
             <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest">
-              Inkable Ratio
+              {t.analyticsInkableRatio}
             </div>
             <span className="px-2 py-0.5 rounded text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/40">
-              Optimal
+              {t.analyticsOptimal}
             </span>
           </div>
           <div className="font-cinzel text-4xl font-bold text-[#F1F5F9]">85%</div>
           <div className="mt-3 text-xs text-[#94A3B8] font-mono">
-            51 Inkable <span className="mx-1 font-bold text-[#F59E0B]">/</span> 9 Non-inkable
+            51 {t.inkable} <span className="mx-1 font-bold text-[#F59E0B]">/</span> 9 {language === 'th' ? 'ใส่หมึกไม่ได้' : 'Non-inkable'}
           </div>
         </div>
 
         {/* Metric 4: Lore Potential */}
         <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
           <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest mb-4">
-            Quest Potential / Turn
+            {t.analyticsLorePotential}
           </div>
           <div className="flex justify-between items-end">
             <div className="font-cinzel text-4xl font-bold text-[#F1F5F9]">
@@ -100,7 +103,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] lg:col-span-2 flex flex-col h-[400px]">
           <h3 className="font-cinzel font-bold text-lg text-[#F1F5F9] mb-6 border-b border-[#30363d] pb-4 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[#F59E0B]" />
-            <span>Ink Curve Distribution</span>
+            <span>{t.analyticsCurveDist}</span>
           </h3>
           <div className="flex-grow flex items-end justify-between space-x-2 pt-4 relative">
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
@@ -124,7 +127,7 @@ export const AnalyticsDashboard: React.FC = () => {
               <div key={idx} className="w-full flex flex-col items-center group cursor-pointer relative">
                 {bar.active && (
                   <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#0B0F19] border border-[#F59E0B] text-[10px] font-bold py-1 px-2 rounded text-[#F59E0B] whitespace-nowrap z-20">
-                    15 Cards Peak
+                    {language === 'th' ? 'สูงสุด 15 ใบ' : '15 Cards Peak'}
                   </div>
                 )}
                 <div className="w-full max-w-[36px] flex flex-col justify-end rounded overflow-hidden border border-[#30363d]" style={{ height: bar.height }}>
@@ -141,11 +144,11 @@ export const AnalyticsDashboard: React.FC = () => {
           <div className="mt-6 flex justify-center space-x-6 text-xs font-bold">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-[#F59E0B]"></div>
-              <span className="text-[#F1F5F9]">Characters</span>
+              <span className="text-[#F1F5F9]">{t.analyticsCharacters}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-purple-500"></div>
-              <span className="text-[#F1F5F9]">Actions &amp; Songs</span>
+              <span className="text-[#F1F5F9]">{t.analyticsActions}</span>
             </div>
           </div>
         </div>
@@ -154,7 +157,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] flex flex-col h-[400px]">
           <h3 className="font-cinzel font-bold text-lg text-[#F1F5F9] mb-6 border-b border-[#30363d] pb-4 flex items-center gap-2">
             <PieChart className="w-5 h-5 text-[#F59E0B]" />
-            <span>Card Type Breakdown</span>
+            <span>{t.analyticsTypeBreakdown}</span>
           </h3>
           <div className="flex-grow flex items-center justify-center relative">
             <div
@@ -166,7 +169,7 @@ export const AnalyticsDashboard: React.FC = () => {
             >
               <div className="absolute inset-0 m-auto w-28 h-28 bg-[#0B0F19] rounded-full flex flex-col items-center justify-center border border-[#30363d]">
                 <span className="font-cinzel text-2xl font-bold text-[#F59E0B]">60</span>
-                <span className="text-[10px] text-[#94A3B8] uppercase tracking-widest font-bold">Total Cards</span>
+                <span className="text-[10px] text-[#94A3B8] uppercase tracking-widest font-bold">{t.totalCards}</span>
               </div>
             </div>
           </div>
@@ -174,19 +177,19 @@ export const AnalyticsDashboard: React.FC = () => {
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold text-[#F1F5F9]">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]"></div>
-              <span>Characters (65%)</span>
+              <span>{t.analyticsCharacters} (65%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div>
-              <span>Actions (20%)</span>
+              <span>{t.analyticsActions} (20%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-              <span>Items (10%)</span>
+              <span>{t.analyticsItems} (10%)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
-              <span>Locations (5%)</span>
+              <span>{t.analyticsLocations} (5%)</span>
             </div>
           </div>
         </div>
@@ -196,15 +199,19 @@ export const AnalyticsDashboard: React.FC = () => {
       <section className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] space-y-4">
         <h2 className="font-cinzel font-bold text-xl text-[#F1F5F9] flex items-center gap-2 border-b border-[#30363d] pb-3">
           <Lightbulb className="w-5 h-5 text-[#F59E0B]" />
-          <span>Deck Optimization Insights (AWS AI Engine)</span>
+          <span>{t.analyticsOptimizationTitle}</span>
         </h2>
         <div className="space-y-3">
           <div className="flex items-start p-4 rounded-lg bg-[#0B0F19] border border-emerald-500/30 gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-emerald-300 text-sm mb-0.5">Optimal Mid-Game Curve</h3>
+              <h3 className="font-bold text-emerald-300 text-sm mb-0.5">
+                {language === 'th' ? 'กราฟค่าร่ายช่วงกลางเกมมีความเสถียรสูง' : 'Optimal Mid-Game Curve'}
+              </h3>
               <p className="text-xs text-[#94A3B8]">
-                Your deck peaks efficiently at 3-cost cards, providing a strong early-mid game tempo ideal for Amber/Amethyst aggressive lore strategy.
+                {language === 'th' 
+                  ? 'เด็คของคุณมีจุดพีคของค่าร่ายอยู่ที่การ์ด Cost 3 อย่างลงตัว ช่วยให้ทำเกมเร็วช่วงต้นถึงกลางเกม (Early-Mid Game Tempo) ได้อย่างยอดเยี่ยม เหมาะกับกลยุทธ์ Amber/Amethyst Aggro Lore'
+                  : 'Your deck peaks efficiently at 3-cost cards, providing a strong early-mid game tempo ideal for Amber/Amethyst aggressive lore strategy.'}
               </p>
             </div>
           </div>
@@ -212,9 +219,13 @@ export const AnalyticsDashboard: React.FC = () => {
           <div className="flex items-start p-4 rounded-lg bg-[#0B0F19] border border-rose-500/30 gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-rose-300 text-sm mb-0.5">High Non-Inkable Count Warning</h3>
+              <h3 className="font-bold text-rose-300 text-sm mb-0.5">
+                {language === 'th' ? 'คำเตือน: สัดส่วนการ์ดไม่สามารถใส่ Inkwell ได้ค่อนข้างสูง' : 'High Non-Inkable Count Warning'}
+              </h3>
               <p className="text-xs text-[#94A3B8]">
-                With 9 non-inkable cards (18% ratio), you have a non-trivial risk of drawing bricked opening hands. Consider trimming down to 6–8 non-inkables for better consistency.
+                {language === 'th'
+                  ? 'มีจำนวนการ์ด Non-inkable 9 ใบ (สัดส่วน 18%) ซึ่งอาจมีความเสี่ยงเปิดมือแรกแล้วติดขัดได้ แนะนำให้ปรับลดเหลือ 6-8 ใบเพื่อความลื่นไหลสูงสุด'
+                  : 'With 9 non-inkable cards (18% ratio), you have a non-trivial risk of drawing bricked opening hands. Consider trimming down to 6–8 non-inkables for better consistency.'}
               </p>
             </div>
           </div>
@@ -222,9 +233,13 @@ export const AnalyticsDashboard: React.FC = () => {
           <div className="flex items-start p-4 rounded-lg bg-[#0B0F19] border border-[#F59E0B]/30 gap-3">
             <Sparkles className="w-5 h-5 text-[#F59E0B] shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-[#F59E0B] text-sm mb-0.5">Synergy Combo Engine Detected</h3>
+              <h3 className="font-bold text-[#F59E0B] text-sm mb-0.5">
+                {language === 'th' ? 'ตรวจพบคอมโบ Synergy ที่ทรงพลัง' : 'Synergy Combo Engine Detected'}
+              </h3>
               <p className="text-xs text-[#94A3B8]">
-                Strong synergy found: <strong className="text-white">'Mickey Mouse - Wayward Sorcerer'</strong> + <strong className="text-white">6 Magic Broom Cards</strong>. This combination represents over 30% of your late-game lore generation.
+                {language === 'th'
+                  ? 'พบคอมโบหลัก: \'Mickey Mouse - Wayward Sorcerer\' ร่วมกับ \'6 Magic Broom Cards\' คอมโบนี้สร้างแต้ม Lore ในช่วงท้ายเกมได้มากกว่า 30% ของทั้งเด็ค'
+                  : "Strong synergy found: 'Mickey Mouse - Wayward Sorcerer' + 6 Magic Broom Cards. This combination represents over 30% of your late-game lore generation."}
               </p>
             </div>
           </div>

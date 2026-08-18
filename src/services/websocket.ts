@@ -18,12 +18,38 @@ class WebSocketService {
     this.listeners.set('all', new Set());
   }
 
+  private messageQueue: any[] = [];
+
   // Connect to AWS API Gateway WebSockets
   public connect(username?: string): Promise<boolean> {
     if (username) this.currentUsername = username;
 
     return new Promise((resolve) => {
       try {
+        // Reuse already open connection
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+          this.isConnected = true;
+          resolve(true);
+          return;
+        }
+
+        // Wait if already connecting
+        if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+          const checkTimer = setInterval(() => {
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+              clearInterval(checkTimer);
+              this.isConnected = true;
+              this.flushQueue();
+              resolve(true);
+            } else if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
+              clearInterval(checkTimer);
+              this.isConnected = false;
+              resolve(false);
+            }
+          }, 50);
+          return;
+        }
+
         // Mock socket mode for offline testing / sandbox fallback
         if (WS_ENDPOINT.includes('demo.execute-api')) {
           console.log('[WebSocket] Sandbox Mock Active (AWS Ready)');
@@ -39,6 +65,7 @@ class WebSocketService {
           console.log('[WebSocket] 🟢 Connected to AWS API Gateway WebSockets');
           this.isConnected = true;
           this.reconnectAttempts = 0;
+          this.flushQueue();
           resolve(true);
         };
 
@@ -70,13 +97,29 @@ class WebSocketService {
     });
   }
 
+  private flushQueue(): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.messageQueue.length > 0) {
+      console.log(`[WebSocket] Flushing ${this.messageQueue.length} queued messages`);
+      while (this.messageQueue.length > 0) {
+        const item = this.messageQueue.shift();
+        try {
+          this.socket.send(JSON.stringify(item));
+        } catch (e) {
+          console.error('[WebSocket] Failed to send queued message', e);
+        }
+      }
+    }
+  }
+
   // Join a 6-digit Lorcana Match Room
   public joinRoom(roomId: string, username?: string): void {
     this.currentRoomId = roomId;
     if (username) this.currentUsername = username;
 
-    const payload: WebSocketMessagePayload = {
+    const payload: any = {
       action: 'JOIN_ROOM',
+      gameAction: 'JOIN_ROOM',
+      type: 'JOIN_ROOM',
       roomId,
       username: this.currentUsername,
     };
@@ -109,8 +152,10 @@ class WebSocketService {
 
   // --- SPRINT 3 Match Lobby Methods ---
   public createRoom(deckId: string, deckName: string): void {
-    const payload: WebSocketMessagePayload = {
+    const payload: any = {
       action: 'CREATE_ROOM',
+      gameAction: 'CREATE_ROOM',
+      type: 'CREATE_ROOM',
       username: this.currentUsername,
       deckId,
       deckName,
@@ -134,8 +179,11 @@ class WebSocketService {
 
   public joinRoomWithDeck(roomId: string, deckId: string, deckName: string): void {
     this.currentRoomId = roomId;
-    const payload: WebSocketMessagePayload = {
+    this.currentRole = 'player2';
+    const payload: any = {
       action: 'JOIN_ROOM',
+      gameAction: 'JOIN_ROOM',
+      type: 'JOIN_ROOM',
       roomId,
       username: this.currentUsername,
       deckId,
@@ -167,8 +215,10 @@ class WebSocketService {
   }
 
   public findMatch(deckId: string, deckName: string): void {
-    const payload: WebSocketMessagePayload = {
+    const payload: any = {
       action: 'MATCHMAKING_JOIN',
+      gameAction: 'MATCHMAKING_JOIN',
+      type: 'MATCHMAKING_JOIN',
       username: this.currentUsername,
       deckId,
       deckName,
@@ -194,26 +244,63 @@ class WebSocketService {
   }
 
   public cancelMatchmaking(): void {
-    const payload: WebSocketMessagePayload = {
+    const payload: any = {
       action: 'MATCHMAKING_LEAVE',
+      gameAction: 'MATCHMAKING_LEAVE',
+      type: 'MATCHMAKING_LEAVE',
       username: this.currentUsername,
     };
     this.send(payload);
   }
 
-  public sendChat(message: string): void {
-    this.sendAction('CHAT_MESSAGE' as WebSocketActionType, { message, username: this.currentUsername });
+  public setRoomId(roomId: string): void {
+    this.currentRoomId = roomId;
+  }
+
+  public setRole(role: 'player1' | 'player2'): void {
+    this.currentRole = role;
+  }
+
+  public setUsername(username: string): void {
+    this.currentUsername = username;
+  }
+
+  public getUsername(): string {
+    return this.currentUsername;
+  }
+
+  public sendChat(message: string, roomId?: string, role?: 'player1' | 'player2'): void {
+    this.sendAction('CHAT_MESSAGE' as WebSocketActionType, {
+      message,
+      roomId: roomId || this.currentRoomId || undefined,
+      role: role || this.currentRole,
+      username: this.currentUsername,
+    });
   }
   // ------------------------------------
 
   // Send action to opponent in <100ms
   public sendAction(action: WebSocketActionType, payloadData: Partial<WebSocketMessagePayload>): void {
-    const payload: WebSocketMessagePayload = {
-      action,
-      roomId: this.currentRoomId || '108249',
-      username: this.currentUsername,
-      role: this.currentRole,
+    const roomId = payloadData.roomId || this.currentRoomId || '108249';
+    const role = payloadData.role || this.currentRole;
+    const username = payloadData.username || this.currentUsername;
+
+    const payload: any = {
+      action: action,
+      gameAction: action,
+      realAction: action,
+      type: action,
+      roomId,
+      username,
+      role,
       ...payloadData,
+      payload: {
+        ...(payloadData.payload || {}),
+        roomId,
+        role,
+        username,
+        gameAction: action,
+      },
     };
 
     this.send(payload);
@@ -223,8 +310,13 @@ class WebSocketService {
   private send(data: WebSocketMessagePayload): void {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(data));
+    } else if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+      console.log('[WebSocket] Socket connecting, queueing payload:', data.action);
+      this.messageQueue.push(data);
     } else {
-      console.log('[WebSocket] Dispatched offline mock action:', data.action);
+      console.log('[WebSocket] Socket disconnected, attempting auto-connect and queueing:', data.action);
+      this.messageQueue.push(data);
+      this.connect();
     }
   }
 
@@ -253,15 +345,24 @@ class WebSocketService {
   }
 
   // Dispatch incoming messages to subscribed callbacks
-  private handleIncomingMessage(data: WebSocketMessagePayload): void {
-    if (data.action === 'ROOM_STATE' && data.role) {
-      this.currentRole = data.role;
+  private handleIncomingMessage(data: any): void {
+    const targetAction = data.gameAction || data.realAction || data.action || data.type || (data.payload && (data.payload.gameAction || data.payload.action || data.payload.type));
+
+    if (targetAction === 'ROOM_CREATED') {
+      if (data.roomId) this.currentRoomId = data.roomId;
+      this.currentRole = 'player1';
+    } else if (targetAction === 'MATCH_FOUND' || targetAction === 'ROOM_STATE' || targetAction === 'GAME_START') {
+      if (data.roomId) this.currentRoomId = data.roomId;
     }
 
-    // Call specific action listeners
-    const specificListeners = this.listeners.get(data.action);
-    if (specificListeners) {
-      specificListeners.forEach((cb) => cb(data));
+    // Call specific action listeners by targetAction
+    if (targetAction && this.listeners.has(targetAction)) {
+      this.listeners.get(targetAction)!.forEach((cb) => cb(data));
+    }
+
+    // Also call if data.action is different from targetAction (e.g. if 'sendAction' was passed)
+    if (data.action && data.action !== targetAction && this.listeners.has(data.action)) {
+      this.listeners.get(data.action)!.forEach((cb) => cb(data));
     }
 
     // Call 'all' listeners
@@ -276,6 +377,7 @@ class WebSocketService {
     setTimeout(() => {
       this.handleIncomingMessage({
         action: 'ROOM_STATE',
+        gameAction: 'ROOM_STATE',
         roomId: '108249',
         role: 'player1',
         username: this.currentUsername,

@@ -7,6 +7,8 @@ import { Card3DInspectorModal } from './Card3DInspectorModal';
 import { BoosterPackModal } from './BoosterPackModal';
 import { InkSymbol } from './InkSymbol';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '../data/recommendedDecks';
+import { useLanguageStore } from '../store/useLanguageStore';
+import { translateCardType, translateInkColor, translateRarity } from '../utils/cardTranslator';
 
 const INK_COLORS: (InkColor | 'All')[] = ['All', 'Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
 
@@ -22,6 +24,7 @@ const SAMPLE_DATABASE: LorcanaCard[] = [
 ];
 
 export const DeckBuilder: React.FC = () => {
+  const { t, language } = useLanguageStore();
   const {
     currentDeck,
     deckName,
@@ -106,7 +109,10 @@ export const DeckBuilder: React.FC = () => {
   const [userDecks, setUserDecks] = React.useState<any[]>([]);
 
   const loadUserDecks = async () => {
-    const token = localStorage.getItem('lorcana_token') || undefined;
+    const token =
+      (typeof window !== 'undefined' &&
+        (sessionStorage.getItem('lorcana_token') || localStorage.getItem('lorcana_token'))) ||
+      undefined;
     if (!token) return;
     const res = await apiService.getUserDecks(token);
     if (res.decks) setUserDecks(res.decks);
@@ -119,13 +125,16 @@ export const DeckBuilder: React.FC = () => {
   const handleSaveDeck = async () => {
     setIsSaving(true);
     setSaveStatus(null);
-    const token = localStorage.getItem('lorcana_token') || undefined;
+    const token =
+      (typeof window !== 'undefined' &&
+        (sessionStorage.getItem('lorcana_token') || localStorage.getItem('lorcana_token'))) ||
+      undefined;
     try {
       const res = await apiService.saveDeck(deckName, currentDeck, token);
       if (res.error) {
-        setSaveStatus(`Saved locally (Cloud mock mode)`);
+        setSaveStatus(t.saveSuccess || 'Saved locally (Cloud mock mode)');
       } else {
-        setSaveStatus(`Saved successfully to AWS DynamoDB!`);
+        setSaveStatus(t.saveSuccess || 'Saved successfully to AWS DynamoDB!');
         if (res.deckId) {
           setSavedDeckId(res.deckId);
           setAnalysisResult(null);
@@ -133,7 +142,7 @@ export const DeckBuilder: React.FC = () => {
         loadUserDecks();
       }
     } catch {
-      setSaveStatus(`Saved locally (Cloud ready)`);
+      setSaveStatus(t.saveSuccess || 'Saved locally (Cloud ready)');
     } finally {
       setIsSaving(false);
     }
@@ -141,15 +150,18 @@ export const DeckBuilder: React.FC = () => {
 
   const handleAnalyzeDeck = async () => {
     if (!savedDeckId) {
-      setSaveStatus('Please save the deck first before analyzing');
+      setSaveStatus(language === 'th' ? 'กรุณาบันทึกเด็คก่อนทำการวิเคราะห์' : 'Please save the deck first before analyzing');
       return;
     }
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    const token = localStorage.getItem('lorcana_token') || undefined;
+    const token =
+      (typeof window !== 'undefined' &&
+        (sessionStorage.getItem('lorcana_token') || localStorage.getItem('lorcana_token'))) ||
+      undefined;
     try {
       await apiService.analyzeDeck(savedDeckId, token);
-      setSaveStatus('Analysis queued! Waiting for results...');
+      setSaveStatus(language === 'th' ? 'ส่งคำขอวิเคราะห์แล้ว กำลังรอผลลัพธ์...' : 'Analysis queued! Waiting for results...');
       
       // Poll for results
       let attempts = 0;
@@ -158,17 +170,17 @@ export const DeckBuilder: React.FC = () => {
         const res = await apiService.getDeckAnalysis(savedDeckId, token);
         if (res.analysis) {
           setAnalysisResult(res.analysis);
-          setSaveStatus('Analysis complete!');
+          setSaveStatus(language === 'th' ? 'วิเคราะห์สำเร็จเรียบร้อย!' : 'Analysis complete!');
           clearInterval(pollInterval);
           setIsAnalyzing(false);
         } else if (attempts >= 10) {
-          setSaveStatus('Analysis timed out. Try again.');
+          setSaveStatus(language === 'th' ? 'หมดเวลาการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง' : 'Analysis timed out. Try again.');
           clearInterval(pollInterval);
           setIsAnalyzing(false);
         }
       }, 2000);
     } catch {
-      setSaveStatus('Failed to start analysis');
+      setSaveStatus(language === 'th' ? 'ไม่สามารถเริ่มการวิเคราะห์ได้' : 'Failed to start analysis');
       setIsAnalyzing(false);
     }
   };
@@ -188,7 +200,7 @@ export const DeckBuilder: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search cards by name or title..."
+                placeholder={t.searchPlaceholder}
                 className="w-full shadcn-input rounded-lg pl-10 pr-4 py-2 text-xs text-[#F1F5F9] placeholder:text-[#94A3B8] font-mono"
               />
             </div>
@@ -199,7 +211,7 @@ export const DeckBuilder: React.FC = () => {
               className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-4 py-2 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shrink-0"
             >
               <Gift className="w-4 h-4 text-black" />
-              <span>Open Booster Pack</span>
+              <span>{t.openBoosterPack}</span>
             </button>
           </div>
 
@@ -232,7 +244,7 @@ export const DeckBuilder: React.FC = () => {
                     {ink !== 'All' && (
                       <InkSymbol ink={ink} size={15} />
                     )}
-                    {ink}
+                    {ink === 'All' ? t.allInks : translateInkColor(ink, language)}
                   </button>
                 );
               })}
@@ -245,11 +257,11 @@ export const DeckBuilder: React.FC = () => {
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg py-1.5 px-3 text-xs outline-none focus:border-[#F59E0B] cursor-pointer"
               >
-                <option value="All">All Types</option>
-                <option value="Character">Character</option>
-                <option value="Action">Action</option>
-                <option value="Item">Item</option>
-                <option value="Location">Location</option>
+                <option value="All">{t.allTypes}</option>
+                <option value="Character">{translateCardType('Character', language)}</option>
+                <option value="Action">{translateCardType('Action', language)}</option>
+                <option value="Item">{translateCardType('Item', language)}</option>
+                <option value="Location">{translateCardType('Location', language)}</option>
               </select>
 
               <select
@@ -257,16 +269,16 @@ export const DeckBuilder: React.FC = () => {
                 onChange={(e) => setSelectedRarity(e.target.value)}
                 className="bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg py-1.5 px-3 text-xs outline-none focus:border-[#F59E0B] cursor-pointer"
               >
-                <option value="All">Any Rarity</option>
-                <option value="Common">Common</option>
-                <option value="Uncommon">Uncommon</option>
-                <option value="Rare">Rare</option>
-                <option value="Super Rare">Super Rare</option>
-                <option value="Epic">Epic</option>
-                <option value="Legendary">Legendary</option>
-                <option value="Enchanted">Enchanted</option>
-                <option value="Iconic">Iconic</option>
-                <option value="Special">Special</option>
+                <option value="All">{t.allRarities}</option>
+                <option value="Common">{translateRarity('Common', language)}</option>
+                <option value="Uncommon">{translateRarity('Uncommon', language)}</option>
+                <option value="Rare">{translateRarity('Rare', language)}</option>
+                <option value="Super Rare">{translateRarity('Super Rare', language)}</option>
+                <option value="Epic">{translateRarity('Epic', language)}</option>
+                <option value="Legendary">{translateRarity('Legendary', language)}</option>
+                <option value="Enchanted">{translateRarity('Enchanted', language)}</option>
+                <option value="Iconic">{translateRarity('Iconic', language)}</option>
+                <option value="Special">{translateRarity('Special', language)}</option>
               </select>
             </div>
           </div>
@@ -275,7 +287,7 @@ export const DeckBuilder: React.FC = () => {
         {/* Results Counter & Pagination Header */}
         <div className="flex justify-between items-center px-1 font-mono text-xs text-[#94A3B8]">
           <div>
-            Showing <strong className="text-[#F59E0B]">{paginatedCards.length}</strong> of <strong className="text-white">{filteredCards.length}</strong> Cards Found
+            {t.showingCards} <strong className="text-[#F59E0B]">{paginatedCards.length}</strong> {t.ofCards} <strong className="text-white">{filteredCards.length}</strong> {t.cardsFound}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -286,7 +298,7 @@ export const DeckBuilder: React.FC = () => {
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="font-bold text-[#F59E0B]">
-              Page {currentPage} / {totalPages}
+              {t.page} {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -350,7 +362,7 @@ export const DeckBuilder: React.FC = () => {
                 <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-[#0B0F19]/90 border-t border-[#30363d] z-10">
                   <h3 className="font-cinzel font-bold text-[#F1F5F9] truncate text-xs">{card.name}</h3>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-[#F59E0B] font-mono text-[9px] font-bold uppercase">{card.ink} • {card.type}</span>
+                    <span className="text-[#F59E0B] font-mono text-[9px] font-bold uppercase">{translateInkColor(card.ink, language)} • {translateCardType(card.type, language)}</span>
                     <div className="flex gap-1.5 font-mono text-[10px]">
                       {card.strength !== undefined && <span className="text-rose-400 font-bold flex items-center gap-0.5"><Sword className="w-2.5 h-2.5" />{card.strength}</span>}
                       {card.willpower !== undefined && <span className="text-indigo-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" />{card.willpower}</span>}
@@ -364,7 +376,7 @@ export const DeckBuilder: React.FC = () => {
                   <div className="space-y-1">
                     <span className="text-xs font-bold text-[#F59E0B] font-cinzel block">{card.name}</span>
                     {card.title && <span className="text-[10px] text-[#94A3B8] block">{card.title}</span>}
-                    <span className="text-[9px] text-[#94A3B8] font-mono block">{card.ink} • {card.rarity}</span>
+                    <span className="text-[9px] text-[#94A3B8] font-mono block">{translateInkColor(card.ink, language)} • {translateRarity(card.rarity || 'Common', language)}</span>
                   </div>
 
                   <button
@@ -374,7 +386,7 @@ export const DeckBuilder: React.FC = () => {
                     }}
                     className="w-full py-1.5 bg-[#141a26] hover:bg-[#1e2638] border border-[#30363d] text-[#F59E0B] rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1 my-1"
                   >
-                    <Eye className="w-3.5 h-3.5" /> Inspect 3D Card
+                    <Eye className="w-3.5 h-3.5" /> {t.inspect3dCard}
                   </button>
 
                   <div className="w-full flex flex-col items-center gap-1.5 pt-1">
@@ -405,7 +417,7 @@ export const DeckBuilder: React.FC = () => {
         {/* Bottom Pagination Footer */}
         <div className="flex justify-between items-center bg-[#141a26] p-4 rounded-xl border border-[#30363d] font-mono text-xs text-[#94A3B8]">
           <div>
-            Page <strong className="text-[#F59E0B]">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong>
+            {t.page} <strong className="text-[#F59E0B]">{currentPage}</strong> {t.ofCards} <strong className="text-white">{totalPages}</strong>
           </div>
           <div className="flex gap-2">
             <button
@@ -413,14 +425,14 @@ export const DeckBuilder: React.FC = () => {
               disabled={currentPage === 1}
               className="px-4 py-2 text-xs font-bold rounded-lg border border-[#30363d] bg-[#0B0F19] text-[#F1F5F9] hover:border-[#F59E0B] disabled:opacity-30 cursor-pointer transition-colors"
             >
-              Previous Page
+              {t.prevPage}
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="px-4 py-2 text-xs font-bold rounded-lg border border-[#30363d] bg-[#0B0F19] text-[#F1F5F9] hover:border-[#F59E0B] disabled:opacity-30 cursor-pointer transition-colors"
             >
-              Next Page
+              {t.nextPage}
             </button>
           </div>
         </div>
@@ -431,7 +443,7 @@ export const DeckBuilder: React.FC = () => {
         
         {userDecks.length > 0 && (
           <div className="bg-[#141a26] p-5 rounded-xl border border-[#30363d] flex flex-col gap-3">
-            <h3 className="font-cinzel text-sm font-bold text-[#F59E0B]">Your Saved Decks</h3>
+            <h3 className="font-cinzel text-sm font-bold text-[#F59E0B]">{t.savedDecks}</h3>
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
               {userDecks.map(deck => (
                 <div key={deck.deckId} className="p-2 bg-[#0B0F19] rounded border border-[#30363d] flex justify-between items-center text-xs cursor-pointer hover:border-[#F59E0B]" onClick={() => {
@@ -445,7 +457,7 @@ export const DeckBuilder: React.FC = () => {
                   else setAnalysisResult(null);
                 }}>
                   <span className="font-bold text-white truncate">{deck.name}</span>
-                  <span className="text-[#94A3B8] font-mono shrink-0">{deck.totalCards} cards</span>
+                  <span className="text-[#94A3B8] font-mono shrink-0">{deck.totalCards} {t.cardsCount}</span>
                 </div>
               ))}
             </div>
@@ -461,14 +473,14 @@ export const DeckBuilder: React.FC = () => {
                 onChange={(e) => setDeckName(e.target.value)}
                 className="bg-transparent font-cinzel font-bold text-lg text-[#F59E0B] outline-none border-b border-dashed border-[#F59E0B]/50 focus:border-[#F59E0B] py-0.5 w-full"
               />
-              <div className="text-[10px] font-mono text-[#94A3B8] mt-1">AWS DynamoDB Deck Builder</div>
+              <div className="text-[10px] font-mono text-[#94A3B8] mt-1">{t.deckTitle}</div>
             </div>
 
             <div className="text-right">
               <div className={`font-mono text-base font-bold ${totalCards === 60 ? 'text-emerald-400' : totalCards > 60 ? 'text-rose-400' : 'text-[#F59E0B]'}`}>
                 {totalCards}/60
               </div>
-              <div className="text-[9px] text-[#94A3B8] font-mono">Cards in Deck</div>
+              <div className="text-[9px] text-[#94A3B8] font-mono">{t.totalCards}</div>
             </div>
           </div>
 
@@ -476,7 +488,7 @@ export const DeckBuilder: React.FC = () => {
           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 no-scrollbar">
             {currentDeck.length === 0 ? (
               <div className="text-center py-12 text-[#94A3B8] font-mono text-xs">
-                No cards added yet. Click cards on the left grid to build your deck.
+                {t.emptyDeckPrompt}
               </div>
             ) : (
               currentDeck.map(({ card, count }) => (
@@ -505,7 +517,7 @@ export const DeckBuilder: React.FC = () => {
                     />
                     <div className="truncate">
                       <div className="font-cinzel text-xs font-bold text-[#F1F5F9] truncate group-hover:text-[#F59E0B]">{card.name}</div>
-                      <div className="text-[9px] text-[#F59E0B] font-mono">{card.ink} • {card.cost} Ink</div>
+                      <div className="text-[9px] text-[#F59E0B] font-mono">{translateInkColor(card.ink, language)} • {card.cost} Ink</div>
                     </div>
                   </div>
 
@@ -548,7 +560,7 @@ export const DeckBuilder: React.FC = () => {
                     : 'bg-[#0B0F19] border-[#30363d] hover:border-rose-500 text-rose-400'
                 }`}
               >
-                <Trash2 className="w-4 h-4" /> {isConfirmingClear ? 'Confirm Clear?' : 'Clear'}
+                <Trash2 className="w-4 h-4" /> {isConfirmingClear ? t.confirmClear : t.clearDeck}
               </button>
 
               <button
@@ -556,7 +568,7 @@ export const DeckBuilder: React.FC = () => {
                 disabled={isSaving}
                 className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-black py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <Save className="w-4 h-4 text-black" /> {isSaving ? 'Saving...' : 'Save'}
+                <Save className="w-4 h-4 text-black" /> {isSaving ? '...' : t.saveDeck}
               </button>
               
               <button
@@ -564,7 +576,7 @@ export const DeckBuilder: React.FC = () => {
                 disabled={isAnalyzing || !savedDeckId}
                 className="flex-1 bg-indigo-500 hover:bg-indigo-600 disabled:bg-[#141a26] disabled:text-[#94A3B8] text-white py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <Sparkles className="w-4 h-4" /> {isAnalyzing ? '...' : 'Analyze'}
+                <Sparkles className="w-4 h-4" /> {isAnalyzing ? '...' : t.analyzeDeck}
               </button>
             </div>
             <div className="pt-2">
@@ -572,7 +584,7 @@ export const DeckBuilder: React.FC = () => {
                 onClick={() => setIsRecommendedModalOpen(true)}
                 className="w-full bg-[#1e1a14] border border-[#F59E0B] hover:bg-[#2c2419] text-[#F59E0B] py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-[0_0_10px_rgba(245,158,11,0.2)]"
               >
-                <Star className="w-4 h-4" /> Recommended Decks
+                <Star className="w-4 h-4" /> {t.recommendedDecks}
               </button>
             </div>
 
@@ -637,10 +649,10 @@ export const DeckBuilder: React.FC = () => {
           <div className="bg-[#141a26] border-2 border-[#F59E0B] rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-[0_0_30px_rgba(245,158,11,0.15)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
               <h2 className="font-cinzel text-xl font-bold text-[#F59E0B] flex items-center gap-2">
-                <Star className="w-6 h-6" /> Recommended Meta Decks
+                <Star className="w-6 h-6" /> {t.recommendedDecks}
               </h2>
-              <button onClick={() => setIsRecommendedModalOpen(false)} className="text-[#94A3B8] hover:text-[#F1F5F9] transition-colors p-2">
-                <Minus className="w-6 h-6 rotate-45" /> {/* Use Minus rotated as X if X is not imported, wait I should use standard text or X icon, actually just use HTML entity for X */}
+              <button onClick={() => setIsRecommendedModalOpen(false)} className="text-[#94A3B8] hover:text-[#F1F5F9] transition-colors p-2 cursor-pointer">
+                <Minus className="w-6 h-6 rotate-45" />
                 <span className="sr-only">Close</span>
               </button>
             </div>
@@ -655,7 +667,7 @@ export const DeckBuilder: React.FC = () => {
                       <div className="flex gap-2 mt-2">
                         {deck.inkColors.map(ink => (
                           <span key={ink} className={`text-[10px] font-bold px-2 py-0.5 rounded border border-[#30363d] ${ink === 'Ruby' ? 'text-rose-400' : ink === 'Amethyst' ? 'text-purple-400' : ink === 'Amber' ? 'text-amber-400' : ink === 'Steel' ? 'text-slate-400' : ink === 'Sapphire' ? 'text-blue-400' : 'text-emerald-400'}`}>
-                            {ink}
+                            {translateInkColor(ink, language)}
                           </span>
                         ))}
                       </div>
@@ -665,30 +677,27 @@ export const DeckBuilder: React.FC = () => {
                     
                     <div className="flex justify-between items-center text-xs font-mono border-t border-[#30363d] pt-4">
                       <span className="text-[#F1F5F9]">{deck.archetype}</span>
-                      <span className="text-[#F59E0B] font-bold">{totalCards} Cards</span>
+                      <span className="text-[#F59E0B] font-bold">{totalCards} {t.cardsCount}</span>
                     </div>
 
                     <button 
                       onClick={() => {
-                        if(window.confirm('Load this deck? This will replace your current deck.')) {
+                        const confirmMsg = language === 'th' ? 'ต้องการโหลดเด็คนี้หรือไม่? การกระทำนี้จะแทนที่เด็คปัจจุบันของคุณ' : 'Load this deck? This will replace your current deck.';
+                        if(window.confirm(confirmMsg)) {
                           clearDeck();
                           setDeckName(deck.name);
-                          let missingCards = 0;
                           deck.cards.forEach(deckCard => {
                             const foundCard = cardsDatabase.find(c => c.id === deckCard.cardId);
                             if (foundCard) {
                               for(let i=0; i<deckCard.count; i++) addCard(foundCard);
-                            } else {
-                              console.warn(`Card ${deckCard.cardId} not found in dataset.`);
-                              missingCards++;
                             }
                           });
                           setIsRecommendedModalOpen(false);
                         }
                       }}
-                      className="w-full bg-[#141a26] hover:bg-[#F59E0B] border border-[#F59E0B] text-[#F59E0B] hover:text-black py-2 rounded font-cinzel font-bold text-xs uppercase tracking-wider transition-colors mt-2"
+                      className="w-full bg-[#141a26] hover:bg-[#F59E0B] border border-[#F59E0B] text-[#F59E0B] hover:text-black py-2 rounded font-cinzel font-bold text-xs uppercase tracking-wider transition-colors mt-2 cursor-pointer"
                     >
-                      Load This Deck
+                      {t.loadRecommended}
                     </button>
                   </div>
                 );

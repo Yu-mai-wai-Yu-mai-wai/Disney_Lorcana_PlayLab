@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useLanguageStore } from '../store/useLanguageStore';
 import { apiService } from '../services/api';
+import { translateInkColor } from '../utils/cardTranslator';
 import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -9,6 +11,7 @@ interface UserDashboardProps {
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) => {
   const { user, token, isAuthenticated, setAuth, logout } = useAuthStore();
+  const { t, language } = useLanguageStore();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
@@ -73,7 +76,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
       if (res.error) {
         setError(res.error);
       } else {
-        setSuccess('Registration successful! Please sign in.');
+        setSuccess(language === 'th' ? 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ' : 'Registration successful! Please sign in.');
         setMode('login');
       }
     } else {
@@ -81,10 +84,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
       setLoading(false);
 
       if (res.error || !res.token || !res.user) {
-        setError(res.error || 'Authentication failed');
+        setError(res.error || (language === 'th' ? 'การเข้าสู่ระบบล้มเหลว' : 'Authentication failed'));
       } else {
         setAuth(res.user, res.token);
-        setSuccess('Authenticated successfully!');
+        setSuccess(language === 'th' ? 'เข้าสู่ระบบสำเร็จ!' : 'Authenticated successfully!');
       }
     }
   };
@@ -125,8 +128,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-cinzel text-xl font-bold text-[#F1F5F9]">Illumineer Account</h2>
-                <p className="text-xs text-[#94A3B8]">Sign in to access your cloud saved decks</p>
+                <h2 className="font-cinzel text-xl font-bold text-[#F1F5F9]">{t.accountTitle}</h2>
+                <p className="text-xs text-[#94A3B8]">{t.accountSubtitle}</p>
               </div>
             </div>
 
@@ -138,7 +141,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                   mode === 'login' ? 'bg-[#F59E0B] text-black font-bold' : 'text-[#94A3B8] hover:text-white'
                 }`}
               >
-                Sign In
+                {t.signIn}
               </button>
               <button
                 onClick={() => { setMode('register'); setError(null); setSuccess(null); }}
@@ -146,7 +149,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                   mode === 'register' ? 'bg-[#F59E0B] text-black font-bold' : 'text-[#94A3B8] hover:text-white'
                 }`}
               >
-                Register
+                {t.register}
               </button>
             </div>
 
@@ -167,7 +170,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
-                  Username
+                  {t.username}
                 </label>
                 <div className="relative">
                   <UserCheck className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
@@ -185,7 +188,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
               {mode === 'register' && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
-                    Email Address
+                    {t.email}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
@@ -203,7 +206,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
-                  Password
+                  {t.password}
                 </label>
                 <div className="relative">
                   <Key className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
@@ -224,9 +227,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded bg-[#0B0F19] border-[#30363d] text-[#F59E0B] w-4 h-4"
+                    className="rounded bg-[#0B0F19] border-[#30363d] text-[#F59E0B] w-4 h-4 focus:ring-0"
                   />
-                  <span className="text-xs text-[#94A3B8]">Remember Me</span>
+                  <span className="text-xs text-[#94A3B8] font-mono">{language === 'th' ? 'จดจำการเข้าสู่ระบบ' : 'Remember Session'}</span>
                 </label>
                 <a href="#" className="text-xs text-[#F59E0B] hover:underline">Forgot Password?</a>
               </div>
@@ -234,22 +237,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-4 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                className="w-full mt-4 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-black" />
-                    <span>Signing In...</span>
+                    <span>{language === 'th' ? 'กำลังดำเนินการ...' : 'Signing In...'}</span>
                   </>
                 ) : (
-                  <span>{mode === 'login' ? 'Sign In to View Decks' : 'Create Account'}</span>
+                  <span>{mode === 'login' ? (language === 'th' ? 'เข้าสู่ระบบเพื่อดูเด็ค' : 'Sign In to View Decks') : (language === 'th' ? 'สร้างบัญชีใหม่' : 'Create Account')}</span>
                 )}
               </button>
             </form>
 
             <div className="pt-4 border-t border-[#30363d] flex items-center justify-center gap-2 text-[#94A3B8] font-mono text-xs">
               <Lock className="w-4 h-4 text-[#F59E0B]" />
-              <span>Secured Account Storage</span>
+              <span>{language === 'th' ? 'ระบบจัดเก็บข้อมูลปลอดภัยบนคลาวด์' : 'Secured Account Storage'}</span>
             </div>
           </div>
         </div>
@@ -265,8 +268,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-cinzel text-xl font-bold text-[#F1F5F9]">Illumineer Profile</h2>
-                    <p className="text-xs text-[#94A3B8]">Account active &amp; synced</p>
+                    <h2 className="font-cinzel text-xl font-bold text-[#F1F5F9]">{t.welcomeBack}</h2>
+                    <p className="text-xs text-[#94A3B8]">{language === 'th' ? 'บัญชีพร้อมใช้งานและซิงค์คลาวด์' : 'Account active & synced'}</p>
                   </div>
                 </div>
 
@@ -280,7 +283,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     <p className="text-xs text-[#94A3B8] mt-1">{user.email || 'Illumineer Member'}</p>
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
                       <UserCheck className="w-4 h-4" />
-                      <span>Account Active &amp; Synced</span>
+                      <span>{language === 'th' ? 'บัญชีซิงค์คลาวด์เรียบร้อย' : 'Account Active & Synced'}</span>
                     </div>
                   </div>
 
@@ -288,14 +291,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     onClick={logout}
                     className="w-full py-2.5 bg-[#0B0F19] hover:bg-rose-950/60 border border-[#30363d] hover:border-rose-500/40 text-rose-300 font-bold text-xs rounded-lg transition-colors cursor-pointer"
                   >
-                    Sign Out
+                    {t.navSignOut}
                   </button>
                 </div>
               </div>
 
               <div className="mt-8 pt-4 border-t border-[#30363d] flex items-center justify-center gap-2 text-[#94A3B8] font-mono text-xs">
                 <Lock className="w-4 h-4 text-[#F59E0B]" />
-                <span>Secured Account Storage</span>
+                <span>{language === 'th' ? 'ระบบจัดเก็บข้อมูลปลอดภัยบนคลาวด์' : 'Secured Account Storage'}</span>
               </div>
             </div>
           </section>
@@ -305,11 +308,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-[#30363d] pb-4">
               <div>
                 <h1 className="font-cinzel text-3xl font-bold text-[#F1F5F9] tracking-wide">
-                  My Saved Decks
+                  {t.mySavedDecks}
                 </h1>
                 <p className="text-sm text-[#94A3B8] flex items-center gap-2 mt-1">
                   <Cloud className="w-4 h-4 text-[#F59E0B]" />
-                  <span>({savedDecks.length} / 10 Storage Slots Used)</span>
+                  <span>({savedDecks.length} / 10 {language === 'th' ? 'ช่องเก็บที่ใช้ไป' : 'Storage Slots Used'})</span>
                 </p>
               </div>
 
@@ -318,7 +321,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                 className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-black" />
-                Create New Deck
+                {t.createNewDeck}
               </button>
             </div>
 
@@ -342,7 +345,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                           key={ink as string}
                           className="bg-[#0B0F19] border border-[#30363d] text-[#F59E0B] text-[10px] uppercase font-bold px-2 py-0.5 rounded"
                         >
-                          {ink as string}
+                          {translateInkColor(ink as string, language)}
                         </span>
                       ))}
                     </div>
@@ -354,8 +357,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                         {deck.name}
                       </h3>
                       <div className="flex items-center gap-3 font-mono text-[11px] text-[#94A3B8] mt-1.5 mb-4">
-                        <span>{deck.cardCount} Cards</span>
-                        <span>• {deck.updatedAt}</span>
+                        <span>{deck.cardCount} {t.cardsCount}</span>
+                        <span>• {t.lastUpdated} {deck.updatedAt}</span>
                       </div>
                     </div>
 
@@ -363,7 +366,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     {deck.cards && deck.cards.length > 0 && (
                       <details className="mb-3 bg-[#0B0F19] border border-[#30363d] rounded-lg overflow-hidden">
                         <summary className="px-3 py-2 text-[11px] font-mono text-[#94A3B8] hover:text-[#F59E0B] cursor-pointer select-none">
-                          View {deck.cards.length} card types
+                          {language === 'th' ? `ดูการ์ดทั้งหมด ${deck.cards.length} แบบ` : `View ${deck.cards.length} card types`}
                         </summary>
                         <div className="max-h-28 overflow-y-auto px-3 pb-2 space-y-1">
                           {deck.cards.map((c: any, i: number) => (
@@ -386,19 +389,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                         onClick={() => setActiveTab('deckbuilder')}
                         className="flex items-center justify-center gap-1.5 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F59E0B] border border-[#F59E0B]/40 rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <Edit className="w-3.5 h-3.5" /> Edit
+                        <Edit className="w-3.5 h-3.5" /> {t.editDeck}
                       </button>
                       <button
                         onClick={() => setActiveTab('board')}
                         className="flex items-center justify-center gap-1.5 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F1F5F9] border border-[#30363d] rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <Gamepad2 className="w-3.5 h-3.5 text-[#F59E0B]" /> Play
+                        <Gamepad2 className="w-3.5 h-3.5 text-[#F59E0B]" /> {t.playSandbox}
                       </button>
                       <button
                         onClick={() => setActiveTab('analytics')}
                         className="flex items-center justify-center gap-1.5 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F1F5F9] border border-[#30363d] rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <BarChart3 className="w-3.5 h-3.5 text-emerald-400" /> Stats
+                        <BarChart3 className="w-3.5 h-3.5 text-emerald-400" /> {t.deckStats}
                       </button>
                       {confirmDeleteId === deck.id ? (
                         <button
@@ -406,7 +409,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                           aria-label="Confirm Delete deck"
                           className="flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
                         >
-                          Confirm Delete?
+                          {t.deleteDeckConfirm}
                         </button>
                       ) : (
                         <button
@@ -414,7 +417,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                           aria-label="Delete deck"
                           className="flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-950/40 border border-[#30363d] rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                          <Trash2 className="w-3.5 h-3.5" /> {t.deleteDeck}
                         </button>
                       )}
                     </div>
@@ -430,9 +433,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                   <Plus className="w-6 h-6 text-[#94A3B8] group-hover:text-[#F59E0B] transition-colors" />
                 </div>
                 <span className="font-cinzel text-sm font-bold text-[#94A3B8] group-hover:text-[#F1F5F9] transition-colors">
-                  New Deck Slot
+                  {t.createNewDeck}
                 </span>
-                <span className="font-mono text-xs text-[#94A3B8]/70 mt-1">7 Slots Remaining</span>
+                <span className="font-mono text-xs text-[#94A3B8]/70 mt-1">{language === 'th' ? `เหลือ ${Math.max(0, 10 - savedDecks.length)} ช่องเก็บ` : `${Math.max(0, 10 - savedDecks.length)} Slots Remaining`}</span>
               </button>
             </div>
           </section>

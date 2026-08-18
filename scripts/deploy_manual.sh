@@ -42,7 +42,7 @@ for spec in "lorcana-auth-login:auth/login.handler" "lorcana-auth-register:auth/
       --function-name "$name" --runtime nodejs20.x --handler "$handler" \
       --role "$ROLE_ARN" --zip-file "fileb://$WORK/$zipname.zip" \
       --region "$REGION" \
-      --environment "Variables={USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,ROOM_TABLE=RoomStateTable,JWT_SECRET=disney_lorcana_secret_key_2026}" \
+      --environment "Variables={USERS_TABLE=UsersTable,DECKS_TABLE=DecksTable,ROOM_TABLE=LorcanaRoomStateV2,MATCHMAKING_TABLE=LorcanaMatchmaking,JWT_SECRET=disney_lorcana_secret_key_2026,LORCANA_SQS_URL=https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer}" \
       >/dev/null
   fi
 done
@@ -87,7 +87,7 @@ aws apigatewayv2 create-stage --api-id "$WS_API" --stage-name "$STAGE" --auto-de
 WS_INT=$(aws apigatewayv2 create-integration --api-id "$WS_API" --integration-type AWS_PROXY \
   --integration-uri "arn:aws:apigateway:${REGION}:lambda:path/2015-03-31/functions/$(aws lambda get-function --function-name lorcana-room --region "$REGION" --query 'Configuration.FunctionArn' --output text)/invocations" \
   --region "$REGION" --query "IntegrationId" --output text)
-for route in '$connect' '$disconnect' 'sendAction'; do
+for route in '$connect' '$disconnect' '$default' 'sendAction' 'CREATE_ROOM' 'JOIN_ROOM' 'MATCHMAKING_JOIN' 'MATCHMAKING_LEAVE' 'DICE_CHOICE' 'DICE_ROLLED' 'DICE_REROLL' 'FIRST_PLAYER_CHOSEN' 'CARD_MOVED' 'CARD_EXERTED' 'CARD_DRAWN' 'INK_PLAYED' 'LORE_UPDATED' 'QUEST_DONE' 'CHALLENGE_DONE' 'TURN_PASSED' 'CHAT_MESSAGE' 'DECK_SELECTED' 'GAME_RESTART'; do
   aws apigatewayv2 create-route --api-id "$WS_API" --route-key "$route" --target "integrations/$WS_INT" --region "$REGION" >/dev/null 2>&1 && echo "  WS route: $route" || echo "  WS route $route exists"
 done
 

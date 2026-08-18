@@ -5,7 +5,7 @@ import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
-const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomState';
+const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomStateV2';
 const MATCHMAKING_TABLE = process.env.MATCHMAKING_TABLE || 'LorcanaMatchmaking';
 
 export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<APIGatewayProxyResultV2> => {
@@ -77,7 +77,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     console.error('[JSON Parse Error]', err);
   }
 
-  const action = body.action || routeKey;
+  const action = body.gameAction || body.realAction || body.type || body.action || routeKey;
 
   // 4. CREATE_ROOM — host creates a lobby room with a 6-digit code
   if (action === 'CREATE_ROOM') {
@@ -105,7 +105,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
 
     // Reply to host with the room code
     await sendMessageToConnection(apigwManagementApi, connectionId, {
-      action: 'ROOM_CREATED', roomId, role: 'player1', username, deckId, deckName,
+      action: 'ROOM_CREATED', gameAction: 'ROOM_CREATED', roomId, role: 'player1', username, deckId, deckName,
     });
 
     return { statusCode: 200, body: JSON.stringify({ roomId }) };
@@ -120,12 +120,26 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
 
     try {
       const roomMembers = await getRoomMembers(roomId);
+      if (roomMembers.length === 0) {
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room not found. Please verify the 6-digit code.' });
+        return { statusCode: 200, body: 'Room not found' };
+      }
       if (roomMembers.length >= 2) {
-        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room is full' });
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room is full (Maximum 2 players).' });
         return { statusCode: 200, body: 'Room full' };
       }
-      const role = roomMembers.length === 0 ? 'player1' : 'player2';
 
+      // Check if trying to join own room with the same account
+      const host = roomMembers[0];
+      if (host.connectionId === connectionId || host.username.toLowerCase() === username.toLowerCase()) {
+        await sendMessageToConnection(apigwManagementApi, connectionId, {
+          action: 'ERROR',
+          message: 'Cannot join your own room with the same account. Please use a different user account in another browser/device.',
+        });
+        return { statusCode: 200, body: 'Duplicate account rejected' };
+      }
+
+      const role = 'player2';
       const newItem = { roomId, connectionId, username, role, deckId, deckName, joinedAt: new Date().toISOString() };
       await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: newItem }));
 
@@ -135,6 +149,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
       for (const member of updatedMembers) {
         await sendMessageToConnection(apigwManagementApi, member.connectionId, {
           action: 'ROOM_STATE',
+          gameAction: 'ROOM_STATE',
           roomId,
           role: member.role,
           username: member.username,
@@ -146,7 +161,9 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
       if (updatedMembers.length === 2) {
         for (const member of updatedMembers) {
           await sendMessageToConnection(apigwManagementApi, member.connectionId, {
-            action: 'GAME_START', roomId,
+            action: 'GAME_START',
+            gameAction: 'GAME_START',
+            roomId,
             players: updatedMembers.map((m) => ({ username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName })),
           });
         }
@@ -166,24 +183,33 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     const deckName = body.deckName || 'Untitled Deck';
 
     try {
-      // Look for a waiting opponent (scan for status=waiting, limit 1)
+      // Look for a waiting opponent (filter out self: cannot match against own account or same connection)
       const waiting = await docClient.send(
         new ScanCommand({
           TableName: MATCHMAKING_TABLE,
           FilterExpression: '#st = :s',
           ExpressionAttributeNames: { '#st': 'status' },
           ExpressionAttributeValues: { ':s': 'waiting' },
-          Limit: 1,
         })
       );
 
-      if (waiting.Items && waiting.Items.length > 0) {
-        const opponent = waiting.Items[0];
+      const candidateOpponents = (waiting.Items || []).filter(
+        (item) => item.connectionId !== connectionId && item.username.toLowerCase() !== username.toLowerCase()
+      );
+
+      if (candidateOpponents.length > 0) {
+        const opponent = candidateOpponents[0];
         // Clean up opponent's queue entry
         await docClient.send(new DeleteCommand({
           TableName: MATCHMAKING_TABLE,
           Key: { connectionId: opponent.connectionId },
         }));
+
+        // Clean up self queue entry if existed
+        await docClient.send(new DeleteCommand({
+          TableName: MATCHMAKING_TABLE,
+          Key: { connectionId },
+        })).catch(() => {});
 
         // Create a room for both
         let roomId = '';
@@ -202,13 +228,13 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
 
         // MATCH_FOUND to both
         const players = [p1, p2].map((m) => ({ username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName }));
-        await sendMessageToConnection(apigwManagementApi, opponent.connectionId, { action: 'MATCH_FOUND', roomId, players });
-        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'MATCH_FOUND', roomId, players });
+        await sendMessageToConnection(apigwManagementApi, opponent.connectionId, { action: 'MATCH_FOUND', gameAction: 'MATCH_FOUND', roomId, players });
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'MATCH_FOUND', gameAction: 'MATCH_FOUND', roomId, players });
 
         return { statusCode: 200, body: JSON.stringify({ roomId }) };
       }
 
-      // No opponent yet → enter queue
+      // No other opponent yet → upsert into queue
       await docClient.send(new PutCommand({
         TableName: MATCHMAKING_TABLE,
         Item: { connectionId, username, deckId, deckName, status: 'waiting', queuedAt: new Date().toISOString() },
@@ -233,10 +259,11 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     }
   }
 
-  // 8. Relay Live Actions (CARD_MOVED, CARD_EXERTED, INK_PLAYED, LORE_UPDATED, QUEST, CHALLENGE, TURN)
+  // 8. Relay Live Actions (CARD_MOVED, CARD_EXERTED, INK_PLAYED, LORE_UPDATED, QUEST, CHALLENGE, TURN, DICE, CHAT, etc.)
   if (
     action === 'CARD_MOVED' ||
     action === 'CARD_EXERTED' ||
+    action === 'CARD_DRAWN' ||
     action === 'INK_PLAYED' ||
     action === 'LORE_UPDATED' ||
     action === 'QUEST_DONE' ||
@@ -244,15 +271,29 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     action === 'TURN_PASSED' ||
     action === 'DECK_SELECTED' ||
     action === 'CHAT_MESSAGE' ||
-    action === 'sendAction'
+    action === 'DICE_CHOICE' ||
+    action === 'DICE_ROLLED' ||
+    action === 'DICE_REROLL' ||
+    action === 'FIRST_PLAYER_CHOSEN' ||
+    action === 'GAME_RESTART' ||
+    action === 'sendAction' ||
+    (body.roomId && action !== 'CREATE_ROOM' && action !== 'JOIN_ROOM' && action !== 'MATCHMAKING_JOIN' && action !== 'MATCHMAKING_LEAVE')
   ) {
     const roomId = body.roomId || '108249';
     try {
       const roomMembers = await getRoomMembers(roomId);
       // Relay to all connection IDs in room EXCEPT sender
+      const resolvedAction = body.gameAction || body.realAction || body.type || body.action;
+      const relayMessage = {
+        ...body,
+        action: resolvedAction,
+        gameAction: resolvedAction,
+        type: resolvedAction,
+      };
+
       for (const member of roomMembers) {
         if (member.connectionId !== connectionId) {
-          await sendMessageToConnection(apigwManagementApi, member.connectionId, body);
+          await sendMessageToConnection(apigwManagementApi, member.connectionId, relayMessage);
         }
       }
       return { statusCode: 200, body: 'Action Relayed' };

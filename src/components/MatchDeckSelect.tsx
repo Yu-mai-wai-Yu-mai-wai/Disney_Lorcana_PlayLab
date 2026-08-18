@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, CheckCircle2 } from 'lucide-react';
+import { useLanguageStore } from '../store/useLanguageStore';
 
 interface MatchDeckSelectProps {
   decks: any[];
@@ -9,19 +10,20 @@ interface MatchDeckSelectProps {
 
 export const MatchDeckSelect: React.FC<MatchDeckSelectProps> = ({ decks, selectedDeckId, onSelect }) => {
   const [expandedDeckId, setExpandedDeckId] = useState<string | null>(null);
+  const { t, language } = useLanguageStore();
 
   if (!decks || decks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-[#141a26] rounded-xl border border-[#30363d]">
         <Layers className="w-12 h-12 text-[#94A3B8] mb-4" />
-        <p className="text-[#94A3B8] font-outfit">No decks found. Please create a deck first.</p>
+        <p className="text-[#94A3B8] font-outfit">{t.noDecksYet}</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto pr-2 max-h-[70vh] custom-scrollbar">
-      <h2 className="font-cinzel text-xl text-[#F1F5F9] mb-2">Select Your Deck</h2>
+      <h2 className="font-cinzel text-xl text-[#F1F5F9] mb-2">{t.selectYourDeck}</h2>
       {decks.map((deck) => {
         const deckIdentifier = deck.deckId || deck.id;
         const isSelected = selectedDeckId === deckIdentifier;
@@ -48,7 +50,7 @@ export const MatchDeckSelect: React.FC<MatchDeckSelectProps> = ({ decks, selecte
                 </div>
                 <div>
                   <h3 className={`font-outfit font-bold text-lg ${isSelected ? 'text-[#F59E0B]' : 'text-[#F1F5F9]'}`}>{deck.name}</h3>
-                  <p className="text-xs text-[#94A3B8] font-mono">{deck.cards?.reduce((sum: number, c: any) => sum + (c.count || 1), 0) || 0} Cards</p>
+                  <p className="text-xs text-[#94A3B8] font-mono">{deck.cards?.reduce((sum: number, c: any) => sum + (c.count || 1), 0) || 0} {t.cardsCount}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -58,9 +60,9 @@ export const MatchDeckSelect: React.FC<MatchDeckSelectProps> = ({ decks, selecte
                     e.stopPropagation();
                     setExpandedDeckId(isExpanded ? null : deckIdentifier);
                   }}
-                  className="px-3 py-1 text-xs border border-[#30363d] text-[#94A3B8] rounded hover:text-[#F1F5F9] transition-colors"
+                  className="px-3 py-1 text-xs border border-[#30363d] text-[#94A3B8] rounded hover:text-[#F1F5F9] transition-colors cursor-pointer"
                 >
-                  {isExpanded ? 'Hide' : 'View'}
+                  {isExpanded ? (language === 'th' ? 'ซ่อน' : 'Hide') : (language === 'th' ? 'ดูการ์ด' : 'View')}
                 </button>
               </div>
             </div>

@@ -225,6 +225,22 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RoomWebSocketFunction.Arn}/invocations"
 
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      RouteKey: "$default"
+      AuthorizationType: NONE
+      OperationName: DefaultRoute
+      Target: !Join [ '/', [ 'integrations', !Ref DefaultIntegration ] ]
+
+  DefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref LorcanaWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RoomWebSocketFunction.Arn}/invocations"
+
 Outputs:
   ApiEndpoint:
     Description: "HTTP API Gateway endpoint URL"

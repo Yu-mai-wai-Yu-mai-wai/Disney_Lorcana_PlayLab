@@ -64,9 +64,15 @@ export type WebSocketActionType =
   | 'QUEST_DONE'
   | 'CHALLENGE_DONE'
   | 'TURN_PASSED'
+  | 'DICE_CHOICE'
+  | 'DICE_ROLLED'
+  | 'DICE_REROLL'
+  | 'FIRST_PLAYER_CHOSEN'
+  | 'GAME_RESTART'
   | 'ROOM_STATE'
   | 'ERROR'
-  | 'CHAT_MESSAGE';
+  | 'CHAT_MESSAGE'
+  | 'CARD_DRAWN';
 
 export interface MatchPlayer {
   username: string;
@@ -102,9 +108,15 @@ export interface WebSocketMessagePayload {
   loreScore?: number;
   inkCount?: number;
   availableInk?: number;
+  deckCount?: number;
   deckId?: string;
   deckName?: string;
   message?: string;
   turnNumber?: number;
+  choice?: 'ODD' | 'EVEN';
+  diceValue?: number;
+  p1Choice?: 'ODD' | 'EVEN';
+  p2Choice?: 'ODD' | 'EVEN';
+  firstPlayerRole?: 'player1' | 'player2';
   payload?: any;
 }

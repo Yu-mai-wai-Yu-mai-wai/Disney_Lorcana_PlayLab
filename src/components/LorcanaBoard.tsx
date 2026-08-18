@@ -21,14 +21,26 @@ import {
   Shield,
   ChevronUp,
   ChevronDown,
+  Dices,
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
+import { DiceDuelModal } from './DiceDuelModal';
+import { useAuthStore } from '../store/useAuthStore';
+import { useLanguageStore } from '../store/useLanguageStore';
+import { translateCardAbilityText, translateCardType, translateInkColor } from '../utils/cardTranslator';
 
-import { fetchCardPool, STARTER_POOL, type PoolCard } from '../data/cardPool';
+import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
 
 export type LorcanaCard = PoolCard & { isWet?: boolean };
+
+export const isCardInkable = (card?: LorcanaCard | null): boolean => {
+  if (!card) return false;
+  if (card.isInkable !== undefined) return Boolean(card.isInkable);
+  if (card.inkwell !== undefined) return Boolean(card.inkwell);
+  return true;
+};
 
 export interface LorcanaBoardProps {
   initialDeck?: any;
@@ -45,6 +57,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   matchMode = false,
   onExitMatch,
 }) => {
+  const { user } = useAuthStore();
+  const { t, language } = useLanguageStore();
+  const myUsername = user?.username || webSocketService.getUsername() || 'Illumineer';
+
   // ==== REAL GAME STATE — no mock values. Match starts fresh every time. ====
   const [playerLore, setPlayerLore] = useState(0);
   const [opponentLore, setOpponentLore] = useState(0);
@@ -54,11 +70,51 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [opponentInkCapacity, setOpponentInkCapacity] = useState(0);
   const [hasInkedThisTurn, setHasInkedThisTurn] = useState(false);
   const [turnNumber, setTurnNumber] = useState(1);
+  const [firstPlayerRole, setFirstPlayerRole] = useState<'player1' | 'player2'>('player1');
+  const [isDiceDuelOpen, setIsDiceDuelOpen] = useState(matchMode);
   const [isMyTurn, setIsMyTurn] = useState(() => {
-    // In a real match, player1 starts first; sandbox always starts as player 1
+    // In a real match, player1 starts first by default unless dice duel decides otherwise
     if (matchMode) return playerRole !== 'player2';
     return true;
   });
+  // Build initial 60-card deck from initialDeck or standard starter pool
+  const [initialFullDeck] = useState<LorcanaCard[]>(() => {
+    let deck: LorcanaCard[] = [];
+    if (initialDeck && initialDeck.cards && Array.isArray(initialDeck.cards) && initialDeck.cards.length > 0) {
+      initialDeck.cards.forEach((c: any) => {
+        const count = c.count || 1;
+        const cardData = c.card || c;
+        for (let i = 0; i < count; i++) {
+          const inkableFlag = cardData.inkwell !== undefined ? Boolean(cardData.inkwell) : (cardData.isInkable !== undefined ? Boolean(cardData.isInkable) : true);
+          deck.push({
+            ...cardData,
+            inkwell: inkableFlag,
+            isInkable: inkableFlag,
+            id: `${cardData.id || cardData.name}-${i}-${Math.random().toString(36).substring(2, 6)}`
+          });
+        }
+      });
+    } else {
+      for (let i = 0; i < 60; i++) {
+        const c = STARTER_POOL[i % STARTER_POOL.length];
+        deck.push({
+          ...c,
+          id: `${c.id}-${i}-${Math.random().toString(36).substring(2, 6)}`
+        });
+      }
+    }
+    return deck.sort(() => Math.random() - 0.5);
+  });
+
+  // Deal initial 7 cards to hand, remaining to deckCards
+  const [handCards, setHandCards] = useState<LorcanaCard[]>(() => initialFullDeck.slice(0, 7));
+  const [deckCards, setDeckCards] = useState<LorcanaCard[]>(() => initialFullDeck.slice(7));
+  const [deckCount, setDeckCount] = useState<number>(() => initialFullDeck.length - 7);
+  const [discardCount, setDiscardCount] = useState(0);
+
+  const [opponentDeckCount, setOpponentDeckCount] = useState(53);
+  const [opponentDiscardCount, setOpponentDiscardCount] = useState(0);
+
   const [cardPool, setCardPool] = useState<LorcanaCard[]>([]);
   const [damage, setDamage] = useState<Record<string, number>>({});
   const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
@@ -67,37 +123,96 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [isMulliganPhase, setIsMulliganPhase] = useState(false);
   const [mulliganSelectedIds, setMulliganSelectedIds] = useState<string[]>([]);
 
+  // Mutable refs to prevent stale closure issues in WebSocket callbacks
+  const deckCardsRef = useRef<LorcanaCard[]>(deckCards);
+  deckCardsRef.current = deckCards;
+  const handCardsRef = useRef<LorcanaCard[]>(handCards);
+  handCardsRef.current = handCards;
+  const inkwellCapacityRef = useRef<number>(inkwellCapacity);
+  inkwellCapacityRef.current = inkwellCapacity;
+  const firstPlayerRoleRef = useRef<'player1' | 'player2'>(firstPlayerRole);
+  firstPlayerRoleRef.current = firstPlayerRole;
+  const turnNumberRef = useRef<number>(turnNumber);
+  turnNumberRef.current = turnNumber;
+  const playerRoleRef = useRef<'player1' | 'player2' | undefined>(playerRole);
+  playerRoleRef.current = playerRole;
+  const matchModeRef = useRef<boolean>(matchMode);
+  matchModeRef.current = matchMode;
+
+  const handleDuelFinished = (chosenFirst: 'player1' | 'player2') => {
+    setFirstPlayerRole(chosenFirst);
+    firstPlayerRoleRef.current = chosenFirst;
+    const myTurn = chosenFirst === (playerRole || 'player1');
+    setIsMyTurn(myTurn);
+    setIsDiceDuelOpen(false);
+    setIsMulliganPhase(true);
+    setLogMessages((prev) => [
+      `🎲 Dice Duel concluded: ${chosenFirst === (playerRole || 'player1') ? 'You were chosen to' : 'Opponent was chosen to'} PLAY FIRST!`,
+      ...prev,
+    ]);
+    showNotice(
+      myTurn
+        ? 'You are PLAYING FIRST! (Turn 1 card draw skipped by official rule 3.2.3.1)'
+        : 'Opponent is PLAYING FIRST! (You will draw on your Turn 1)',
+      'success'
+    );
+  };
+
   const handleMulliganConfirm = () => {
     const keepCards = handCards.filter(c => !mulliganSelectedIds.includes(c.id));
-    const replaceCount = mulliganSelectedIds.length;
+    const returnedCards = handCards.filter(c => mulliganSelectedIds.includes(c.id));
+    const replaceCount = returnedCards.length;
     
     if (replaceCount > 0) {
-      const available = cardPool.filter(c => !keepCards.some(hc => hc.id === c.id));
-      const shuffled = [...available].sort(() => Math.random() - 0.5);
-      const newDraws = shuffled.slice(0, replaceCount);
+      const newDraws = deckCards.slice(0, replaceCount);
+      const remainingDeck = deckCards.slice(replaceCount);
+      // Place returned cards at bottom and reshuffle per Lorcana 2.2.2
+      const updatedDeck = [...remainingDeck, ...returnedCards].sort(() => Math.random() - 0.5);
       
-      setHandCards([...keepCards, ...newDraws]);
-      showNotice(`Mulliganed ${replaceCount} cards`, 'success');
+      const newHand = [...keepCards, ...newDraws];
+      deckCardsRef.current = updatedDeck;
+      handCardsRef.current = newHand;
+      setHandCards(newHand);
+      setDeckCards(updatedDeck);
+      setDeckCount(updatedDeck.length);
+      showNotice(`Mulliganed ${replaceCount} cards (Drew ${replaceCount} new cards)`, 'success');
+      setLogMessages(prev => [`Mulliganed ${replaceCount} cards and reshuffled deck. Opening hand has ${newHand.length} cards.`, ...prev]);
     } else {
-      showNotice('Kept original hand', 'success');
+      showNotice('Kept original opening hand (7 cards)', 'success');
+      setLogMessages(prev => [`Kept opening hand of 7 cards.`, ...prev]);
     }
     
     setHasMulliganed(true);
     setIsMulliganPhase(false);
+
+    const myRole = playerRoleRef.current || 'player1';
+    const isPlayerGoingFirst = myRole === firstPlayerRoleRef.current;
+
+    if (isPlayerGoingFirst) {
+      // First player begins Turn 1 with proper setup
+      handleStartTurn(1);
+    } else {
+      setIsMyTurn(false);
+      setTurnPhase('beginning');
+      showNotice('Waiting for first player to take their turn...', 'warning');
+    }
   };
 
-
+  // Enrich all cards with full official dataset (abilities, inkwell, stats)
   React.useEffect(() => {
-    fetchCardPool().then(pool => setCardPool(pool));
+    fetchFullDataset().then(dataset => {
+      setCardPool(dataset);
+      setHandCards(prev => prev.map(c => enrichCard(c, dataset)));
+      setDeckCards(prev => {
+        const enriched = prev.map(c => enrichCard(c, dataset));
+        deckCardsRef.current = enriched;
+        return enriched;
+      });
+      setFieldCards(prev => prev.map(c => enrichCard(c, dataset)));
+      setOpponentFieldCards(prev => prev.map(c => enrichCard(c, dataset)));
+    });
   }, []);
 
-  const [deckCount, setDeckCount] = useState(() => {
-    if (matchMode && initialDeck?.cards) {
-      return initialDeck.cards.reduce((acc: number, c: any) => acc + (c.count || 1), 0);
-    }
-    return 60;
-  });
-  const [discardCount, setDiscardCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHandOpen, setIsHandOpen] = useState(false);
   const handHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,13 +232,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [notice, setNotice] = useState<{ msg: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // SPRINT 3: AWS WEBSOCKETS REAL-TIME ROOM SYNC STATE
-  const [inputRoomId, setInputRoomId] = useState('108249');
-  const [, setActiveRoomId] = useState('108249');
+  const [inputRoomId, setInputRoomId] = useState(roomId || '108249');
+  const [, setActiveRoomId] = useState(roomId || '108249');
   const [isWsConnected] = useState(false);
 
   // CHAT STATE
   const [chatMessages, setChatMessages] = useState<{username: string, message: string, time: string}[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [chatInput, setChatInput] = useState('');
 
   // CARD HOVER, DRAG & ACTION MODAL STATES
@@ -133,31 +249,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [isDraggingCard, setIsDraggingCard] = useState(false);
   const [isDraggingOverInkwell, setIsDraggingOverInkwell] = useState(false);
 
-  const [exertedCards, setExertedCards] = useState<Record<string, boolean>>({
-    'elsa-1': true,
-  });
+  const [exertedCards, setExertedCards] = useState<Record<string, boolean>>({});
 
   const [logMessages, setLogMessages] = useState<string[]>([
-    'Start of Turn 4: Ready & Set phase complete.',
-    'Opponent exerted Maleficent for 1 Lore.',
-    'Opponent added a card to Inkwell.',
-    'Match started. Initial decks shuffled.',
+    'Match started. Initial 60-card decks shuffled and 7 cards dealt to hand.',
   ]);
-
-  // Initial hand cards state with official Inkable properties & abilities
-  const [handCards, setHandCards] = useState<LorcanaCard[]>(() => {
-    if (matchMode && initialDeck && initialDeck.cards) {
-      let fullDeck: LorcanaCard[] = [];
-      initialDeck.cards.forEach((c: any) => {
-        for(let i=0; i<c.count; i++) {
-          fullDeck.push({ ...c.card, id: `${c.card.id}-${i}` });
-        }
-      });
-      fullDeck = fullDeck.sort(() => Math.random() - 0.5);
-      return fullDeck.slice(0, 7);
-    }
-    return STARTER_POOL;
-  });
 
   // Initial player battlefield cards state
   const [fieldCards, setFieldCards] = useState<LorcanaCard[]>([]);
@@ -173,61 +269,124 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }
     ];
   });
-  const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>({'opp-1': true});
+  const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>({});
+
+  // Sync service params on mount / changes
+  React.useEffect(() => {
+    if (roomId) {
+      webSocketService.setRoomId(roomId);
+      setActiveRoomId(roomId);
+    }
+    if (playerRole) {
+      webSocketService.setRole(playerRole);
+      if (matchMode) {
+        setIsMyTurn(playerRole === 'player1');
+      }
+    }
+    if (user?.username) {
+      webSocketService.setUsername(user.username);
+    }
+  }, [roomId, playerRole, matchMode, user]);
 
   React.useEffect(() => {
     if (!matchMode) return;
 
+    const checkFromMe = (data: any) => {
+      if (data.role && playerRole && data.role === playerRole) return true;
+      if (data.username && myUsername && data.username === myUsername) return true;
+      return false;
+    };
+
     const unsubMoved = webSocketService.subscribe('CARD_MOVED', (data) => {
-      if (data.role !== playerRole && data.payload?.zone === 'field' && data.payload?.card) {
+      if (checkFromMe(data)) return;
+      if (data.payload?.zone === 'field' && data.payload?.card) {
+        const oppCard = { ...data.payload.card, isWet: data.payload.card.isWet !== undefined ? data.payload.card.isWet : true };
         setOpponentFieldCards((prev) => {
-          if (!prev.find(c => c.id === data.payload.card.id)) {
-            return [...prev, data.payload.card];
+          if (!prev.find(c => c.id === oppCard.id)) {
+            return [...prev, oppCard];
           }
           return prev;
         });
+        setOpponentDeckCount((prev) => Math.max(0, prev - 1));
         if (data.availableInk !== undefined) {
           setOpponentInk(data.availableInk);
         }
-        setLogMessages(prev => [`Opponent played ${data.payload.card.name}!`, ...prev]);
+        setLogMessages(prev => [`Opponent played Character: ${oppCard.name}! (Ink drying...)`, ...prev]);
       }
     });
 
     const unsubExerted = webSocketService.subscribe('CARD_EXERTED', (data) => {
-      if (data.role !== playerRole && data.cardId) {
+      if (checkFromMe(data)) return;
+      if (data.cardId) {
         setOpponentExerted((prev) => ({ ...prev, [data.cardId!]: !!data.isExerted }));
       }
     });
 
     const unsubInk = webSocketService.subscribe('INK_PLAYED', (data) => {
-      if (data.role !== playerRole) {
-        setLogMessages((prev) => [`Opponent added a card to Inkwell.`, ...prev]);
-        if (data.inkCount !== undefined) {
-          setOpponentInkCapacity(data.inkCount);
-        }
-        if (data.availableInk !== undefined) {
-          setOpponentInk(data.availableInk);
-        }
+      if (checkFromMe(data)) return;
+      setLogMessages((prev) => [`Opponent added a card to Inkwell.`, ...prev]);
+      if (data.inkCount !== undefined) {
+        setOpponentInkCapacity(data.inkCount);
       }
+      if (data.availableInk !== undefined) {
+        setOpponentInk(data.availableInk);
+      }
+      setOpponentDeckCount((prev) => Math.max(0, prev - 1));
     });
 
     const unsubLore = webSocketService.subscribe('LORE_UPDATED', (data) => {
-      if (data.role !== playerRole && data.loreScore !== undefined) {
+      if (checkFromMe(data)) return;
+      if (data.loreScore !== undefined) {
         setOpponentLore(data.loreScore);
+        if (data.loreScore >= 20) {
+          showNotice('DEFEAT! Opponent reached 20 Lore and won the match.', 'error');
+        }
       }
     });
 
     const unsubQuest = webSocketService.subscribe('QUEST_DONE', (data) => {
-      if (data.role !== playerRole && data.loreScore !== undefined) {
+      if (checkFromMe(data)) return;
+      if (data.loreScore !== undefined) {
         setOpponentLore(data.loreScore);
+        if (data.cardId) {
+          setOpponentExerted((prev) => ({ ...prev, [data.cardId!]: true }));
+        }
+        if (data.loreScore >= 20) {
+          showNotice('DEFEAT! Opponent reached 20 Lore and won the match.', 'error');
+        }
       }
     });
 
     const unsubPassed = webSocketService.subscribe('TURN_PASSED', (data) => {
-      if (data.role !== playerRole) {
-        setLogMessages(prev => [`Opponent ended their turn.`, ...prev]);
-        // Use the turn number from the sender so both players see the SAME turn
-        handleStartTurn(data.turnNumber);
+      if (checkFromMe(data)) return;
+      setLogMessages(prev => [`Opponent ended their turn.`, ...prev]);
+      // Opponent's cards that were played on their turn will dry up and ready
+      setOpponentFieldCards(prev => prev.map(c => ({ ...c, isWet: false })));
+      // Use the turn number from the sender so both players see the SAME turn
+      handleStartTurn(data.turnNumber);
+    });
+
+    const unsubChallenge = webSocketService.subscribe('CHALLENGE_DONE', (data) => {
+      if (checkFromMe(data)) return;
+      const p = data.payload;
+      if (!p) return;
+
+      if (p.targetBanished) {
+        setFieldCards(prev => prev.filter(c => c.id !== p.targetId));
+        setDiscardCount(prev => prev + 1);
+        setLogMessages(prev => [`Your ${p.targetName} was banished by opponent's ${p.attackerName}!`, ...prev]);
+        showNotice(`Your "${p.targetName}" was banished in challenge!`, 'error');
+      } else if (p.targetDamage !== undefined) {
+        setDamage(prev => ({ ...prev, [p.targetId]: p.targetDamage }));
+      }
+
+      if (p.attackerBanished) {
+        setOpponentFieldCards(prev => prev.filter(c => c.id !== p.attackerId));
+        setOpponentDiscardCount(prev => prev + 1);
+        setLogMessages(prev => [`Opponent's ${p.attackerName} was banished defending against your card!`, ...prev]);
+      } else if (p.attackerDamage !== undefined) {
+        setDamage(prev => ({ ...prev, [p.attackerId]: p.attackerDamage }));
+        setOpponentExerted(prev => ({ ...prev, [p.attackerId]: true }));
       }
     });
 
@@ -235,9 +394,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       showNotice('Opponent disconnected!', 'warning');
     });
 
+    const unsubDrawn = webSocketService.subscribe('CARD_DRAWN', (data) => {
+      if (checkFromMe(data)) return;
+      if (data.deckCount !== undefined) {
+        setOpponentDeckCount(data.deckCount);
+      } else {
+        setOpponentDeckCount((prev) => Math.max(0, prev - 1));
+      }
+      setLogMessages((prev) => [`Opponent drew a card from their deck.`, ...prev]);
+    });
+
     const unsubChat = webSocketService.subscribe('CHAT_MESSAGE', (data) => {
-      if (data.message && data.username && data.role !== playerRole) {
+      if (checkFromMe(data)) return;
+      if (data.message && data.username) {
         setChatMessages(prev => [...prev, { username: data.username!, message: data.message!, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
+        setUnreadChatCount(prev => prev + 1);
+        showNotice(`💬 ${data.username}: ${data.message}`, 'warning');
       }
     });
 
@@ -250,6 +422,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setOpponentInk(0);
       setOpponentInkCapacity(0);
       setTurnNumber(1);
+      if (matchMode) {
+        setIsMyTurn(playerRole === 'player1');
+      }
     });
 
     const unsubRoomState = webSocketService.subscribe('ROOM_STATE', () => {
@@ -260,6 +435,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setOpponentInk(0);
       setOpponentInkCapacity(0);
       setTurnNumber(1);
+      if (matchMode) {
+        setIsMyTurn(playerRole === 'player1');
+      }
     });
 
     return () => {
@@ -269,12 +447,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       unsubLore();
       unsubQuest();
       unsubPassed();
+      unsubChallenge();
       unsubDisconnect();
+      unsubDrawn();
       unsubChat();
       unsubGameStart();
       unsubRoomState();
     };
-  }, [matchMode, playerRole]);
+  }, [matchMode, playerRole, myUsername, roomId]);
 
   const handleJoinRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -321,21 +501,41 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     } else {
        setDamage(prev => ({ ...prev, [attacker.id]: newAttackerDamage }));
        setExertedCards(prev => ({ ...prev, [attacker.id]: true }));
+       webSocketService.sendAction('CARD_EXERTED', { roomId: roomId || undefined, role: playerRole, cardId: attacker.id, isExerted: true });
     }
     
     if (targetBanished) {
        setOpponentFieldCards(prev => prev.filter(c => c.id !== target.id));
+       setOpponentDiscardCount(prev => prev + 1);
        setLogMessages(prev => [`Opponent's ${target.name} was banished in challenge!`, ...prev]);
     } else {
        setDamage(prev => ({ ...prev, [target.id]: newTargetDamage }));
     }
+
+    if (matchMode) {
+      webSocketService.sendAction('CHALLENGE_DONE', {
+        roomId: roomId || undefined,
+        role: playerRole,
+        payload: {
+          attackerId: attacker.id,
+          targetId: target.id,
+          attackerName: attacker.name,
+          targetName: target.name,
+          attackerDamage: newAttackerDamage,
+          targetDamage: newTargetDamage,
+          attackerBanished,
+          targetBanished,
+        }
+      });
+    }
+
     setSelectedAttacker(null);
   };
 
   const toggleExert = (id: string) => {
     const nextState = !exertedCards[id];
     setExertedCards((prev) => ({ ...prev, [id]: nextState }));
-    webSocketService.sendAction('CARD_EXERTED', { cardId: id, isExerted: nextState });
+    webSocketService.sendAction('CARD_EXERTED', { roomId: roomId || undefined, role: playerRole, cardId: id, isExerted: nextState });
   };
 
   const handleQuest = (card: LorcanaCard) => {
@@ -346,12 +546,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     if (!exertedCards[card.id]) {
       const loreGain = card.lore || 1;
       setExertedCards((prev) => ({ ...prev, [card.id]: true }));
-      webSocketService.sendAction('CARD_EXERTED', { cardId: card.id, isExerted: true });
+      webSocketService.sendAction('CARD_EXERTED', { roomId: roomId || undefined, role: playerRole, cardId: card.id, isExerted: true });
 
       setPlayerLore((prev) => {
         const next = Math.min(20, prev + loreGain);
-        webSocketService.sendAction('LORE_UPDATED', { loreScore: next });
-        webSocketService.sendAction('QUEST_DONE', { cardId: card.id, loreScore: next });
+        webSocketService.sendAction('LORE_UPDATED', { roomId: roomId || undefined, role: playerRole, loreScore: next });
+        webSocketService.sendAction('QUEST_DONE', { roomId: roomId || undefined, role: playerRole, cardId: card.id, loreScore: next });
         if (next >= 20) {
           showNotice(`VICTORY! You reached 20 Lore and won the Illumineer match!`, 'success');
         }
@@ -364,13 +564,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
   // Convert card into Inkwell (Checking Inkable Property & 1 Ink Per Turn Rule)
   const handleAddToInkwell = (card: LorcanaCard) => {
-    if (!card.isInkable) {
-      const hasInkable = handCards.some(c => c.isInkable);
+    if (!isCardInkable(card)) {
+      const hasInkable = handCards.some(c => isCardInkable(c));
       if (hasInkable) {
-        showNotice(`Choose an inkable card`, 'error');
+        showNotice(`"${card.name}" is non-inkable! Choose an inkable card.`, 'error');
         return false;
       } else {
-        showNotice(`No inkable cards — revealed hand, using any card as ink`, 'warning');
+        showNotice(`No inkable cards in hand — revealed hand, using "${card.name}" as ink`, 'warning');
       }
     }
     if (hasInkedThisTurn) {
@@ -385,6 +585,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     setSelectedHandCard(null);
 
     webSocketService.sendAction('INK_PLAYED', { 
+      roomId: roomId || undefined,
+      role: playerRole,
       cardId: card.id,
       inkCount: inkwellCapacity + 1,
       availableInk: availableInk + 1
@@ -395,25 +597,47 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   };
 
   const resolveAbilities = (card: LorcanaCard) => {
-    if (!card.abilities) return;
+    if (!card.abilities || !Array.isArray(card.abilities)) return;
     card.abilities.forEach(ability => {
-      const text = ability.text.toLowerCase();
-      if (/draw a card/.test(text)) {
+      const text = (ability.text || '').toLowerCase();
+      
+      // Draw card ability (e.g. "draw a card", "draw 2 cards")
+      const drawMatch = text.match(/draw (\d+) cards/);
+      if (drawMatch) {
+        const count = parseInt(drawMatch[1]);
+        for (let i = 0; i < count; i++) {
+          handleDrawCard();
+        }
+        setLogMessages(logs => [`[Ability: ${ability.name}] Drew ${count} cards!`, ...logs]);
+      } else if (/draw a card/.test(text)) {
         handleDrawCard();
+        setLogMessages(logs => [`[Ability: ${ability.name}] Drew 1 card!`, ...logs]);
       }
+
+      // Gain lore
       const loreMatch = text.match(/gain (\d+) lore/);
       if (loreMatch) {
-        setPlayerLore(prev => Math.min(20, prev + parseInt(loreMatch[1])));
+        const gain = parseInt(loreMatch[1]);
+        setPlayerLore(prev => {
+          const next = Math.min(20, prev + gain);
+          webSocketService.sendAction('LORE_UPDATED', { roomId: roomId || undefined, role: playerRole, loreScore: next });
+          return next;
+        });
+        setLogMessages(logs => [`[Ability: ${ability.name}] Gained ${gain} Lore!`, ...logs]);
       }
+
+      // Banish chosen character
       if (/banish chosen (opposing )?character/.test(text)) {
         setOpponentFieldCards(prev => {
           if (prev.length > 0) {
-            setLogMessages(logs => [`${card.name} banished ${prev[0].name}!`, ...logs]);
+            setLogMessages(logs => [`[Ability: ${ability.name}] Banished opponent's ${prev[0].name}!`, ...logs]);
             return prev.slice(1);
           }
           return prev;
         });
       }
+
+      // Damage to each opposing character
       const dmgMatch = text.match(/deal (\d+) damage to each opposing character/);
       if (dmgMatch) {
         const dmg = parseInt(dmgMatch[1]);
@@ -424,7 +648,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             prev.forEach(op => {
               nd[op.id] = (nd[op.id] || 0) + dmg;
               if (nd[op.id] >= (op.willpower || 0)) {
-                setLogMessages(logs => [`Opponent's ${op.name} was banished by ${card.name}!`, ...logs]);
+                setLogMessages(logs => [`Opponent's ${op.name} was banished by ${ability.name}!`, ...logs]);
               } else {
                 next.push(op);
               }
@@ -434,15 +658,19 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           return next;
         });
       }
+
+      // Exert characters
       const exertMatch = text.match(/exert up to (\d+) chosen characters/);
       if (exertMatch) {
+        const count = parseInt(exertMatch[1]);
         setOpponentExerted(prev => {
           const next = { ...prev };
-          opponentFieldCards.slice(0, parseInt(exertMatch[1])).forEach(op => {
+          opponentFieldCards.slice(0, count).forEach(op => {
             next[op.id] = true;
           });
           return next;
         });
+        setLogMessages(logs => [`[Ability: ${ability.name}] Exerted ${count} opposing characters!`, ...logs]);
       }
     });
   };
@@ -473,6 +701,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setLogMessages((prev) => [`You cast Character: ${card.name} (${card.title}) onto the battlefield!`, ...prev]);
       showNotice(`Played ${card.name} onto field! (${card.cost} Ink used)`, 'success');
       webSocketService.sendAction('CARD_MOVED', { 
+        roomId: roomId || undefined,
+        role: playerRole,
         cardId: card.id, 
         availableInk: availableInk - card.cost,
         payload: { zone: 'field', card: newFieldCard } 
@@ -492,7 +722,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       return;
     }
 
-    const canInk = (card.isInkable || !handCards.some(c => c.isInkable)) && !hasInkedThisTurn;
+    const cardInkable = isCardInkable(card);
+    const canInk = (cardInkable || !handCards.some(c => isCardInkable(c))) && !hasInkedThisTurn;
     const canPlay = availableInk >= card.cost;
 
     if (canInk && canPlay) {
@@ -506,7 +737,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       handlePlayCard(card);
     } else {
       // Neither action is valid: provide descriptive feedback
-      if (!card.isInkable && availableInk < card.cost) {
+      if (!cardInkable && availableInk < card.cost) {
         showNotice(`Cannot play (requires ${card.cost} Ink, have ${availableInk}) and "${card.name}" is non-inkable!`, 'warning');
       } else if (hasInkedThisTurn && availableInk < card.cost) {
         showNotice(`Already inked this turn and not enough Ink (${availableInk}/${card.cost}) to play!`, 'warning');
@@ -516,43 +747,69 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     }
   };
 
-  // Draw Card Action
-  const handleDrawCard = () => {
-    if (deckCount <= 0) {
-      showNotice(`Deck is empty! Cannot draw more cards.`, 'error');
-      return;
-    }
-    if (handCards.length >= 7) {
-      showNotice(`Hand is full (Max 7 cards)!`, 'warning');
-      return;
+  // Draw Card Action (Enforcing Official Lorcana Deck-Out Defeat Rule & Real Deck State via Refs)
+  const handleDrawCard = (isAutoDraw = false) => {
+    const currentDeck = deckCardsRef.current;
+    if (!currentDeck || currentDeck.length === 0) {
+      showNotice(`DEFEAT! Your deck is empty (Loss by Deck-out / Draw-out).`, 'error');
+      setLogMessages((prev) => [`Match finished: You attempted to draw from an empty deck and lost!`, ...prev]);
+      return null;
     }
 
-    const available = cardPool.filter(c => !handCards.some(hc => hc.id === c.id) && !fieldCards.some(fc => fc.id === c.id));
-    if (available.length === 0) {
-       showNotice('No more unique cards in pool!', 'error');
-       return;
+    const drawn = currentDeck[0];
+    const newDeck = currentDeck.slice(1);
+    deckCardsRef.current = newDeck;
+    setDeckCards(newDeck);
+    setDeckCount(newDeck.length);
+    setHandCards((prev) => {
+      const nextHand = [...prev, drawn];
+      handCardsRef.current = nextHand;
+      return nextHand;
+    });
+
+    if (isAutoDraw) {
+      setLogMessages((prev) => [`[Draw Step] Drew 1 card automatically for turn: "${drawn.name}".`, ...prev]);
+    } else {
+      setLogMessages((prev) => [`You drew ${drawn.name} from your deck.`, ...prev]);
+      showNotice(`Drew "${drawn.name}" from Deck!`, 'success');
     }
-    const drawn = available[Math.floor(Math.random() * available.length)];
-    
-    setDeckCount((prev: number) => prev - 1);
-    setHandCards((prev) => [...prev, drawn]);
-    setLogMessages((prev) => [`You drew ${drawn.name} from your deck.`, ...prev]);
-    showNotice(`Drew "${drawn.name}" from Deck!`, 'success');
+
+    if (matchModeRef.current) {
+      webSocketService.sendAction('CARD_DRAWN', {
+        roomId: roomId || undefined,
+        role: playerRoleRef.current,
+        deckCount: newDeck.length,
+      });
+    }
+
+    return drawn;
+  };
+
+  const handleDeckClick = () => {
+    showNotice(`Card draw is automatic at the start of your turn (Official Lorcana Rule 3.2.3).`, 'warning');
   };
 
   // Official Turn Change Logic
   const handleEndTurn = () => {
     setIsMyTurn(false);
+    setSelectedAttacker(null);
     setOpponentInk(opponentInkCapacity); // Refill opponent's ink on their turn start
+    setOpponentExerted({}); // Opponent's cards ready at start of their turn
+    setOpponentFieldCards(prev => prev.map(c => ({ ...c, isWet: false }))); // Opponent's wet cards dry out
 
-    if (matchMode) {
+    if (matchModeRef.current) {
       // Advance the turn number IMMEDIATELY on our side too, so both players
       // show the same turn at the same time (no stale number while waiting).
-      const nextTurn = turnNumber + 1;
+      const nextTurn = turnNumberRef.current + 1;
+      turnNumberRef.current = nextTurn;
       setTurnNumber(nextTurn);
       showNotice(`Turn ${nextTurn} — Opponent is playing.`, 'warning');
       // Send the NEXT turn number so the opponent syncs to the same value
-      webSocketService.sendAction('TURN_PASSED', { turnNumber: nextTurn });
+      webSocketService.sendAction('TURN_PASSED', {
+        roomId: roomId || undefined,
+        role: playerRoleRef.current,
+        turnNumber: nextTurn
+      });
     } else {
       setTimeout(() => {
         setOpponentLore((prev) => Math.min(20, prev + 1));
@@ -566,26 +823,46 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   };
 
   const handleStartTurn = (syncedTurnNumber?: number) => {
-    setTurnPhase('beginning');
+    // === 1. READY STEP ===
+    // Turn all exerted cards upright (field cards & inkwell)
     setExertedCards({});
+    // Characters dry their ink (isWet: false)
     setFieldCards(prev => prev.map(c => ({ ...c, isWet: false })));
     setHasInkedThisTurn(false);
-    setAvailableInk(inkwellCapacity);
+    // Refill available ink to maximum inkwell capacity
+    const currentCap = inkwellCapacityRef.current;
+    setAvailableInk(currentCap);
 
-    // Player 1 does not draw on Turn 1
-    const isPlayer1Turn1 = turnNumber === 1 && (!matchMode || playerRole !== 'player2');
+    // Official Lorcana Rule 3.2.3.1: The player who plays FIRST does NOT draw on Turn 1
+    const myRole = playerRoleRef.current || 'player1';
+    const isPlayerGoingFirst = myRole === firstPlayerRoleRef.current;
+    const effectiveTurn = syncedTurnNumber !== undefined ? syncedTurnNumber : (turnNumberRef.current + 1);
+    const isFirstTurnForFirstPlayer = effectiveTurn === 1 && isPlayerGoingFirst;
 
-    // Use synced turn number (from TURN_PASSED) if provided — keeps both players in sync
-    const nextTurn = syncedTurnNumber || turnNumber + 1;
-    setTurnNumber(nextTurn);
+    turnNumberRef.current = effectiveTurn;
+    setTurnNumber(effectiveTurn);
     setIsMyTurn(true);
-    setLogMessages(prev => [`Turn ${nextTurn} started!`, ...prev]);
-    showNotice(`Turn ${nextTurn} Started!`, 'success');
 
-    if (!isPlayer1Turn1) {
-      handleDrawCard();
+    // === 2. SET STEP ===
+    // Resolve start-of-turn effects and gain location lore
+    setTurnPhase('beginning');
+    setLogMessages(prev => [
+      `--- Turn ${effectiveTurn} Started [Ready, Set, Draw] ---`,
+      `[Ready Step] Readied all cards and inkwell (${currentCap}/${currentCap}).`,
+      `[Set Step] Characters dried and start-of-turn effects checked.`,
+      ...prev
+    ]);
+
+    // === 3. DRAW STEP (AUTOMATIC) ===
+    if (!isFirstTurnForFirstPlayer) {
+      handleDrawCard(true);
+      showNotice(`Turn ${effectiveTurn}: Ready, Set, Draw! (1 Card Drawn)`, 'success');
+    } else {
+      setLogMessages(prev => [`[Draw Step] Turn 1: First player skips draw step by official rule 3.2.3.1.`, ...prev]);
+      showNotice(`Turn 1 Started: Ready, Set! (First player skips Draw).`, 'success');
     }
-    
+
+    // === MAIN PHASE ===
     setTurnPhase('main');
   };
 
@@ -637,12 +914,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               />
               <div className="absolute inset-0 bg-[#0B0F19]/40" />
               <Layers className="w-5 h-5 text-[#F59E0B] z-10" />
-              <span className="text-[11px] font-mono font-bold text-white z-10 bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d]">48</span>
+              <span className="text-[11px] font-mono font-bold text-white z-10 bg-[#0B0F19]/90 px-1.5 py-0.5 rounded border border-[#30363d]">{opponentDeckCount}</span>
             </div>
             <div className="flex-1 h-28 bg-[#0B0F19] rounded-lg border border-[#30363d] flex flex-col items-center justify-center p-1.5 relative">
               <Skull className="w-5 h-5 text-rose-400 mb-1" />
               <span className="text-[10px] font-cinzel font-bold text-[#94A3B8]">GRAVE</span>
-              <span className="text-[11px] font-mono font-bold text-[#94A3B8] mt-0.5">2</span>
+              <span className="text-[11px] font-mono font-bold text-[#94A3B8] mt-0.5">{opponentDiscardCount}</span>
             </div>
           </div>
         </div>
@@ -707,15 +984,15 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              onClick={handleDrawCard}
+              onClick={handleDeckClick}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleDrawCard();
+                  handleDeckClick();
                 }
               }}
               className="flex-1 h-32 rounded-lg border-2 border-[#F59E0B] flex flex-col items-center justify-between p-2 relative cursor-pointer hover:border-amber-300 transition-colors overflow-hidden bg-[#0B0F19]"
-              title="Click to Draw Card from Deck"
+              title="Deck (Draws automatically at turn start)"
             >
               <img
                 src="/Lorcana_Card_Back.png"
@@ -764,14 +1041,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           </div>
 
           <motion.div
-            key={turnNumber}
+            key={`${turnNumber}-${turnPhase}`}
             initial={{ scale: 0.92, opacity: 0.8 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 22 }}
             className="px-4 py-1.5 rounded-xl border border-[#F59E0B]/50 text-[#F59E0B] font-cinzel font-bold text-xs flex items-center gap-2 bg-[#141a26]"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
-            <span>Main Phase | Turn {turnNumber}</span>
+            <span className="capitalize">{turnPhase} Phase | Turn {turnNumber}</span>
           </motion.div>
 
           <div className="flex items-center gap-2 font-mono text-xs">
@@ -802,6 +1079,15 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 Exit Match
               </button>
             )}
+
+            <button
+              onClick={() => setIsDiceDuelOpen(true)}
+              className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+              title="Open Pre-Match Dice Duel"
+            >
+              <Dices className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Dice Duel</span>
+            </button>
 
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -838,6 +1124,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               <AnimatePresence>
                 {opponentFieldCards.map((card) => {
                   const isOpExerted = opponentExerted[card.id] || false;
+                  const isOpWet = card.isWet || false;
                   return (
                     <motion.div
                       key={card.id}
@@ -846,23 +1133,45 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                       animate={{ opacity: 1, scale: 1, rotate: isOpExerted ? 90 : 0 }}
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                      onMouseEnter={() => setHoveredCard(card)}
+                      onMouseLeave={() => setHoveredCard(null)}
                       onClick={() => selectedAttacker && handleAttackTarget(card)}
                       className={`w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border ${
-                        selectedAttacker ? 'border-rose-500 cursor-pointer hover:border-rose-400' : 'border-[#30363d]'
+                        selectedAttacker
+                          ? isOpExerted
+                            ? 'border-rose-500 cursor-pointer hover:border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                            : 'border-slate-700 opacity-60 cursor-not-allowed'
+                          : isOpExerted
+                          ? 'border-[#F59E0B]/60'
+                          : 'border-[#30363d]'
                       }`}
                     >
                       <img
                         src={card.imageUrl || card.img}
                         alt={card.name}
                         referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover opacity-60"
+                        className="w-full h-full object-cover opacity-70"
                       />
-                      <span className={`absolute bottom-1 bg-[#0B0F19]/90 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-                        isOpExerted ? 'text-[#F59E0B] border-[#30363d]' : 'text-emerald-400 border-emerald-500/40'
+                      
+                      {isOpWet && (
+                        <div className="absolute inset-0 bg-[#0B0F19]/70 rounded-xl flex flex-col items-center justify-center pointer-events-none z-20">
+                          <Droplets className="w-5 h-5 text-[#F59E0B]" />
+                          <span className="text-[9px] font-cinzel font-bold text-[#F59E0B] bg-[#0B0F19] px-1.5 py-0.5 rounded mt-0.5 border border-[#30363d]">
+                            Drying...
+                          </span>
+                        </div>
+                      )}
+
+                      <span className={`absolute bottom-1 bg-[#0B0F19]/90 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border z-20 ${
+                        isOpWet
+                          ? 'text-[#F59E0B] border-[#F59E0B]/40'
+                          : isOpExerted
+                          ? 'text-[#F59E0B] border-[#30363d]'
+                          : 'text-emerald-400 border-emerald-500/40'
                       }`}>
-                        {isOpExerted ? 'Exerted' : 'Ready'}
+                        {isOpWet ? 'Drying' : isOpExerted ? 'Exerted' : 'Ready'}
                       </span>
-                      {selectedAttacker && (
+                      {selectedAttacker && isOpExerted && (
                         <div className="absolute inset-0 bg-rose-500/20 flex items-center justify-center hover:bg-rose-500/40 transition-colors z-20">
                           <Sword className="w-10 h-10 text-rose-500 drop-shadow-md" />
                         </div>
@@ -883,7 +1192,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           <div className="flex-1 flex flex-col justify-center items-center py-1 relative min-h-0">
             <div className="text-[9px] font-cinzel font-bold text-[#F59E0B] mb-1 uppercase tracking-widest flex items-center gap-2">
               <span>Your Battlefield Area</span>
-              <span className="text-[8px] font-mono text-[#94A3B8] font-normal">(Click card to Exert/Ready • Drag from Hand to Play)</span>
+              <span className="text-[8px] font-mono text-[#94A3B8] font-normal">(Click ⚡ to Quest • Click ⚔️ to Challenge • Auto-Exerts)</span>
             </div>
 
             {/* ACTIVE DRAG-TO-PLAY DROPZONE HIGHLIGHT */}
@@ -907,6 +1216,25 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             <div className="flex items-center justify-center gap-12 w-full h-full max-h-64">
               {fieldCards.map((card) => {
                 const isExerted = exertedCards[card.id] || false;
+                const isAttacking = selectedAttacker === card.id;
+
+                const handleCardInteraction = () => {
+                  if (card.isWet) {
+                    showNotice(`"${card.name}" is drying ink (wet). It cannot Quest or Challenge until your next turn.`, 'warning');
+                    return;
+                  }
+                  if (isExerted) {
+                    showNotice(`"${card.name}" is already exerted (exhausted). It will ready at the start of your turn.`, 'warning');
+                    return;
+                  }
+                  if (isAttacking) {
+                    setSelectedAttacker(null);
+                  } else {
+                    setSelectedAttacker(card.id);
+                    showNotice(`"${card.name}" selected! Click an exerted opponent character to Challenge, or click ⚡ to Quest.`, 'success');
+                  }
+                };
+
                 return (
                   <motion.div
                     key={card.id}
@@ -918,15 +1246,19 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     tabIndex={0}
                     onMouseEnter={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
-                    onClick={() => toggleExert(card.id)}
+                    onClick={handleCardInteraction}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        toggleExert(card.id);
+                        handleCardInteraction();
                       }
                     }}
                     className={`w-40 h-56 rounded-xl relative cursor-pointer transition-colors group card-foil-light ${
-                      isExerted ? 'border-2 border-[#F59E0B]' : 'border border-[#30363d] hover:border-[#F59E0B]'
+                      isAttacking
+                        ? 'border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.6)]'
+                        : isExerted
+                        ? 'border-2 border-[#F59E0B]'
+                        : 'border border-[#30363d] hover:border-[#F59E0B]'
                     }`}
                   >
                     <div className="relative w-full h-full rounded-xl overflow-hidden bg-[#141a26]">
@@ -969,8 +1301,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                           }}
                           disabled={isExerted}
                           aria-label="Quest"
-                          className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center"
-                          title={isExerted ? "Already exerted" : `Quest for +${card.lore || 1} Lore`}
+                          className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center shadow-md"
+                          title={isExerted ? "Already exerted (exhausted)" : `Quest for +${card.lore || 1} Lore (Auto-exerts)`}
                         >
                           <Zap className="w-3.5 h-3.5 fill-black" />
                         </button>
@@ -982,13 +1314,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                                 setSelectedAttacker(null);
                               } else {
                                 setSelectedAttacker(card.id);
-                                showNotice(`Select an opponent's character to challenge!`, 'warning');
+                                showNotice(`Select an exerted opponent's character to challenge!`, 'warning');
                               }
                             }}
-                            className={`p-1.5 rounded-full transition-colors cursor-pointer flex items-center justify-center ${
+                            className={`p-1.5 rounded-full transition-colors cursor-pointer flex items-center justify-center shadow-md ${
                               selectedAttacker === card.id ? 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]' : 'bg-rose-400 hover:bg-rose-500 text-black'
                             }`}
-                            title="Challenge Opponent"
+                            title="Challenge Opponent (Auto-exerts upon attack)"
                           >
                             <Sword className="w-3.5 h-3.5" />
                           </button>
@@ -1036,31 +1368,53 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                  className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
                >
                  <RotateCw className="w-3.5 h-3.5" />
-                 <span>Mulligan</span>
+                 <span>{language === 'th' ? 'สลับการ์ด (Mulligan)' : 'Mulligan'}</span>
                </motion.button>
             )}
-            {!isMyTurn && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleStartTurn()}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
-              >
-                <Play className="w-3.5 h-3.5 fill-white" />
-                <span>Start Turn</span>
-              </motion.button>
+            {matchMode ? (
+              isMyTurn ? (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                  onClick={handleEndTurn}
+                  className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-6 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                >
+                  <RotateCw className="w-3.5 h-3.5 fill-black" />
+                  <span>{t.passTurn}</span>
+                </motion.button>
+              ) : (
+                <div className="flex items-center gap-2 px-5 py-2 rounded-xl border border-[#30363d] bg-[#0B0F19] text-[#94A3B8] font-cinzel font-bold text-xs uppercase tracking-wider">
+                  <div className="w-2 h-2 rounded-full bg-[#F59E0B] animate-ping" />
+                  <span>{t.opponentTurn}...</span>
+                </div>
+              )
+            ) : (
+              <>
+                {!isMyTurn && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleStartTurn()}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    <span>{language === 'th' ? 'เริ่มเทิร์น' : 'Start Turn'}</span>
+                  </motion.button>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                  onClick={handleEndTurn}
+                  disabled={!isMyTurn}
+                  className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+                >
+                  <RotateCw className="w-3.5 h-3.5 fill-black" />
+                  <span>{t.passTurn}</span>
+                </motion.button>
+              </>
             )}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              onClick={handleEndTurn}
-              disabled={!isMyTurn}
-              className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
-            >
-              <RotateCw className="w-3.5 h-3.5 fill-black" />
-              <span>Pass Turn</span>
-            </motion.button>
           </div>
         </div>
 
@@ -1070,8 +1424,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       <AnimatePresence>
         {isMulliganPhase && (
           <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0F19]/90 backdrop-blur-sm">
-            <h2 className="text-3xl font-cinzel font-bold text-[#F59E0B] mb-2">Mulligan Phase</h2>
-            <p className="text-[#94A3B8] mb-8 font-mono">Select any number of cards to replace. They will be placed at the bottom of your deck.</p>
+            <h2 className="text-3xl font-cinzel font-bold text-[#F59E0B] mb-2">{t.mulliganTitle}</h2>
+            <p className="text-[#94A3B8] mb-8 font-mono">{t.mulliganDesc}</p>
             
             <div className="flex gap-4 mb-12">
               {handCards.map((card) => {
@@ -1079,6 +1433,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 return (
                   <motion.div
                     key={card.id}
+                    onMouseEnter={() => setHoveredCard(card)}
+                    onMouseLeave={() => setHoveredCard(null)}
                     onClick={() => {
                       if (isSelected) {
                         setMulliganSelectedIds(prev => prev.filter(id => id !== card.id));
@@ -1107,17 +1463,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 onClick={() => {
                   setIsMulliganPhase(false);
                   setHasMulliganed(true);
-                  showNotice('Kept original hand', 'success');
+                  showNotice(language === 'th' ? 'คงการ์ดชุดเดิมบนมือ' : 'Kept original hand', 'success');
                 }}
                 className="px-6 py-3 rounded-xl border border-[#30363d] text-[#F1F5F9] font-cinzel font-bold hover:bg-[#141a26] transition-colors cursor-pointer"
               >
-                Keep Hand
+                {t.keepHand}
               </button>
               <button
                 onClick={handleMulliganConfirm}
                 className="px-6 py-3 rounded-xl bg-[#F59E0B] text-black font-cinzel font-bold hover:bg-[#D97706] transition-colors cursor-pointer"
               >
-                Confirm Mulligan ({mulliganSelectedIds.length})
+                {language === 'th' ? `ยืนยันสลับการ์ด (${mulliganSelectedIds.length})` : `Confirm Mulligan (${mulliganSelectedIds.length})`}
               </button>
             </div>
           </div>
@@ -1138,7 +1494,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           onClick={() => setIsHandOpen((prev) => !prev)}
           className="bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border-t border-x border-[#30363d] rounded-t-xl px-6 py-1.5 font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-2xl z-50"
         >
-          <span>Your Hand ({handCards.length}/7)</span>
+          <span>{language === 'th' ? `การ์ดบนมือ (${handCards.length})` : `Your Hand (${handCards.length})`}</span>
           {isHandOpen ? <ChevronDown className="w-4 h-4 text-[#F59E0B]" /> : <ChevronUp className="w-4 h-4 text-[#F59E0B]" />}
         </button>
 
@@ -1153,7 +1509,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               className="bg-[#0d1420]/95 backdrop-blur-md border-t border-x border-[#30363d] rounded-t-2xl px-8 pt-2.5 pb-6 flex flex-col items-center max-w-6xl w-max shadow-2xl relative"
             >
               <div className="text-[10px] font-mono text-[#94A3B8] mb-1.5">
-                Drag card up onto battlefield or click for action menu
+                {language === 'th' ? 'ลากการ์ดขึ้นสู่สนาม หรือคลิกการ์ดเพื่อเปิดเมนูคำสั่ง' : 'Drag card up onto battlefield or click for action menu'}
               </div>
 
               {/* Hand Cards Stack with Spring & Layout Animation */}
@@ -1214,60 +1570,66 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* HOVER CARD INSPECTOR TOOLTIP PANEL (VIEWPORT FIXED) */}
+      {/* HOVER CARD INSPECTOR TOOLTIP PANEL (VIEWPORT FIXED - BOTTOM RIGHT MARKED AREA, ENLARGED) */}
       <AnimatePresence>
         {hoveredCard && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="fixed bottom-6 left-76 z-50 w-96 bg-[#141a26] border border-[#30363d] rounded-xl p-5 text-[#F1F5F9] flex flex-col gap-3 pointer-events-none shadow-2xl"
+            className="fixed bottom-6 right-6 md:right-10 z-[110] w-[420px] max-w-[calc(100vw-2rem)] bg-[#141a26]/95 backdrop-blur-md border border-[#30363d] rounded-2xl p-5 text-[#F1F5F9] flex flex-col gap-3.5 pointer-events-none shadow-[0_16px_50px_rgba(0,0,0,0.9)]"
           >
-            <div className="flex gap-3 items-center border-b border-[#30363d] pb-2.5">
+            <div className="flex gap-3.5 items-center border-b border-[#30363d] pb-3">
               <img
                 src={hoveredCard.imageUrl || hoveredCard.img}
                 alt={hoveredCard.name}
                 referrerPolicy="no-referrer"
-                className="w-20 h-28 object-cover rounded-lg border border-[#30363d] shrink-0"
+                className="w-24 h-34 object-cover rounded-xl border border-[#30363d] shrink-0 shadow-lg"
               />
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {hoveredCard.ink && <InkSymbol ink={hoveredCard.ink} size={16} />}
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  {hoveredCard.ink && <InkSymbol ink={hoveredCard.ink} size={18} />}
                   <span className="font-cinzel font-bold text-lg text-[#F59E0B] leading-tight truncate">{hoveredCard.name}</span>
                 </div>
                 <span className="text-[13px] font-mono text-[#94A3B8] mt-0.5">{hoveredCard.title}</span>
-                <div className="flex items-center gap-2.5 mt-1 text-xs font-mono text-[#F59E0B] font-bold">
-                  <span>Cost: {hoveredCard.cost} Ink</span>
-                  {hoveredCard.isInkable ? (
-                    <span className="text-emerald-400">Inkable</span>
+                <div className="flex items-center gap-3 mt-1.5 text-xs font-mono font-bold">
+                  <span className="text-[#F59E0B] bg-[#0B0F19] px-2 py-0.5 rounded border border-[#30363d]">{t.cost}: {hoveredCard.cost} Ink</span>
+                  {isCardInkable(hoveredCard) ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
+                      <Droplets className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                      {t.inkable}
+                    </span>
                   ) : (
-                    <span className="text-rose-400">Non-Inkable</span>
+                    <span className="text-rose-400 font-bold flex items-center gap-1 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-500/30">
+                      <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                      {language === 'th' ? 'ไม่สามารถใส่ Inkwell ได้' : 'Non-Inkable'}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-2 bg-[#0B0F19] p-2 rounded-lg border border-[#30363d] text-center font-mono text-sm">
+            <div className="grid grid-cols-3 gap-2 bg-[#0B0F19] p-2.5 rounded-xl border border-[#30363d] text-center font-mono text-sm">
               <div>
-                <span className="text-[10px] text-[#94A3B8] block">STRENGTH</span>
-                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1 mt-0.5">
-                  <Sword className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span className="text-[10px] text-[#94A3B8] block font-bold">{t.strength}</span>
+                <span className="text-[#F59E0B] font-bold text-base flex items-center justify-center gap-1 mt-0.5">
+                  <Sword className="w-4 h-4 text-[#F59E0B]" />
                   {hoveredCard.strength ?? '-'}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-[#94A3B8] block">WILLPOWER</span>
-                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1 mt-0.5">
-                  <Shield className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span className="text-[10px] text-[#94A3B8] block font-bold">{t.willpower}</span>
+                <span className="text-[#F59E0B] font-bold text-base flex items-center justify-center gap-1 mt-0.5">
+                  <Shield className="w-4 h-4 text-[#F59E0B]" />
                   {hoveredCard.willpower ?? '-'}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-[#94A3B8] block">LORE</span>
-                <span className="text-[#F59E0B] font-bold flex items-center justify-center gap-1 mt-0.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span className="text-[10px] text-[#94A3B8] block font-bold">{t.lore}</span>
+                <span className="text-[#F59E0B] font-bold text-base flex items-center justify-center gap-1 mt-0.5">
+                  <Sparkles className="w-4 h-4 text-[#F59E0B]" />
                   {hoveredCard.lore ?? '-'}
                 </span>
               </div>
@@ -1275,19 +1637,24 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
             {/* Abilities & Text Box */}
             {hoveredCard.abilities && hoveredCard.abilities.length > 0 && (
-              <div className="space-y-1.5 text-[13px] font-mono bg-[#0B0F19] p-2.5 rounded-lg border border-[#30363d]">
+              <div className="space-y-2 text-[12px] font-mono bg-[#0B0F19] p-3 rounded-xl border border-[#30363d] max-h-40 overflow-y-auto">
+                <div className="text-[10px] font-cinzel text-[#F59E0B] font-bold uppercase tracking-wider mb-1">
+                  {t.specialAbilities}
+                </div>
                 {hoveredCard.abilities.map((ab, idx) => (
-                  <div key={idx} className="leading-snug">
-                    <span className="font-bold text-sm text-[#F59E0B]">{ab.name}: </span>
-                    <span className="text-[#F1F5F9]">{ab.text}</span>
+                  <div key={idx} className="leading-relaxed bg-[#141a26]/70 p-1.5 rounded border border-[#30363d]/50">
+                    <span className="font-bold text-xs text-[#F59E0B] tracking-wide">{ab.name}: </span>
+                    <span className="text-[#E2E8F0]">
+                      {language === 'th' ? translateCardAbilityText(ab.text) : ab.text}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
             {hoveredCard.flavorText && (
-              <div className="text-[12px] font-outfit text-[#94A3B8] italic border-t border-[#30363d] pt-1.5 leading-relaxed">
-                {hoveredCard.flavorText}
+              <div className="text-[12px] font-outfit text-[#94A3B8] italic border-t border-[#30363d] pt-2 leading-relaxed">
+                "{hoveredCard.flavorText}"
               </div>
             )}
           </motion.div>
@@ -1331,7 +1698,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               </div>
 
               <div className="w-full space-y-2 pt-1">
-                {(dragPendingCard.isInkable || !handCards.some(c => c.isInkable)) && !hasInkedThisTurn && (
+                {(isCardInkable(dragPendingCard) || !handCards.some(c => isCardInkable(c))) && !hasInkedThisTurn && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1344,7 +1711,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     className="w-full bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border border-[#F59E0B]/50 p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-                    <span>Add to Inkwell (+1 Ink Capacity)</span>
+                    <span>{language === 'th' ? 'ใส่เป็นหมึก (+1 Inkwell)' : 'Add to Inkwell (+1 Ink Capacity)'}</span>
                   </motion.button>
                 )}
 
@@ -1361,7 +1728,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-black p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Play className="w-4 h-4 fill-black" />
-                    <span>Play to Field ({dragPendingCard.cost} Ink)</span>
+                    <span>{language === 'th' ? `ลงสู่สนาม (${dragPendingCard.cost} Ink)` : `Play to Field (${dragPendingCard.cost} Ink)`}</span>
                   </motion.button>
                 )}
               </div>
@@ -1412,7 +1779,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   onClick={() => {
                     const availableSingers = fieldCards.filter(c => !c.isWet && !exertedCards[c.id] && (c.cost || 0) >= selectedHandCard.cost);
                     if (availableSingers.length === 0) {
-                      showNotice(`No ready character with cost ${selectedHandCard.cost} or more to sing this!`, 'warning');
+                      showNotice(language === 'th' ? `ไม่มีตัวละครพร้อมใช้งานที่มี Cost ${selectedHandCard.cost} ขึ้นไปเพื่อร้องเพลงนี้!` : `No ready character with cost ${selectedHandCard.cost} or more to sing this!`, 'warning');
                       return;
                     }
                     const singer = availableSingers[0];
@@ -1420,18 +1787,18 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     setHandCards((prev) => prev.filter((c) => c.id !== selectedHandCard.id));
                     setSelectedHandCard(null);
                     setDiscardCount((prev) => prev + 1);
-                    setLogMessages((prev) => [`You sang ${selectedHandCard.name} using ${singer.name}!`, ...prev]);
-                    showNotice(`Sang "${selectedHandCard.name}" using ${singer.name}!`, 'success');
+                    setLogMessages((prev) => [language === 'th' ? `คุณร้องเพลง ${selectedHandCard.name} โดยใช้ ${singer.name}!` : `You sang ${selectedHandCard.name} using ${singer.name}!`, ...prev]);
+                    showNotice(language === 'th' ? `ร้องเพลง "${selectedHandCard.name}" โดย ${singer.name} สำเร็จ!` : `Sang "${selectedHandCard.name}" using ${singer.name}!`, 'success');
                     resolveAbilities(selectedHandCard);
                   }}
                   disabled={!fieldCards.some(c => !c.isWet && !exertedCards[c.id] && (c.cost || 0) >= selectedHandCard.cost)}
                   className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-40 text-white p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   <Zap className="w-4 h-4 fill-white" />
-                  <span>Sing (Exert cost {selectedHandCard.cost}+)</span>
+                  <span>{language === 'th' ? `ร้องเพลง (Exert Cost ${selectedHandCard.cost}+)` : `Sing (Exert cost ${selectedHandCard.cost}+)`}</span>
                 </button>
               )}
-              {(selectedHandCard.isInkable || !handCards.some(c => c.isInkable)) && (
+              {(isCardInkable(selectedHandCard) || !handCards.some(c => isCardInkable(c))) && (
                 <button
                   onClick={() => handleAddToInkwell(selectedHandCard)}
                   disabled={hasInkedThisTurn}
@@ -1440,8 +1807,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
                   <span>
                     {hasInkedThisTurn
-                      ? 'Inked this turn (1/1 Limit)'
-                      : 'Add to Inkwell (+1 Ink Capacity)'}
+                      ? (language === 'th' ? 'ใส่ Ink ไปแล้วในเทิร์นนี้ (ขีดจำกัด 1/1)' : 'Inked this turn (1/1 Limit)')
+                      : (language === 'th' ? 'ใส่เป็นหมึก (+1 Inkwell)' : 'Add to Inkwell (+1 Ink Capacity)')}
                   </span>
                 </button>
               )}
@@ -1454,8 +1821,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 <Play className="w-4 h-4 fill-black" />
                 <span>
                   {availableInk < selectedHandCard.cost
-                    ? `Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`
-                    : `Play to Field (${selectedHandCard.cost} Ink)`}
+                    ? (language === 'th' ? `ต้องการ ${selectedHandCard.cost} Ink (มี ${availableInk})` : `Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`)
+                    : (language === 'th' ? `ลงสู่สนาม (${selectedHandCard.cost} Ink)` : `Play to Field (${selectedHandCard.cost} Ink)`)}
                 </span>
               </button>
             </div>
@@ -1532,8 +1899,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!chatInput.trim()) return;
-                    webSocketService.sendChat(chatInput.trim());
-                    setChatMessages(prev => [...prev, { username: 'You', message: chatInput.trim(), time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
+                    const text = chatInput.trim();
+                    webSocketService.sendChat(text, roomId, playerRole);
+                    setChatMessages(prev => [...prev, { username: 'You', message: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
                     setChatInput('');
                   }}
                   className="p-3 border-t border-[#30363d] bg-[#141a26] flex gap-2 shrink-0"
@@ -1553,13 +1921,31 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             )}
           </AnimatePresence>
           <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] p-3 rounded-full shadow-lg transition-colors flex items-center justify-center cursor-pointer"
+            onClick={() => {
+              setIsChatOpen(!isChatOpen);
+              setUnreadChatCount(0);
+            }}
+            className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] p-3 rounded-full shadow-lg transition-colors flex items-center justify-center cursor-pointer relative"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+            {unreadChatCount > 0 && !isChatOpen && (
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce border-2 border-[#0B0F19]">
+                {unreadChatCount}
+              </span>
+            )}
           </button>
         </div>
       )}
+
+      {/* PRE-MATCH DICE DUEL MODAL (ODD/EVEN & TURN ORDER SELECTION) */}
+      <DiceDuelModal
+        isOpen={isDiceDuelOpen}
+        roomId={roomId}
+        myRole={playerRole || 'player1'}
+        opponentName={playerRole === 'player1' ? 'Challenger' : 'Host'}
+        onDuelFinished={handleDuelFinished}
+        isSandbox={!matchMode}
+      />
     </div>
   );
 };

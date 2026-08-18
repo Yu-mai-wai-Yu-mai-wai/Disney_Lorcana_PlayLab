@@ -10,8 +10,9 @@
   --color-rule: oklch(0.30 0.015 260);
   --color-accent: oklch(0.79 0.16 85);
   --color-accent-ink: oklch(0.16 0.05 85);
-  --font-display: "Cinzel", serif;
-  --font-body: "Outfit", sans-serif;
+  --font-display: "Cinzel", "Bai Jamjuree", serif;
+  --font-body: "Outfit", "Bai Jamjuree", sans-serif;
+  --font-outfit: "Outfit", "Bai Jamjuree", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   --radius-card: 12px;
   --radius-pill: 9999px;
@@ -39,12 +40,12 @@
       radial-gradient(at 20% 20%, rgba(245, 158, 11, 0.03) 0px, transparent 60%),
       radial-gradient(at 80% 80%, rgba(30, 41, 59, 0.2) 0px, transparent 60%);
     background-attachment: fixed;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Outfit', 'Bai Jamjuree', sans-serif;
     color: #F1F5F9;
   }
 
   h1, h2, h3, .font-cinzel {
-    font-family: 'Cinzel', serif;
+    font-family: 'Cinzel', 'Bai Jamjuree', serif;
     font-style: normal;
   }
 }
@@ -84,7 +85,7 @@
 .btn-primary {
   background-color: #F59E0B;
   color: #000000;
-  font-family: 'Cinzel', serif;
+  font-family: 'Cinzel', 'Bai Jamjuree', serif;
   font-weight: 700;
   border-radius: 8px;
   transition: background-color 0.2s ease, border-color 0.2s ease;

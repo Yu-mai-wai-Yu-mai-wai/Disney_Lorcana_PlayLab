@@ -6,6 +6,10 @@ node_modules/
 dist/
 build/
 .output/
+backend/dist/
+backend/dist_bundle/
+*.zip
+
 
 # Logs & Cache
 *.log

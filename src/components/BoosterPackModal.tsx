@@ -4,6 +4,8 @@ import { X, RotateCcw, Plus, Eye, Gift, Scissors, ChevronRight } from 'lucide-re
 import { LorcanaCard } from '../types/lorcana';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
+import { useLanguageStore } from '../store/useLanguageStore';
+import { translateCardType, translateRarity, translateInkColor } from '../utils/cardTranslator';
 
 interface BoosterPackModalProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
   onClose,
   onAddCardsToDeck,
 }) => {
+  const { t, language } = useLanguageStore();
   const [packState, setPackState] = useState<'sealed' | 'tearing' | 'opened'>('sealed');
   const [packCards, setPackCards] = useState<LorcanaCard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -309,7 +312,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
               className="mt-6 px-6 py-3 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs uppercase tracking-wider rounded-lg shadow flex items-center gap-2 cursor-pointer transition-colors"
             >
               <Gift className="w-4 h-4 text-black" />
-              Open Pack
+              {language === 'th' ? 'ฉีกซองการ์ด' : 'Open Pack'}
             </button>
           </div>
         )}
@@ -346,7 +349,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
               </motion.div>
 
               <div className="absolute font-cinzel font-bold text-xl text-[#F59E0B] z-40 top-1/2 -translate-y-1/2 bg-[#0B0F19] px-6 py-2.5 rounded-lg border border-[#30363d]">
-                OPENING FOIL PACK...
+                {language === 'th' ? 'กำลังเปิดซองฟอยล์...' : 'OPENING FOIL PACK...'}
               </div>
             </div>
           </div>
@@ -357,15 +360,17 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
           <div className="w-full flex flex-col items-center space-y-6 py-2">
             <div className="flex justify-between items-center w-full pb-3 border-b border-[#30363d] font-mono text-xs text-[#94A3B8]">
               <div className="flex items-center gap-2">
-                <span className="font-cinzel font-bold text-[#F59E0B] text-sm">Booster Reveal</span>
+                <span className="font-cinzel font-bold text-[#F59E0B] text-sm">{language === 'th' ? 'การ์ดในซอง' : 'Booster Reveal'}</span>
                 <span className="bg-[#141a26] border border-[#30363d] px-3 py-1 rounded-lg text-[#F59E0B] font-bold">
-                  Card {currentCardIndex + 1} / 12
+                  {language === 'th' ? `ใบที่ ${currentCardIndex + 1} / 12` : `Card ${currentCardIndex + 1} / 12`}
                 </span>
               </div>
 
               <div className="text-[#F59E0B] font-bold flex items-center gap-1">
                 <Eye className="w-4 h-4 text-[#F59E0B]" />
-                {!isCurrentFlipped ? 'Click card to Flip' : 'Click card again for Next Card'}
+                {language === 'th'
+                  ? (!isCurrentFlipped ? 'คลิกการ์ดเพื่อเปิดดู' : 'คลิกอีกครั้งเพื่อดูใบถัดไป')
+                  : (!isCurrentFlipped ? 'Click card to Flip' : 'Click card again for Next Card')}
               </div>
             </div>
 
@@ -409,7 +414,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute bottom-4 left-0 right-0 text-center font-cinzel text-xs font-bold text-[#F59E0B] bg-[#0B0F19]/90 py-1.5 border-t border-[#30363d]">
-                      Click Card to Flip
+                      {language === 'th' ? 'คลิกการ์ดเพื่อเปิดดู' : 'Click Card to Flip'}
                     </div>
                   </div>
 
@@ -434,7 +439,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                       />
                     </div>
                     <div className="absolute bottom-4 left-0 right-0 text-center font-cinzel text-xs font-bold text-[#F59E0B] bg-[#0B0F19]/90 py-1.5 border-t border-[#30363d] flex items-center justify-center gap-1 z-30">
-                      Click to Next Card ({currentCardIndex + 1}/12) <ChevronRight className="w-4 h-4" />
+                      {language === 'th' ? `ดูใบถัดไป (${currentCardIndex + 1}/12)` : `Click to Next Card (${currentCardIndex + 1}/12)`} <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
@@ -448,11 +453,11 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                 >
                   <div className="font-cinzel font-bold text-xl text-[#F59E0B]">{currentCard.name}</div>
                   <div className="text-xs font-mono text-[#94A3B8] font-bold uppercase flex items-center justify-center gap-1.5">
-                    <span>{currentCard.rarity || 'Common'}</span>
+                    <span>{translateRarity(currentCard.rarity || 'Common', language)}</span>
                     <span>•</span>
-                    <span className="flex items-center gap-1"><InkSymbol ink={currentCard.ink} size={14} /> {currentCard.ink}</span>
+                    <span className="flex items-center gap-1"><InkSymbol ink={currentCard.ink} size={14} /> {translateInkColor(currentCard.ink, language)}</span>
                     <span>•</span>
-                    <span>{currentCard.type}</span>
+                    <span>{translateCardType(currentCard.type, language)}</span>
                   </div>
                 </motion.div>
               )}
@@ -463,7 +468,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                 onClick={() => generatePack()}
                 className="px-6 py-2.5 bg-[#0B0F19] border border-[#30363d] hover:border-[#F59E0B] text-[#F1F5F9] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
               >
-                <RotateCcw className="w-4 h-4" /> Open New Pack
+                <RotateCcw className="w-4 h-4" /> {t.openAnotherPack}
               </button>
 
               <button
@@ -473,7 +478,7 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
                 }}
                 className="px-8 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs uppercase tracking-wider rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
               >
-                <Plus className="w-4 h-4 text-black" /> Add All 12 Cards To Deck
+                <Plus className="w-4 h-4 text-black" /> {t.addAllToDeck}
               </button>
             </div>
           </div>
