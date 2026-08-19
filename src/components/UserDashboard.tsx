@@ -3,7 +3,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { apiService } from '../services/api';
 import { translateInkColor } from '../utils/cardTranslator';
-import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye } from 'lucide-react';
+import { DeckViewerModal } from './DeckViewerModal';
 
 interface UserDashboardProps {
   setActiveTab: (tab: 'hub' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard') => void;
@@ -25,6 +26,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   // Real decks loaded from AWS DynamoDB via GET /decks (JWT Bearer)
   const [savedDecks, setSavedDecks] = useState<any[]>([]);
   const [decksLoading, setDecksLoading] = useState(false);
+  const [viewingDeck, setViewingDeck] = useState<any | null>(null);
 
   // Load real decks from the cloud when authenticated
   const loadUserDecks = React.useCallback(async () => {
@@ -362,27 +364,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                       </div>
                     </div>
 
-                    {/* Deck contents — card names + counts from cloud data */}
-                    {deck.cards && deck.cards.length > 0 && (
-                      <details className="mb-3 bg-[#0B0F19] border border-[#30363d] rounded-lg overflow-hidden">
-                        <summary className="px-3 py-2 text-[11px] font-mono text-[#94A3B8] hover:text-[#F59E0B] cursor-pointer select-none">
-                          {language === 'th' ? `ดูการ์ดทั้งหมด ${deck.cards.length} แบบ` : `View ${deck.cards.length} card types`}
-                        </summary>
-                        <div className="max-h-28 overflow-y-auto px-3 pb-2 space-y-1">
-                          {deck.cards.map((c: any, i: number) => (
-                            <div key={i} className="flex justify-between items-center gap-2 text-[11px]">
-                              <span className="text-[#F1F5F9] truncate">
-                                {c.card?.name || c.name || 'Card'}
-                                {c.card?.cost !== undefined && (
-                                  <span className="text-[#F59E0B] ml-1">⚡{c.card.cost}</span>
-                                )}
-                              </span>
-                              <span className="font-mono text-[#94A3B8] shrink-0">×{c.count || 1}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
+                    {/* Deck Quick Inspect Button */}
+                    <div className="mb-3">
+                      <button
+                        onClick={() => setViewingDeck(deck)}
+                        className="w-full flex items-center justify-center gap-2 py-2 bg-[#0B0F19] hover:bg-[#1a2333] border border-[#30363d] hover:border-[#F59E0B] rounded-lg text-xs font-mono text-[#F59E0B] transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>{language === 'th' ? `ดูการ์ดในเด็คทั้งหมด (${deck.cards?.length || 0} แบบ)` : `View All Cards (${deck.cards?.length || 0} types)`}</span>
+                      </button>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#30363d]">
                       <button
@@ -441,6 +432,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
           </section>
         </div>
       )}
+
+      {/* Deck Viewer Pop-up Modal */}
+      <DeckViewerModal
+        isOpen={Boolean(viewingDeck)}
+        deck={viewingDeck}
+        onClose={() => setViewingDeck(null)}
+      />
     </div>
   );
 };

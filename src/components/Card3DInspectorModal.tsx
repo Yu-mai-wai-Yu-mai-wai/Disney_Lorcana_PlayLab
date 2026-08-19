@@ -8,15 +8,15 @@ import { translateCardAbilityText, extractKeywordsFromText, translateCardType, t
 
 interface Card3DInspectorModalProps {
   card: LorcanaCard | null;
-  countInDeck: number;
+  countInDeck?: number;
   onClose: () => void;
-  onAddCard: (card: LorcanaCard) => void;
-  onRemoveCard: (card: LorcanaCard) => void;
+  onAddCard?: (card: LorcanaCard) => void;
+  onRemoveCard?: (card: LorcanaCard) => void;
 }
 
 export const Card3DInspectorModal: React.FC<Card3DInspectorModalProps> = ({
   card,
-  countInDeck,
+  countInDeck = 0,
   onClose,
   onAddCard,
   onRemoveCard,
@@ -299,30 +299,45 @@ export const Card3DInspectorModal: React.FC<Card3DInspectorModalProps> = ({
           </div>
 
           {/* Deck Management Actions */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between bg-[#0B0F19] px-4 py-2.5 rounded-lg border border-[#30363d]">
-              <span className="text-xs font-cinzel text-[#F1F5F9] font-bold">{t.inCurrentDeck}</span>
-              <span className="font-mono text-sm font-bold text-[#F59E0B]">{countInDeck} / 4 {t.cardsCount}</span>
-            </div>
+          {(onAddCard || onRemoveCard) ? (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between bg-[#0B0F19] px-4 py-2.5 rounded-lg border border-[#30363d]">
+                <span className="text-xs font-cinzel text-[#F1F5F9] font-bold">{t.inCurrentDeck}</span>
+                <span className="font-mono text-sm font-bold text-[#F59E0B]">{countInDeck} / 4 {t.cardsCount}</span>
+              </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => onRemoveCard(card)}
-                disabled={countInDeck === 0}
-                className="flex-1 bg-[#0B0F19] hover:bg-rose-950/40 border border-[#30363d] disabled:opacity-30 text-rose-400 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <Minus className="w-4 h-4" /> {t.removeOne}
-              </button>
+              <div className="flex gap-3">
+                {onRemoveCard && (
+                  <button
+                    onClick={() => onRemoveCard(card)}
+                    disabled={countInDeck === 0}
+                    className="flex-1 bg-[#0B0F19] hover:bg-rose-950/40 border border-[#30363d] disabled:opacity-30 text-rose-400 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Minus className="w-4 h-4" /> {t.removeOne}
+                  </button>
+                )}
 
+                {onAddCard && (
+                  <button
+                    onClick={() => onAddCard(card)}
+                    disabled={countInDeck >= 4}
+                    className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-black py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider shadow flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    <Plus className="w-4 h-4 text-black" /> {t.addOneToDeck}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="pt-2">
               <button
-                onClick={() => onAddCard(card)}
-                disabled={countInDeck >= 4}
-                className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-black py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider shadow flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-40"
+                onClick={onClose}
+                className="w-full bg-[#141a26] hover:bg-[#1e2638] text-[#F1F5F9] border border-[#30363d] py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
-                <Plus className="w-4 h-4 text-black" /> {t.addOneToDeck}
+                {language === 'th' ? 'ปิดหน้าต่าง' : 'Close'}
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </Modal>

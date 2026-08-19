@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useDeckStore } from '../store/useDeckStore';
 import { InkColor, LorcanaCard } from '../types/lorcana';
-import { Search, Plus, Minus, Trash2, Save, ChevronLeft, ChevronRight, Eye, Gift, Sword, Shield, Sparkles, Star } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Save, ChevronLeft, ChevronRight, Eye, Gift, Sword, Shield, Sparkles, Star, Edit3 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { Card3DInspectorModal } from './Card3DInspectorModal';
 import { BoosterPackModal } from './BoosterPackModal';
+import { DeckViewerModal } from './DeckViewerModal';
 import { InkSymbol } from './InkSymbol';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '../data/recommendedDecks';
 import { useLanguageStore } from '../store/useLanguageStore';
@@ -48,6 +49,7 @@ export const DeckBuilder: React.FC = () => {
   const [inspectedCard, setInspectedCard] = React.useState<LorcanaCard | null>(null);
   const [isBoosterModalOpen, setIsBoosterModalOpen] = React.useState(false);
   const [isRecommendedModalOpen, setIsRecommendedModalOpen] = React.useState(false);
+  const [isDeckViewerOpen, setIsDeckViewerOpen] = React.useState(false);
 
   const CARDS_PER_PAGE = 24;
 
@@ -464,28 +466,32 @@ export const DeckBuilder: React.FC = () => {
           </div>
         )}
 
-        <div className="bg-[#141a26] p-5 rounded-xl border border-[#30363d] flex flex-col gap-4 sticky top-20">
-          <div className="flex justify-between items-center pb-3 border-b border-[#30363d]">
-            <div>
+        <div className="bg-[#141a26] p-5 rounded-2xl border border-[#30363d] flex flex-col gap-4 sticky top-20 shadow-xl">
+          {/* Deck Header & Custom Name Input */}
+          <div className="pb-3 border-b border-[#30363d] space-y-2.5">
+            <div className="flex justify-between items-center">
+              <label className="text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider flex items-center gap-1.5">
+                <Edit3 className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span>{language === 'th' ? 'ชื่อเด็คของคุณ (ตั้งชื่ออิสระ)' : 'Custom Deck Name'}</span>
+              </label>
+              <div className={`font-mono text-sm font-bold px-2 py-0.5 rounded ${totalCards === 60 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : totalCards > 60 ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-[#0B0F19] text-[#F59E0B] border border-[#30363d]'}`}>
+                {totalCards}/60 {t.cardsCount}
+              </div>
+            </div>
+
+            <div className="relative">
               <input
                 type="text"
                 value={deckName}
                 onChange={(e) => setDeckName(e.target.value)}
-                className="bg-transparent font-cinzel font-bold text-lg text-[#F59E0B] outline-none border-b border-dashed border-[#F59E0B]/50 focus:border-[#F59E0B] py-0.5 w-full"
+                placeholder={language === 'th' ? 'พิมพ์ชื่อเด็คของคุณที่นี่...' : 'Enter your custom deck name...'}
+                className="w-full bg-[#0B0F19] border border-[#30363d] focus:border-[#F59E0B] focus:ring-1 focus:ring-[#F59E0B] rounded-xl px-3.5 py-2 font-cinzel font-bold text-base text-[#F59E0B] outline-none transition-all placeholder:text-[#94A3B8]/50 placeholder:font-normal placeholder:text-xs"
               />
-              <div className="text-[10px] font-mono text-[#94A3B8] mt-1">{t.deckTitle}</div>
-            </div>
-
-            <div className="text-right">
-              <div className={`font-mono text-base font-bold ${totalCards === 60 ? 'text-emerald-400' : totalCards > 60 ? 'text-rose-400' : 'text-[#F59E0B]'}`}>
-                {totalCards}/60
-              </div>
-              <div className="text-[9px] text-[#94A3B8] font-mono">{t.totalCards}</div>
             </div>
           </div>
 
           {/* Deck List Items */}
-          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 no-scrollbar">
+          <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
             {currentDeck.length === 0 ? (
               <div className="text-center py-12 text-[#94A3B8] font-mono text-xs">
                 {t.emptyDeckPrompt}
@@ -503,7 +509,7 @@ export const DeckBuilder: React.FC = () => {
                       setInspectedCard(card);
                     }
                   }}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#0B0F19] border border-[#30363d] hover:border-[#F59E0B] transition-colors cursor-pointer group"
+                  className="flex items-center justify-between p-2 rounded-xl bg-[#0B0F19] border border-[#30363d] hover:border-[#F59E0B] transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <img
@@ -513,7 +519,7 @@ export const DeckBuilder: React.FC = () => {
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).style.display = 'none';
                       }}
-                      className="w-8 h-10 object-cover rounded"
+                      className="w-8 h-10 object-cover rounded-lg"
                     />
                     <div className="truncate">
                       <div className="font-cinzel text-xs font-bold text-[#F1F5F9] truncate group-hover:text-[#F59E0B]">{card.name}</div>
@@ -544,47 +550,65 @@ export const DeckBuilder: React.FC = () => {
           </div>
 
           {/* Deck Controls */}
-          <div className="space-y-2 pt-2 border-t border-[#30363d]">
+          <div className="space-y-2.5 pt-3 border-t border-[#30363d]">
             {saveStatus && (
-              <div className="text-center font-mono text-[10px] text-[#F59E0B] bg-[#0B0F19] p-2 rounded border border-[#30363d]">
+              <div className="text-center font-mono text-[10px] text-[#F59E0B] bg-[#0B0F19] p-2 rounded-lg border border-[#30363d]">
                 {saveStatus}
               </div>
             )}
 
-            <div className="flex gap-2">
-              <button
-                onClick={handleClearDeckClick}
-                className={`flex-1 border py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-                  isConfirmingClear
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400'
-                    : 'bg-[#0B0F19] border-[#30363d] hover:border-rose-500 text-rose-400'
-                }`}
-              >
-                <Trash2 className="w-4 h-4" /> {isConfirmingClear ? t.confirmClear : t.clearDeck}
-              </button>
+            {/* Primary Save Action */}
+            <button
+              onClick={handleSaveDeck}
+              disabled={isSaving}
+              className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-black py-3 rounded-xl font-cinzel font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-[0_0_15px_rgba(245,158,11,0.25)] hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <Save className="w-4 h-4 text-black" />
+              <span>{isSaving ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : t.saveDeck}</span>
+            </button>
 
-              <button
-                onClick={handleSaveDeck}
-                disabled={isSaving}
-                className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-black py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-              >
-                <Save className="w-4 h-4 text-black" /> {isSaving ? '...' : t.saveDeck}
-              </button>
-              
+            {/* Secondary Action Grid */}
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleAnalyzeDeck}
                 disabled={isAnalyzing || !savedDeckId}
-                className="flex-1 bg-indigo-500 hover:bg-indigo-600 disabled:bg-[#141a26] disabled:text-[#94A3B8] text-white py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-[#0B0F19] disabled:text-[#94A3B8]/60 disabled:border-[#30363d] text-white py-2.5 px-2 rounded-xl font-cinzel font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors border border-indigo-500/40"
+                title={!savedDeckId ? (language === 'th' ? 'กรุณาบันทึกเด็คก่อนวิเคราะห์' : 'Save deck first before analysis') : ''}
               >
-                <Sparkles className="w-4 h-4" /> {isAnalyzing ? '...' : t.analyzeDeck}
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{isAnalyzing ? '...' : (language === 'th' ? 'วิเคราะห์เด็ค' : 'Analyze')}</span>
+              </button>
+
+              <button
+                onClick={handleClearDeckClick}
+                className={`border py-2.5 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                  isConfirmingClear
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400'
+                    : 'bg-[#0B0F19] border-[#30363d] hover:border-rose-500 text-rose-400 hover:bg-rose-950/30'
+                }`}
+              >
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{isConfirmingClear ? t.confirmClear : (language === 'th' ? 'ล้างเด็ค' : 'Clear')}</span>
               </button>
             </div>
-            <div className="pt-2">
+
+            {/* Quick Actions Grid */}
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setIsRecommendedModalOpen(true)}
-                className="w-full bg-[#1e1a14] border border-[#F59E0B] hover:bg-[#2c2419] text-[#F59E0B] py-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                className="bg-[#1e1a14] border border-[#F59E0B]/50 hover:bg-[#2c2419] text-[#F59E0B] py-2 px-2 rounded-xl font-cinzel font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                <Star className="w-4 h-4" /> {t.recommendedDecks}
+                <Star className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{language === 'th' ? 'เด็คแนะนำ' : 'Meta Decks'}</span>
+              </button>
+
+              <button
+                onClick={() => setIsDeckViewerOpen(true)}
+                disabled={currentDeck.length === 0}
+                className="bg-[#0B0F19] border border-[#30363d] hover:border-[#F59E0B] text-[#F1F5F9] hover:text-[#F59E0B] disabled:opacity-40 py-2 px-2 rounded-xl font-cinzel font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{language === 'th' ? 'ดูเด็คเต็มจอ' : 'View Full Deck'}</span>
               </button>
             </div>
 
@@ -706,6 +730,16 @@ export const DeckBuilder: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* FULL DECK VIEWER POP-UP MODAL */}
+      <DeckViewerModal
+        isOpen={isDeckViewerOpen}
+        deck={{
+          name: deckName,
+          cards: currentDeck,
+        }}
+        onClose={() => setIsDeckViewerOpen(false)}
+      />
     </div>
   );
 };

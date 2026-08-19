@@ -218,75 +218,86 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
         </div>
       )}
 
-      <div className="flex-1 max-w-7xl mx-auto w-full p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+      <div className="flex-1 max-w-[1600px] mx-auto w-full px-6 md:px-10 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         {/* LEFT: Deck Selection */}
-        <div className="md:col-span-4 lg:col-span-4 xl:col-span-3 h-full">
-          <MatchDeckSelect decks={decks} selectedDeckId={selectedDeckId} onSelect={handleDeckSelect} />
+        <div className="lg:col-span-4 h-full">
+          <div className="bg-[#141a26] border border-[#30363d] p-6 rounded-2xl h-full flex flex-col shadow-xl">
+            <MatchDeckSelect decks={decks} selectedDeckId={selectedDeckId} onSelect={handleDeckSelect} />
+          </div>
         </div>
 
         {/* MIDDLE: Private Room */}
-        <div className="md:col-span-4 lg:col-span-4 flex flex-col gap-6">
-          <div className="bg-[#141a26] border border-[#30363d] p-6 rounded-xl relative overflow-hidden shadow-lg">
-            <div className="absolute top-0 left-0 w-full h-1 bg-[#F59E0B]"></div>
-            <h2 className="font-cinzel text-xl text-[#F1F5F9] mb-4 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-[#F59E0B]" /> {language === 'th' ? 'ห้องเล่นส่วนตัว (Private Match)' : 'Private Match'}
-            </h2>
+        <div className="lg:col-span-4 flex flex-col h-full">
+          <div className="bg-[#141a26] border border-[#30363d] p-6 md:p-8 rounded-2xl relative overflow-hidden shadow-xl flex flex-col justify-between h-full">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#F59E0B] via-amber-400 to-[#F59E0B]"></div>
             
-            <div className="flex flex-col gap-5">
-              <button
-                onClick={handleCreateRoom}
-                disabled={!selectedDeckId || roomState !== 'IDLE'}
-                className="w-full bg-[#F59E0B] text-black font-cinzel font-bold py-4 text-lg rounded-lg hover:bg-[#D97706] hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(245,158,11,0.3)]"
-              >
-                {t.createRoom}
-              </button>
-
-              <div className="flex items-center gap-4 my-1">
-                <div className="flex-1 h-px bg-[#30363d]"></div>
-                <span className="text-xs text-[#94A3B8] font-mono">{language === 'th' ? 'หรือ' : 'OR'}</span>
-                <div className="flex-1 h-px bg-[#30363d]"></div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-[#F1F5F9] font-cinzel">{t.enterRoomCode}</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder={language === 'th' ? 'ใส่รหัส 6 หลัก' : 'Enter 6-digit code'}
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                    maxLength={6}
-                    disabled={!selectedDeckId || roomState !== 'IDLE'}
-                    className="flex-1 bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-lg px-4 py-3 text-base font-mono uppercase focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/50 focus:outline-none disabled:opacity-50 h-12"
-                  />
-                  <button
-                    onClick={handleJoinRoom}
-                    disabled={!selectedDeckId || joinCode.length < 6 || roomState !== 'IDLE'}
-                    className="px-6 bg-[#F59E0B] text-black font-bold rounded-lg hover:bg-[#D97706] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-12 font-cinzel"
-                  >
-                    <LogIn className="w-5 h-5" /> {t.joinRoom}
-                  </button>
+            <div>
+              <h2 className="font-cinzel text-xl md:text-2xl text-[#F1F5F9] mb-6 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-[#F59E0B]" />
                 </div>
-                <p className="text-xs text-[#94A3B8]">{language === 'th' ? 'ขอรหัส 6 หลักจากเพื่อนของคุณเพื่อเข้าร่วมห้อง' : 'Ask your friend for a 6-digit code'}</p>
+                {language === 'th' ? 'ห้องเล่นส่วนตัว (Private Match)' : 'Private Match'}
+              </h2>
+              
+              <div className="flex flex-col gap-6">
+                <button
+                  onClick={handleCreateRoom}
+                  disabled={!selectedDeckId || roomState !== 'IDLE'}
+                  className="w-full bg-[#F59E0B] text-black font-cinzel font-bold py-4 text-lg rounded-xl hover:bg-[#D97706] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(245,158,11,0.35)] cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" /> {t.createRoom}
+                </button>
+
+                <div className="flex items-center gap-4 my-1">
+                  <div className="flex-1 h-px bg-[#30363d]"></div>
+                  <span className="text-xs text-[#94A3B8] font-mono uppercase tracking-widest">{language === 'th' ? 'หรือเข้าร่วมห้อง' : 'OR JOIN ROOM'}</span>
+                  <div className="flex-1 h-px bg-[#30363d]"></div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm font-bold text-[#F1F5F9] font-cinzel flex items-center justify-between">
+                    <span>{t.enterRoomCode}</span>
+                    <span className="text-xs font-mono text-[#94A3B8] font-normal">{language === 'th' ? 'รหัส 6 หลัก' : '6 digits'}</span>
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      placeholder={language === 'th' ? 'ใส่รหัสห้อง' : 'Room Code'}
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      maxLength={6}
+                      disabled={!selectedDeckId || roomState !== 'IDLE'}
+                      className="flex-1 bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-xl px-4 py-3.5 text-center sm:text-left text-lg font-mono tracking-widest uppercase focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/50 focus:outline-none disabled:opacity-50 h-13 shadow-inner"
+                    />
+                    <button
+                      onClick={handleJoinRoom}
+                      disabled={!selectedDeckId || joinCode.length < 6 || roomState !== 'IDLE'}
+                      className="w-full sm:w-auto px-8 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-base rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-13 shadow-[0_4px_14px_rgba(245,158,11,0.3)] hover:scale-[1.02] shrink-0 cursor-pointer"
+                    >
+                      <LogIn className="w-5 h-5" /> {t.joinRoom}
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#94A3B8]">{language === 'th' ? 'ขอรหัส 6 หลักจากเพื่อนของคุณเพื่อเข้าร่วมห้อง' : 'Ask your friend for a 6-digit code'}</p>
+                </div>
               </div>
             </div>
 
             {roomState === 'CREATED' && currentRoomId && (
-              <div className="mt-6 p-5 bg-[#0B0F19] border border-[#F59E0B] rounded-lg text-center animate-in fade-in slide-in-from-top-4 duration-500 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-                <p className="text-sm text-[#94A3B8] mb-2 font-mono uppercase tracking-wider">{t.shareRoomCode}</p>
-                <div className="flex items-center justify-center gap-3">
-                  <p className="text-5xl font-mono font-bold text-[#F59E0B] tracking-widest">{currentRoomId}</p>
+              <div className="mt-8 p-6 bg-[#0B0F19] border-2 border-[#F59E0B] rounded-2xl text-center animate-in fade-in slide-in-from-top-4 duration-500 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                <p className="text-xs text-[#94A3B8] mb-3 font-mono uppercase tracking-widest">{t.shareRoomCode}</p>
+                <div className="flex items-center justify-center gap-4">
+                  <p className="text-5xl md:text-6xl font-mono font-bold text-[#F59E0B] tracking-widest">{currentRoomId}</p>
                   <button 
                     onClick={() => {
                       navigator.clipboard.writeText(currentRoomId);
                     }}
-                    className="p-2 bg-[#141a26] text-[#94A3B8] hover:text-[#F59E0B] border border-[#30363d] hover:border-[#F59E0B] rounded transition-colors"
+                    className="p-3 bg-[#141a26] text-[#94A3B8] hover:text-[#F59E0B] border border-[#30363d] hover:border-[#F59E0B] rounded-xl transition-colors cursor-pointer"
                     title={t.copyCode}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                   </button>
                 </div>
-                <div className="mt-5 flex items-center justify-center gap-2 text-[#F1F5F9] text-sm bg-[#141a26] py-2 px-4 rounded-full inline-flex">
+                <div className="mt-6 flex items-center justify-center gap-2 text-[#F1F5F9] text-sm bg-[#141a26] py-2.5 px-6 rounded-full inline-flex border border-[#30363d]">
                   <Loader2 className="w-4 h-4 animate-spin text-[#F59E0B]" />
                   {t.waitingForOpponent}
                 </div>
@@ -294,13 +305,13 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
             )}
 
             {opponent && (
-              <div className="mt-6 p-4 bg-[#0B0F19] border border-[#30363d] rounded-lg animate-in fade-in slide-in-from-bottom-4">
-                <p className="text-sm text-[#94A3B8] mb-2">{language === 'th' ? 'คู่แข่งเข้าร่วมห้องแล้ว' : 'Opponent Joined'}</p>
+              <div className="mt-8 p-5 bg-[#0B0F19] border border-[#30363d] rounded-xl animate-in fade-in slide-in-from-bottom-4">
+                <p className="text-xs text-[#94A3B8] mb-2 uppercase font-mono">{language === 'th' ? 'คู่แข่งเข้าร่วมห้องแล้ว' : 'Opponent Joined'}</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded bg-rose-900 flex items-center justify-center text-rose-300 font-bold text-lg">
+                  <div className="w-11 h-11 rounded-xl bg-rose-900/60 border border-rose-500/50 flex items-center justify-center text-rose-300 font-bold text-xl">
                     {opponent.username.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-bold text-[#F1F5F9] text-lg">{opponent.username}</span>
+                  <span className="font-bold text-[#F1F5F9] text-xl font-cinzel">{opponent.username}</span>
                 </div>
               </div>
             )}
@@ -308,21 +319,28 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
         </div>
 
         {/* RIGHT: Matchmaking */}
-        <div className="md:col-span-4 lg:col-span-4 h-full">
-          <div className="bg-[#141a26] border border-[#30363d] p-6 rounded-xl h-full flex flex-col shadow-lg">
-            <h2 className="font-cinzel text-xl text-[#F1F5F9] mb-4 flex items-center gap-2">
-              <Swords className="w-5 h-5 text-[#F59E0B]" /> {language === 'th' ? 'ค้นหาคู่แข่ง (Matchmaking)' : 'Ranked Matchmaking'}
-            </h2>
+        <div className="lg:col-span-4 h-full">
+          <div className="bg-[#141a26] border border-[#30363d] p-6 md:p-8 rounded-2xl h-full flex flex-col justify-between shadow-xl">
+            <div>
+              <h2 className="font-cinzel text-xl md:text-2xl text-[#F1F5F9] mb-6 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center">
+                  <Swords className="w-5 h-5 text-[#F59E0B]" />
+                </div>
+                {language === 'th' ? 'ค้นหาคู่แข่ง (Matchmaking)' : 'Ranked Matchmaking'}
+              </h2>
+            </div>
             
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 min-h-[300px]">
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 min-h-[340px]">
               {roomState === 'IDLE' || roomState === 'CREATED' ? (
                 <div className="animate-in fade-in duration-500 flex flex-col items-center w-full">
-                  <Swords className="w-20 h-20 text-[#30363d] mb-4" />
-                  <p className="text-[#94A3B8] text-sm mb-8">{language === 'th' ? 'ค้นหาผู้เล่นระดับฝีมือใกล้เคียงกันแบบอัตโนมัติ' : 'Find a worthy opponent automatically based on your skill level.'}</p>
+                  <div className="w-24 h-24 rounded-2xl bg-[#0B0F19] border border-[#30363d] flex items-center justify-center mb-6 shadow-inner">
+                    <Swords className="w-12 h-12 text-[#94A3B8]" />
+                  </div>
+                  <p className="text-[#94A3B8] text-sm mb-8 max-w-xs">{language === 'th' ? 'ค้นหาผู้เล่นระดับฝีมือใกล้เคียงกันแบบอัตโนมัติ และเข้าสู่สนามดวลทันที' : 'Find a worthy opponent automatically based on your skill level.'}</p>
                   <button
                     onClick={handleFindMatch}
                     disabled={!selectedDeckId || roomState === 'CREATED'}
-                    className="w-full py-4 border-2 border-[#F59E0B] text-[#F59E0B] font-cinzel font-bold text-lg rounded-lg hover:bg-[#F59E0B] hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)] hover:scale-[1.02]"
+                    className="w-full py-4 border-2 border-[#F59E0B] text-[#F59E0B] font-cinzel font-bold text-lg rounded-xl hover:bg-[#F59E0B] hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:scale-[1.02] cursor-pointer"
                   >
                     {language === 'th' ? 'ค้นหาห้องดวล' : 'FIND MATCH'}
                   </button>
@@ -338,21 +356,21 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
                   <p className="text-[#F59E0B] text-sm mb-8 font-mono animate-pulse">{language === 'th' ? 'ระยะเวลารอโดยประมาณ: 0:15' : 'Estimated wait: 0:15'}</p>
                   <button
                     onClick={handleCancelMatch}
-                    className="flex items-center gap-2 px-8 py-3 bg-[#0B0F19] border border-[#30363d] rounded-lg text-[#94A3B8] hover:text-rose-400 hover:border-rose-500 transition-colors"
+                    className="flex items-center gap-2 px-8 py-3 bg-[#0B0F19] border border-[#30363d] rounded-xl text-[#94A3B8] hover:text-rose-400 hover:border-rose-500 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" /> {language === 'th' ? 'ยกเลิกการค้นหา' : 'Cancel Search'}
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center animate-in zoom-in duration-500 w-full">
-                  <div className="w-24 h-24 bg-[#F59E0B] rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(245,158,11,0.6)] animate-bounce">
+                  <div className="w-24 h-24 bg-[#F59E0B] rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(245,158,11,0.6)] animate-bounce">
                     <Swords className="w-12 h-12 text-black" />
                   </div>
                   <h3 className="font-cinzel text-3xl font-bold text-[#F1F5F9] mb-3">{t.matchFound}</h3>
-                  <p className="text-[#F59E0B] font-mono mb-4 text-lg bg-[#0B0F19] px-4 py-2 rounded-lg border border-[#F59E0B]/30">{language === 'th' ? 'ห้อง:' : 'Room:'} {currentRoomId}</p>
+                  <p className="text-[#F59E0B] font-mono mb-4 text-lg bg-[#0B0F19] px-5 py-2.5 rounded-xl border border-[#F59E0B]/30">{language === 'th' ? 'ห้อง:' : 'Room:'} {currentRoomId}</p>
                   <div className="flex items-center gap-2 text-[#94A3B8]">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">{language === 'th' ? 'กำลังเข้าสู่สนามดวล...' : 'Entering game...'}</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#F59E0B]" />
+                    <span className="text-sm font-mono">{language === 'th' ? 'กำลังเข้าสู่สนามดวล...' : 'Entering game...'}</span>
                   </div>
                 </div>
               )}
