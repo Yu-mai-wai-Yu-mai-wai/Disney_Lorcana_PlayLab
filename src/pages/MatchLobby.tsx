@@ -4,8 +4,10 @@ import { webSocketService } from '../services/websocket';
 import { MatchDeckSelect } from '../components/MatchDeckSelect';
 import { apiService } from '../services/api';
 import { STARTER_POOL } from '../data/cardPool';
-import { Swords, LogIn, Plus, Loader2, X, AlertCircle } from 'lucide-react';
+import { Swords, LogIn, Plus, Loader2, X, AlertCircle, Palette, Sparkles } from 'lucide-react';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { usePlaymatStore } from '../store/usePlaymatStore';
+import { PlaymatSelectorModal } from '../components/PlaymatSelectorModal';
 
 interface MatchLobbyProps {
   onStartMatch: (deckId: string, deckName: string, roomId?: string, role?: string, deckObject?: any) => void;
@@ -14,6 +16,9 @@ interface MatchLobbyProps {
 export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   const { user, token, isAuthenticated } = useAuthStore();
   const { t, language } = useLanguageStore();
+  const { getCurrentPlaymat } = usePlaymatStore();
+  const currentPlaymat = getCurrentPlaymat();
+  const [isPlaymatModalOpen, setIsPlaymatModalOpen] = useState(false);
   const [decks, setDecks] = useState<any[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [selectedDeckName, setSelectedDeckName] = useState<string>('');
@@ -192,13 +197,28 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   return (
     <div className="flex flex-col h-full">
       {/* Header Bar */}
-      <div className="flex justify-between items-center px-8 py-4 bg-[#0B0F19] border-b border-[#30363d]">
-        <h1 className="font-cinzel text-2xl font-bold text-[#F1F5F9] flex items-center gap-3">
+      <div className="flex justify-between items-center px-6 md:px-8 py-4 bg-[#0B0F19] border-b border-[#30363d]">
+        <h1 className="font-cinzel text-xl md:text-2xl font-bold text-[#F1F5F9] flex items-center gap-3">
           <Swords className="w-6 h-6 text-[#F59E0B]" /> {t.lobbyTitle}
         </h1>
-        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-950/30 border border-emerald-900/50 rounded-full">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-xs font-mono text-emerald-400">{t.navServerOnline}</span>
+
+        <div className="flex items-center gap-3">
+          {/* Quick Playmat Skin Button */}
+          <button
+            onClick={() => setIsPlaymatModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#141a26] border border-[#F59E0B]/40 hover:border-[#F59E0B] text-[#F59E0B] text-xs font-cinzel font-bold transition-all shadow-md cursor-pointer group"
+          >
+            <Palette className="w-4 h-4 text-[#F59E0B] group-hover:rotate-12 transition-transform" />
+            <span className="hidden sm:inline">
+              {language === 'th' ? 'ลายสนาม:' : 'Playmat:'} {language === 'th' ? currentPlaymat.nameTh : currentPlaymat.name}
+            </span>
+            <span className="sm:hidden">{language === 'th' ? 'ลายสนาม' : 'Playmat'}</span>
+          </button>
+
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-950/30 border border-emerald-900/50 rounded-full">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-xs font-mono text-emerald-400">{t.navServerOnline}</span>
+          </div>
         </div>
       </div>
 
@@ -219,10 +239,46 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
       )}
 
       <div className="flex-1 max-w-[1600px] mx-auto w-full px-6 md:px-10 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        {/* LEFT: Deck Selection */}
-        <div className="lg:col-span-4 h-full">
-          <div className="bg-[#141a26] border border-[#30363d] p-6 rounded-2xl h-full flex flex-col shadow-xl">
+        {/* LEFT: Deck Selection & Playmat Customization */}
+        <div className="lg:col-span-4 h-full flex flex-col gap-5">
+          <div className="bg-[#141a26] border border-[#30363d] p-6 rounded-2xl flex flex-col shadow-xl flex-1">
             <MatchDeckSelect decks={decks} selectedDeckId={selectedDeckId} onSelect={handleDeckSelect} />
+          </div>
+
+          {/* Equipped Playmat Preview Card */}
+          <div className="bg-[#141a26] border border-[#30363d] p-4 rounded-2xl shadow-xl flex items-center justify-between gap-3 relative overflow-hidden">
+            <div
+              className="absolute inset-0 opacity-15 pointer-events-none"
+              style={{
+                backgroundImage: `url(${currentPlaymat.bgImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+            <div className="relative z-10 flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#F59E0B]/50 shrink-0 shadow-md">
+                <img src={currentPlaymat.previewImage} alt={currentPlaymat.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-cinzel font-bold text-[#F59E0B] uppercase tracking-wider block">
+                  {language === 'th' ? 'ลายสนามที่ติดตั้งอยู่' : 'EQUIPPED PLAYMAT'}
+                </span>
+                <h4 className="font-cinzel text-xs font-bold text-white truncate">
+                  {language === 'th' ? currentPlaymat.nameTh : currentPlaymat.name}
+                </h4>
+                <p className="text-[10px] text-slate-400 font-outfit truncate">
+                  {language === 'th' ? currentPlaymat.characterTh : currentPlaymat.character}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsPlaymatModalOpen(true)}
+              className="relative z-10 px-3 py-2 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black text-xs font-cinzel font-bold transition-all shadow-md cursor-pointer shrink-0 flex items-center gap-1.5"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>{language === 'th' ? 'เปลี่ยนลาย' : 'Change'}</span>
+            </button>
           </div>
         </div>
 
@@ -379,6 +435,12 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
           </div>
         </div>
       </div>
+
+      {/* Playmat Selector Modal */}
+      <PlaymatSelectorModal
+        isOpen={isPlaymatModalOpen}
+        onClose={() => setIsPlaymatModalOpen(false)}
+      />
     </div>
   );
 };

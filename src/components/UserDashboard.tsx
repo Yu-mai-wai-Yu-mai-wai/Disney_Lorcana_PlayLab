@@ -3,8 +3,10 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { apiService } from '../services/api';
 import { translateInkColor } from '../utils/cardTranslator';
-import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye } from 'lucide-react';
+import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye, Palette } from 'lucide-react';
 import { DeckViewerModal } from './DeckViewerModal';
+import { PlaymatSelectorModal } from './PlaymatSelectorModal';
+import { usePlaymatStore } from '../store/usePlaymatStore';
 
 interface UserDashboardProps {
   setActiveTab: (tab: 'hub' | 'board' | 'deckbuilder' | 'analytics' | 'rules' | 'dashboard') => void;
@@ -13,6 +15,9 @@ interface UserDashboardProps {
 export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) => {
   const { user, token, isAuthenticated, setAuth, logout } = useAuthStore();
   const { t, language } = useLanguageStore();
+  const { getCurrentPlaymat } = usePlaymatStore();
+  const currentPlaymat = getCurrentPlaymat();
+  const [isPlaymatModalOpen, setIsPlaymatModalOpen] = useState(false);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
@@ -303,6 +308,55 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                 <span>{language === 'th' ? 'ระบบจัดเก็บข้อมูลปลอดภัยบนคลาวด์' : 'Secured Account Storage'}</span>
               </div>
             </div>
+
+            {/* Playmat Skin Customizer Card */}
+            <div className="bg-[#141a26] p-6 rounded-xl border border-[#30363d] relative overflow-hidden shadow-xl">
+              <div
+                className="absolute inset-0 opacity-20 pointer-events-none"
+                style={{
+                  backgroundImage: `url(${currentPlaymat.bgImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#30363d]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center text-[#F59E0B]">
+                      <Palette className="w-4 h-4" />
+                    </div>
+                    <span className="font-cinzel text-sm font-bold text-[#F1F5F9]">
+                      {language === 'th' ? 'สกินสนามประลอง' : 'PLAYMAT SKIN'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/60 border border-[#F59E0B]/40 text-[#F59E0B]">
+                    {currentPlaymat.tag}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden border border-[#F59E0B]/50 shrink-0 shadow-md">
+                    <img src={currentPlaymat.previewImage} alt={currentPlaymat.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-cinzel text-sm font-bold text-white truncate">
+                      {language === 'th' ? currentPlaymat.nameTh : currentPlaymat.name}
+                    </h4>
+                    <p className="text-xs text-slate-400 font-outfit truncate">
+                      {language === 'th' ? currentPlaymat.characterTh : currentPlaymat.character}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsPlaymatModalOpen(true)}
+                  className="w-full py-2.5 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span>{language === 'th' ? 'เปลี่ยนลาย PLAYMAT' : 'CHANGE PLAYMAT SKIN'}</span>
+                </button>
+              </div>
+            </div>
           </section>
 
           {/* Right Column: Deck Library (Span 8) */}
@@ -450,6 +504,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
         isOpen={Boolean(viewingDeck)}
         deck={viewingDeck}
         onClose={() => setViewingDeck(null)}
+      />
+
+      {/* Playmat Skin Selector Modal */}
+      <PlaymatSelectorModal
+        isOpen={isPlaymatModalOpen}
+        onClose={() => setIsPlaymatModalOpen(false)}
       />
     </div>
   );

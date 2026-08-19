@@ -22,13 +22,16 @@ import {
   ChevronUp,
   ChevronDown,
   Dices,
+  Palette,
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
 import { DiceDuelModal } from './DiceDuelModal';
+import { PlaymatSelectorModal } from './PlaymatSelectorModal';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { usePlaymatStore } from '../store/usePlaymatStore';
 import { translateCardAbilityText, translateCardType, translateInkColor } from '../utils/cardTranslator';
 
 import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
@@ -59,6 +62,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 }) => {
   const { user } = useAuthStore();
   const { t, language } = useLanguageStore();
+  const { getCurrentPlaymat } = usePlaymatStore();
+  const currentPlaymat = getCurrentPlaymat();
+  const [isPlaymatModalOpen, setIsPlaymatModalOpen] = useState(false);
   const myUsername = user?.username || webSocketService.getUsername() || 'Illumineer';
 
   // ==== REAL GAME STATE — no mock values. Match starts fresh every time. ====
@@ -1134,6 +1140,15 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             )}
 
             <button
+              onClick={() => setIsPlaymatModalOpen(true)}
+              className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+              title="Change Battlefield Playmat Skin"
+            >
+              <Palette className="w-3.5 h-3.5 text-[#F59E0B]" />
+              <span className="hidden sm:inline">Playmat</span>
+            </button>
+
+            <button
               onClick={() => setIsDiceDuelOpen(true)}
               className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-colors cursor-pointer flex items-center gap-1.5"
               title="Open Pre-Match Dice Duel"
@@ -1152,8 +1167,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           </div>
         </div>
 
-        {/* BATTLEFIELD CONTAINERS (FIT IN REMAINING HEIGHT) */}
-        <div className="flex-1 flex flex-col min-h-0 justify-between py-1 relative">
+        {/* BATTLEFIELD CONTAINERS (FIT IN REMAINING HEIGHT) WITH PLAYMAT SKIN BACKGROUND */}
+        <div className="flex-1 flex flex-col min-h-0 justify-between py-1 relative overflow-hidden">
+          
+          {/* Custom Playmat Background Layer */}
+          <div
+            className="absolute inset-0 pointer-events-none transition-all duration-700 opacity-20"
+            style={{
+              backgroundImage: `url(${currentPlaymat.bgImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none transition-all duration-700"
+            style={{ background: currentPlaymat.ambientGlow }}
+          />
           
           {/* 1. OPPONENT BATTLEFIELD ZONE */}
           <div className="flex-1 flex flex-col justify-center items-center py-1 border-b border-[#30363d]/40 min-h-0">
@@ -1998,6 +2027,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         opponentName={playerRole === 'player1' ? 'Challenger' : 'Host'}
         onDuelFinished={handleDuelFinished}
         isSandbox={!matchMode}
+      />
+
+      {/* PLAYMAT SKIN SELECTOR MODAL */}
+      <PlaymatSelectorModal
+        isOpen={isPlaymatModalOpen}
+        onClose={() => setIsPlaymatModalOpen(false)}
       />
     </div>
   );
