@@ -901,8 +901,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         <div className="space-y-1.5 border-b border-[#30363d] pb-2.5 shrink-0">
           <div className="text-[11px] font-cinzel font-bold text-[#F59E0B] flex justify-between items-center">
             <span>OPPONENT PILES</span>
-            <span className="text-[#94A3B8] font-mono text-[10px] bg-[#0B0F19] px-1.5 py-0.5 rounded border border-[#30363d]">
-              Ink: {opponentInk}/{opponentInkCapacity}
+            <span className="text-[#94A3B8] font-mono text-[10px] bg-[#0B0F19] px-2 py-0.5 rounded border border-[#30363d] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+              Active
             </span>
           </div>
           <div className="flex gap-2 mt-1">
@@ -1022,20 +1023,72 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         
         {/* TOP STATUS HEADER BAR */}
         <div className="flex justify-between items-center w-full z-20 pb-2 border-b border-[#30363d] shrink-0">
-          <div className="px-3.5 py-1.5 rounded-xl border border-[#30363d] flex items-center gap-3 bg-[#141a26]">
-            <div className="flex flex-col items-start">
-              <span className="text-[9px] font-cinzel font-bold text-[#94A3B8] uppercase tracking-wider">Opponent Lore</span>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <motion.span
-                  key={opponentLore}
-                  initial={{ y: -8, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                  className="font-cinzel text-xl font-black text-rose-400 leading-none"
-                >
-                  {opponentLore}
-                </motion.span>
-                <span className="font-cinzel text-xs font-bold text-[#94A3B8]">/ 20</span>
+          <div className="flex items-center gap-2.5">
+            {/* OPPONENT LORE */}
+            <div className="px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-2.5 bg-[#141a26] shadow-sm shadow-rose-950/20">
+              <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-[9px] font-cinzel font-bold text-[#94A3B8] uppercase tracking-wider">Opponent Lore</span>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <motion.span
+                    key={opponentLore}
+                    initial={{ y: -8, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                    className="font-cinzel text-xl font-black text-rose-400 leading-none"
+                  >
+                    {opponentLore}
+                  </motion.span>
+                  <span className="font-cinzel text-xs font-bold text-[#94A3B8]">/ 20</span>
+                </div>
+              </div>
+            </div>
+
+            {/* OPPONENT INK (NEW PROMINENT & ATTRACTIVE DISPLAY) */}
+            <div className="px-3 py-1.5 rounded-xl border border-sky-500/30 flex items-center gap-2.5 bg-[#141a26] shadow-sm shadow-sky-950/20">
+              <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-500/40 flex items-center justify-center text-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.2)]">
+                <Droplets className="w-3.5 h-3.5 text-sky-400 fill-sky-400/50" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-[9px] font-cinzel font-bold text-sky-300 uppercase tracking-wider flex items-center gap-1">
+                  Opponent Ink
+                </span>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <motion.span
+                    key={`${opponentInk}-${opponentInkCapacity}`}
+                    initial={{ scale: 1.2, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                    className="font-mono text-lg font-black text-sky-400 leading-none"
+                  >
+                    {opponentInk}
+                  </motion.span>
+                  <span className="font-mono text-xs font-bold text-[#94A3B8]">
+                    / {opponentInkCapacity}
+                  </span>
+                </div>
+              </div>
+
+              {/* Visual mini ink pips indicator */}
+              <div className="flex items-center gap-1 ml-1 pl-2 border-l border-[#30363d]">
+                {Array.from({ length: Math.max(1, Math.min(6, opponentInkCapacity || 1)) }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-1.5 h-4 rounded-sm transition-all duration-300 ${
+                      idx < opponentInk
+                        ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]'
+                        : opponentInkCapacity > 0
+                        ? 'bg-slate-700/60 border border-slate-600/40'
+                        : 'bg-slate-800/40 border border-slate-700/30 opacity-40'
+                    }`}
+                    title={opponentInkCapacity > 0 ? `Ink Slot ${idx + 1}` : 'No Inkwell'}
+                  />
+                ))}
+                {opponentInkCapacity > 6 && (
+                  <span className="text-[9px] font-mono text-sky-400 font-bold ml-0.5">+{opponentInkCapacity - 6}</span>
+                )}
               </div>
             </div>
           </div>
