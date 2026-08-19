@@ -328,87 +328,99 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
             </div>
 
             {/* Deck Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
               {savedDecks.map((deck) => (
                 <div
                   key={deck.id}
-                  className="bg-[#141a26] rounded-xl overflow-hidden group flex flex-col h-full border border-[#30363d] hover:border-[#F59E0B] transition-colors"
+                  className="bg-[#141a26] rounded-2xl overflow-hidden group flex flex-col h-full border border-[#30363d] hover:border-[#F59E0B] transition-all shadow-lg hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
                 >
-                  <div className="h-36 relative w-full overflow-hidden border-b border-[#30363d]">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center opacity-80 group-hover:opacity-100 transition-opacity"
-                      style={{ backgroundImage: `url('${deck.bgUrl}')` }}
+                  <div className="h-44 relative w-full overflow-hidden border-b border-[#30363d] bg-[#0B0F19]">
+                    <img
+                      src={deck.bgUrl}
+                      alt={deck.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = 'https://api.lorcana.ravensburger.com/images/en/set1/12_da68c89ea3fc28a3a7396c30ab3da45e0f204eea.jpg';
+                      }}
+                      className="w-full h-full object-cover object-top opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                     />
-                    <div className="absolute inset-0 bg-[#0B0F19]/40" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#141a26] via-transparent to-black/40" />
 
-                    <div className="absolute top-3 right-3 flex gap-1.5">
+                    <div className="absolute top-3 right-3 flex flex-wrap gap-1.5 z-10">
                       {Array.from(new Set((deck.cards || []).map((c: any) => c.card?.ink || c.ink).filter(Boolean))).map((ink) => (
                         <span
                           key={ink as string}
-                          className="bg-[#0B0F19] border border-[#30363d] text-[#F59E0B] text-[10px] uppercase font-bold px-2 py-0.5 rounded"
+                          className="bg-[#0B0F19]/90 backdrop-blur-sm border border-[#30363d] text-[#F59E0B] text-[10px] uppercase font-bold px-2.5 py-1 rounded-md shadow"
                         >
                           {translateInkColor(ink as string, language)}
                         </span>
                       ))}
                     </div>
-                  </div>
 
-                  <div className="p-4 flex-grow flex flex-col justify-between bg-[#141a26]">
-                    <div>
-                      <h3 className="font-cinzel text-base font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">
+                    <div className="absolute bottom-3 left-4 right-4 z-10">
+                      <h3 className="font-cinzel text-lg font-bold text-white group-hover:text-[#F59E0B] transition-colors drop-shadow-md truncate">
                         {deck.name}
                       </h3>
-                      <div className="flex items-center gap-3 font-mono text-[11px] text-[#94A3B8] mt-1.5 mb-4">
-                        <span>{deck.cardCount} {t.cardsCount}</span>
+                      <div className="flex items-center gap-3 font-mono text-xs text-[#94A3B8] mt-0.5">
+                        <span className="text-[#F59E0B] font-bold">{deck.cardCount} {t.cardsCount}</span>
                         <span>• {t.lastUpdated} {deck.updatedAt}</span>
                       </div>
                     </div>
+                  </div>
 
+                  <div className="p-4 flex-grow flex flex-col justify-between bg-[#141a26] gap-3">
                     {/* Deck Quick Inspect Button */}
-                    <div className="mb-3">
-                      <button
-                        onClick={() => setViewingDeck(deck)}
-                        className="w-full flex items-center justify-center gap-2 py-2 bg-[#0B0F19] hover:bg-[#1a2333] border border-[#30363d] hover:border-[#F59E0B] rounded-lg text-xs font-mono text-[#F59E0B] transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{language === 'th' ? `ดูการ์ดในเด็คทั้งหมด (${deck.cards?.length || 0} แบบ)` : `View All Cards (${deck.cards?.length || 0} types)`}</span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setViewingDeck(deck)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#0B0F19] hover:bg-[#1e2638] border border-[#30363d] hover:border-[#F59E0B] rounded-xl text-xs font-mono font-bold text-[#F59E0B] transition-all cursor-pointer shadow-sm"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>{language === 'th' ? `ดูการ์ดในเด็คทั้งหมด (${deck.cards?.length || 0} แบบ)` : `View All Cards (${deck.cards?.length || 0} types)`}</span>
+                    </button>
 
-                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#30363d]">
+                    {/* Action Buttons Grid */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#30363d]/80">
                       <button
                         onClick={() => setActiveTab('deckbuilder')}
-                        className="flex items-center justify-center gap-1.5 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F59E0B] border border-[#F59E0B]/40 rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center justify-center gap-2 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F59E0B] border border-[#F59E0B]/40 hover:border-[#F59E0B] rounded-xl py-2.5 text-xs font-bold font-cinzel transition-all cursor-pointer shadow-sm"
                       >
-                        <Edit className="w-3.5 h-3.5" /> {t.editDeck}
+                        <Edit className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{t.editDeck}</span>
                       </button>
+
                       <button
                         onClick={() => setActiveTab('board')}
-                        className="flex items-center justify-center gap-1.5 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F1F5F9] border border-[#30363d] rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center justify-center gap-2 bg-[#F59E0B] hover:bg-[#D97706] text-black rounded-xl py-2.5 text-xs font-bold font-cinzel transition-all cursor-pointer shadow-[0_2px_10px_rgba(245,158,11,0.25)] hover:scale-[1.02]"
                       >
-                        <Gamepad2 className="w-3.5 h-3.5 text-[#F59E0B]" /> {t.playSandbox}
+                        <Gamepad2 className="w-4 h-4 shrink-0 text-black" />
+                        <span className="truncate">{t.playSandbox}</span>
                       </button>
+
                       <button
                         onClick={() => setActiveTab('analytics')}
-                        className="flex items-center justify-center gap-1.5 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F1F5F9] border border-[#30363d] rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center justify-center gap-2 bg-[#0B0F19] hover:bg-[#1e2638] text-[#F1F5F9] border border-[#30363d] hover:border-emerald-500/50 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer"
                       >
-                        <BarChart3 className="w-3.5 h-3.5 text-emerald-400" /> {t.deckStats}
+                        <BarChart3 className="w-4 h-4 shrink-0 text-emerald-400" />
+                        <span className="truncate">{t.deckStats}</span>
                       </button>
+
                       {confirmDeleteId === deck.id ? (
                         <button
                           onClick={() => handleDeleteDeckClick(deck.id)}
                           aria-label="Confirm Delete deck"
-                          className="flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
+                          className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer animate-pulse"
                         >
-                          {t.deleteDeckConfirm}
+                          <Trash2 className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{t.deleteDeckConfirm}</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => handleDeleteDeckClick(deck.id)}
                           aria-label="Delete deck"
-                          className="flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-950/40 border border-[#30363d] rounded-lg py-1.5 text-xs font-bold transition-colors cursor-pointer"
+                          className="flex items-center justify-center gap-2 text-rose-400 hover:text-white bg-[#0B0F19] hover:bg-rose-600/80 border border-[#30363d] hover:border-rose-500 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> {t.deleteDeck}
+                          <Trash2 className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{t.deleteDeck}</span>
                         </button>
                       )}
                     </div>
@@ -418,15 +430,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
 
               <button
                 onClick={() => setActiveTab('deckbuilder')}
-                className="bg-[#141a26] rounded-xl overflow-hidden group flex flex-col h-full min-h-[260px] items-center justify-center border-dashed border border-[#30363d] hover:border-[#F59E0B] transition-colors cursor-pointer p-6"
+                className="bg-[#141a26] rounded-2xl overflow-hidden group flex flex-col h-full min-h-[260px] items-center justify-center border-2 border-dashed border-[#30363d] hover:border-[#F59E0B] transition-all cursor-pointer p-6 hover:bg-[#1a2133]"
               >
-                <div className="w-12 h-12 rounded-lg bg-[#0B0F19] flex items-center justify-center mb-3 group-hover:border border-[#F59E0B]">
-                  <Plus className="w-6 h-6 text-[#94A3B8] group-hover:text-[#F59E0B] transition-colors" />
+                <div className="w-14 h-14 rounded-2xl bg-[#0B0F19] border border-[#30363d] flex items-center justify-center mb-3 group-hover:border-[#F59E0B] group-hover:scale-110 transition-all shadow-inner">
+                  <Plus className="w-7 h-7 text-[#94A3B8] group-hover:text-[#F59E0B] transition-colors" />
                 </div>
-                <span className="font-cinzel text-sm font-bold text-[#94A3B8] group-hover:text-[#F1F5F9] transition-colors">
+                <span className="font-cinzel text-base font-bold text-[#94A3B8] group-hover:text-[#F1F5F9] transition-colors">
                   {t.createNewDeck}
                 </span>
-                <span className="font-mono text-xs text-[#94A3B8]/70 mt-1">{language === 'th' ? `เหลือ ${Math.max(0, 10 - savedDecks.length)} ช่องเก็บ` : `${Math.max(0, 10 - savedDecks.length)} Slots Remaining`}</span>
+                <span className="font-mono text-xs text-[#94A3B8]/70 mt-1.5">{language === 'th' ? `เหลือ ${Math.max(0, 10 - savedDecks.length)} ช่องเก็บเด็ค` : `${Math.max(0, 10 - savedDecks.length)} Slots Remaining`}</span>
               </button>
             </div>
           </section>

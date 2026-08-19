@@ -440,15 +440,15 @@ export const DeckBuilder: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Column: Deck List Panel (30%) */}
-      <div className="w-full md:w-[30%] flex flex-col gap-6">
+      {/* Right Column: Deck List Panel (30%) - Fixed/Sticky on Desktop */}
+      <div className="w-full md:w-[30%] flex flex-col gap-6 md:sticky md:top-20 md:self-start md:max-h-[calc(100vh-6rem)]">
         
         {userDecks.length > 0 && (
-          <div className="bg-[#141a26] p-5 rounded-xl border border-[#30363d] flex flex-col gap-3">
-            <h3 className="font-cinzel text-sm font-bold text-[#F59E0B]">{t.savedDecks}</h3>
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
+          <div className="bg-[#141a26] p-4 rounded-xl border border-[#30363d] flex flex-col gap-2.5 shadow-lg">
+            <h3 className="font-cinzel text-xs font-bold text-[#F59E0B] uppercase tracking-wider">{t.savedDecks}</h3>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
               {userDecks.map(deck => (
-                <div key={deck.deckId} className="p-2 bg-[#0B0F19] rounded border border-[#30363d] flex justify-between items-center text-xs cursor-pointer hover:border-[#F59E0B]" onClick={() => {
+                <div key={deck.deckId} className="p-2 bg-[#0B0F19] rounded-lg border border-[#30363d] flex justify-between items-center text-xs cursor-pointer hover:border-[#F59E0B] transition-colors" onClick={() => {
                   setDeckName(deck.name);
                   clearDeck();
                   deck.cards.forEach((c: any) => {
@@ -459,14 +459,14 @@ export const DeckBuilder: React.FC = () => {
                   else setAnalysisResult(null);
                 }}>
                   <span className="font-bold text-white truncate">{deck.name}</span>
-                  <span className="text-[#94A3B8] font-mono shrink-0">{deck.totalCards} {t.cardsCount}</span>
+                  <span className="text-[#94A3B8] font-mono text-[11px] shrink-0">{deck.totalCards} {t.cardsCount}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="bg-[#141a26] p-5 rounded-2xl border border-[#30363d] flex flex-col gap-4 sticky top-20 shadow-xl">
+        <div className="bg-[#141a26] p-5 rounded-2xl border border-[#30363d] flex flex-col gap-4 shadow-xl overflow-hidden">
           {/* Deck Header & Custom Name Input */}
           <div className="pb-3 border-b border-[#30363d] space-y-2.5">
             <div className="flex justify-between items-center">
