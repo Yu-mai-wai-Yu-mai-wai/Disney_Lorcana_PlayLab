@@ -257,27 +257,28 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
                 <div className="flex flex-col gap-3">
                   <label className="text-sm font-bold text-[#F1F5F9] font-cinzel flex items-center justify-between">
                     <span>{t.enterRoomCode}</span>
-                    <span className="text-xs font-mono text-[#94A3B8] font-normal">{language === 'th' ? 'รหัส 6 หลัก' : '6 digits'}</span>
+                    <span className="text-xs font-mono text-[#F59E0B] font-normal">{language === 'th' ? 'รหัส 6 หลัก' : '6 digits'}</span>
                   </label>
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col gap-3 w-full">
                     <input
                       type="text"
-                      placeholder={language === 'th' ? 'ใส่รหัสห้อง' : 'Room Code'}
+                      placeholder={language === 'th' ? 'กรอกรหัสห้อง 6 หลัก (เช่น ABC123)' : 'Enter 6-digit Room Code'}
                       value={joinCode}
                       onChange={(e) => setJoinCode(e.target.value)}
                       maxLength={6}
                       disabled={!selectedDeckId || roomState !== 'IDLE'}
-                      className="flex-1 bg-[#0B0F19] border border-[#30363d] text-[#F1F5F9] rounded-xl px-4 py-3.5 text-center sm:text-left text-lg font-mono tracking-widest uppercase focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/50 focus:outline-none disabled:opacity-50 h-13 shadow-inner"
+                      className="w-full bg-[#0B0F19] border-2 border-[#30363d] focus:border-[#F59E0B] text-[#F59E0B] rounded-xl px-4 py-3.5 text-center text-xl font-mono font-bold tracking-[0.25em] uppercase focus:ring-2 focus:ring-[#F59E0B]/30 focus:outline-none disabled:opacity-50 h-14 shadow-inner placeholder:tracking-normal placeholder:font-sans placeholder:text-sm placeholder:text-[#64748B]"
                     />
                     <button
                       onClick={handleJoinRoom}
                       disabled={!selectedDeckId || joinCode.length < 6 || roomState !== 'IDLE'}
-                      className="w-full sm:w-auto px-8 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-base rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-13 shadow-[0_4px_14px_rgba(245,158,11,0.3)] hover:scale-[1.02] shrink-0 cursor-pointer"
+                      className="w-full py-3.5 px-6 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-base rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 h-14 shadow-[0_4px_16px_rgba(245,158,11,0.35)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                     >
-                      <LogIn className="w-5 h-5" /> {t.joinRoom}
+                      <LogIn className="w-5 h-5 shrink-0" />
+                      <span>{t.joinRoom}</span>
                     </button>
                   </div>
-                  <p className="text-xs text-[#94A3B8]">{language === 'th' ? 'ขอรหัส 6 หลักจากเพื่อนของคุณเพื่อเข้าร่วมห้อง' : 'Ask your friend for a 6-digit code'}</p>
+                  <p className="text-xs text-[#94A3B8] text-center">{language === 'th' ? 'ขอรหัส 6 หลักจากเพื่อนของคุณเพื่อเข้าร่วมห้อง' : 'Ask your friend for a 6-digit code'}</p>
                 </div>
               </div>
             </div>
