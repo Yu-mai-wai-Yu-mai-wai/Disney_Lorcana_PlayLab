@@ -72,7 +72,20 @@ export type WebSocketActionType =
   | 'ROOM_STATE'
   | 'ERROR'
   | 'CHAT_MESSAGE'
-  | 'CARD_DRAWN';
+  | 'CARD_DRAWN'
+  | 'REJOIN_ROOM'
+  | 'REQUEST_UNDO'
+  | 'RESPOND_UNDO'
+  | 'UNDO_REQUESTED'
+  | 'UNDO_RESOLVED'
+  | 'ACTION_PLAYED'
+  | 'ABILITY_TRIGGERED'
+  | 'PLAYER_DISCONNECTED'
+  | 'PLAYER_RECONNECTED'
+  | 'OPPONENT_DISCONNECTED'
+  | 'REQUEST_STATE_SYNC'
+  | 'STATE_SYNC_RESPONSE'
+  | 'STATE_SYNC';
 
 export interface MatchPlayer {
   username: string;
@@ -103,6 +116,19 @@ export interface WebSocketMessagePayload {
   username?: string;
   role?: 'player1' | 'player2';
   cardId?: string;
+  cardName?: string;
+  cardTitle?: string;
+  cardImage?: string;
+  inkColor?: string;
+  abilityName?: string;
+  abilityText?: string;
+  thaiText?: string;
+  category?: string;
+  actionHint?: string;
+  cardType?: string;
+  cost?: number;
+  zone?: string;
+  card?: any;
   position?: { x: number; y: number; zone: string };
   isExerted?: boolean;
   loreScore?: number;
@@ -113,10 +139,24 @@ export interface WebSocketMessagePayload {
   deckName?: string;
   message?: string;
   turnNumber?: number;
+  senderInk?: number;
+  senderInkCapacity?: number;
+  senderLore?: number;
+  senderExerted?: Record<string, boolean>;
+  senderFieldCards?: any[];
   choice?: 'ODD' | 'EVEN';
   diceValue?: number;
   p1Choice?: 'ODD' | 'EVEN';
   p2Choice?: 'ODD' | 'EVEN';
   firstPlayerRole?: 'player1' | 'player2';
   payload?: any;
+  voteAccepted?: boolean;
+  requesterUsername?: string;
+  requesterRole?: 'player1' | 'player2';
+  respondedBy?: string;
+  previousState?: any;
+  isSelf?: boolean;
+  gameAction?: string;
+  realAction?: string;
+  type?: string;
 }

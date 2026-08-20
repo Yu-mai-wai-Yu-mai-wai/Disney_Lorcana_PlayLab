@@ -269,6 +269,116 @@ class WebSocketService {
     return this.currentUsername;
   }
 
+  public rejoinRoom(roomId: string, deckId?: string, deckName?: string): void {
+    this.currentRoomId = roomId;
+    const payload: any = {
+      action: 'REJOIN_ROOM',
+      gameAction: 'REJOIN_ROOM',
+      type: 'REJOIN_ROOM',
+      roomId,
+      username: this.currentUsername,
+      role: this.currentRole,
+      deckId,
+      deckName,
+    };
+    this.send(payload);
+
+    // Also sendAction to ensure it relays across AWS WS relay if REJOIN_ROOM route is unrouted
+    this.sendAction('PLAYER_RECONNECTED' as any, {
+      roomId,
+      role: this.currentRole,
+      username: this.currentUsername,
+      isSelf: false,
+    });
+
+    if (WS_ENDPOINT.includes('demo.execute-api')) {
+      setTimeout(() => {
+        this.handleIncomingMessage({
+          action: 'PLAYER_RECONNECTED',
+          gameAction: 'PLAYER_RECONNECTED',
+          roomId,
+          role: this.currentRole,
+          username: this.currentUsername,
+          isSelf: true,
+        });
+      }, 300);
+    }
+  }
+
+  public requestUndo(previousState: any, roomId?: string): void {
+    const targetRoomId = roomId || this.currentRoomId || '108249';
+    // Send via standard sendAction envelope for 100% AWS WS relay compatibility
+    this.sendAction('UNDO_REQUESTED' as any, {
+      roomId: targetRoomId,
+      role: this.currentRole,
+      username: this.currentUsername,
+      requesterUsername: this.currentUsername,
+      requesterRole: this.currentRole,
+      previousState,
+    });
+
+    // Also send explicit REQUEST_UNDO for direct backend route handlers
+    this.send({
+      action: 'REQUEST_UNDO',
+      gameAction: 'REQUEST_UNDO',
+      type: 'REQUEST_UNDO',
+      roomId: targetRoomId,
+      username: this.currentUsername,
+      role: this.currentRole,
+      previousState,
+    });
+
+    if (WS_ENDPOINT.includes('demo.execute-api')) {
+      setTimeout(() => {
+        this.handleIncomingMessage({
+          action: 'UNDO_REQUESTED',
+          gameAction: 'UNDO_REQUESTED',
+          roomId: targetRoomId,
+          requesterUsername: this.currentUsername,
+          requesterRole: this.currentRole,
+          previousState,
+        });
+      }, 300);
+    }
+  }
+
+  public respondUndo(voteAccepted: boolean, previousState?: any, roomId?: string): void {
+    const targetRoomId = roomId || this.currentRoomId || '108249';
+    // Send via standard sendAction envelope for 100% AWS WS relay compatibility
+    this.sendAction('UNDO_RESOLVED' as any, {
+      roomId: targetRoomId,
+      role: this.currentRole,
+      username: this.currentUsername,
+      voteAccepted,
+      previousState,
+      respondedBy: this.currentUsername,
+    });
+
+    // Also send explicit RESPOND_UNDO for direct backend route handlers
+    this.send({
+      action: 'RESPOND_UNDO',
+      gameAction: 'RESPOND_UNDO',
+      type: 'RESPOND_UNDO',
+      roomId: targetRoomId,
+      username: this.currentUsername,
+      voteAccepted,
+      previousState,
+    });
+
+    if (WS_ENDPOINT.includes('demo.execute-api')) {
+      setTimeout(() => {
+        this.handleIncomingMessage({
+          action: 'UNDO_RESOLVED',
+          gameAction: 'UNDO_RESOLVED',
+          roomId: targetRoomId,
+          voteAccepted,
+          previousState,
+          respondedBy: this.currentUsername,
+        });
+      }, 300);
+    }
+  }
+
   public sendChat(message: string, roomId?: string, role?: 'player1' | 'player2'): void {
     this.sendAction('CHAT_MESSAGE' as WebSocketActionType, {
       message,

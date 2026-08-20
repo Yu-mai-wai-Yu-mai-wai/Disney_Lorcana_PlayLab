@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Check, Sparkles, X, Shield, Star, Image as ImageIcon } from 'lucide-react';
 import { PLAYMAT_SKINS, type PlaymatSkin } from '../data/playmats';
@@ -14,10 +15,27 @@ interface PlaymatSelectorModalProps {
 export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOpen, onClose }) => {
   const { currentPlaymatId, setPlaymatId } = usePlaymatStore();
   const { language } = useLanguageStore();
+  const [mounted, setMounted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Official' | 'Classic' | 'Special'>('All');
   const [previewSkinId, setPreviewSkinId] = useState<string>(currentPlaymatId);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and restore on unmount/close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!mounted || !isOpen) return null;
 
   const filteredSkins = PLAYMAT_SKINS.filter((skin) => {
     if (selectedCategory === 'All') return true;
@@ -32,8 +50,8 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
     setPlaymatId(skin.id);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -287,6 +305,7 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
           </button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 };

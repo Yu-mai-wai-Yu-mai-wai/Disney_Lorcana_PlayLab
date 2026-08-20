@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Dices, Crown, ArrowRight, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { Dices, Crown, ArrowRight, CheckCircle2, Loader2, RefreshCw, Timer } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
+import { useLanguageStore } from '../store/useLanguageStore';
 
 export interface DiceDuelModalProps {
   isOpen: boolean;
@@ -20,7 +22,25 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
   onDuelFinished,
   isSandbox = false,
 }) => {
+  const { language } = useLanguageStore();
   const isHost = myRole === 'player1';
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and restore on unmount/close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
 
   const [step, setStep] = useState<'CHOOSE' | 'READY_TO_ROLL' | 'ROLLING' | 'RESULT' | 'TIE' | 'ORDER_CHOSEN'>('CHOOSE');
   const [myChoice, setMyChoice] = useState<'ODD' | 'EVEN' | null>(null);
@@ -29,12 +49,14 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
   const [winnerRole, setWinnerRole] = useState<'player1' | 'player2' | null>(null);
   const [chosenFirstPlayer, setChosenFirstPlayer] = useState<'player1' | 'player2' | null>(null);
   const [tieReason, setTieReason] = useState<string>('');
+  const [countdown, setCountdown] = useState<number>(15);
 
   // Refs to avoid stale closures in timeouts and socket event handlers
   const myChoiceRef = useRef<'ODD' | 'EVEN' | null>(null);
   const opponentChoiceRef = useRef<'ODD' | 'EVEN' | null>(null);
   const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     myChoiceRef.current = myChoice;
@@ -56,10 +78,12 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
       setWinnerRole(null);
       setChosenFirstPlayer(null);
       setTieReason('');
+      setCountdown(15);
     }
     return () => {
       if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
       if (animTimerRef.current) clearTimeout(animTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
   }, [isOpen]);
 
@@ -201,6 +225,36 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
     }
   };
 
+  // Auto-pick countdown timer for Step CHOOSE
+  useEffect(() => {
+    if (!isOpen || step !== 'CHOOSE') {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      return;
+    }
+
+    setCountdown(15);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+          // If player hasn't chosen yet, auto-pick random ODD or EVEN
+          if (!myChoiceRef.current) {
+            const randomPick: 'ODD' | 'EVEN' = Math.random() < 0.5 ? 'ODD' : 'EVEN';
+            handleSelectChoice(randomPick);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, [isOpen, step]);
+
   // Re-roll on Tie
   const handleReroll = () => {
     setStep('CHOOSE');
@@ -242,10 +296,10 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
   const isWinner = winnerRole === myRole || (isSandbox && winnerRole === 'player1');
   const isOddResult = diceValue % 2 !== 0;
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg">
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -320,6 +374,20 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
         {/* STEP 1: CHOICE PHASE */}
         {step === 'CHOOSE' && (
           <div className="w-full space-y-4">
+            {/* Countdown timer pill */}
+            <div className="flex items-center justify-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border transition-colors ${
+                countdown <= 5
+                  ? 'bg-rose-950/60 border-rose-500/80 text-rose-300 animate-pulse'
+                  : 'bg-amber-950/40 border-[#F59E0B]/50 text-[#F59E0B]'
+              }`}>
+                <Timer className="w-3.5 h-3.5" />
+                <span>
+                  {language === 'th' ? `เหลือเวลาเลือก: ${countdown}s (สุ่มอัตโนมัติหากหมดเวลา)` : `Time remaining: ${countdown}s (Auto-pick on timeout)`}
+                </span>
+              </span>
+            </div>
+
             <p className="text-sm font-bold text-[#F1F5F9] font-cinzel">
               {myChoice ? '✨ คุณได้ล็อกตัวเลือกแล้ว — กำลังรอคู่ต่อสู้เลือก' : 'กรุณาเลือกทายเลขคี่ หรือ เลขคู่:'}
             </p>
@@ -358,7 +426,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
 
             {!myChoice && (
               <p className="text-[11px] text-[#94A3B8]">
-                💡 เมื่อทั้งสองฝ่ายเลือกเสร็จ ระบบจะทอยลูกเต๋าอัตโนมัติ
+                💡 เมื่อทั้งสองฝ่ายเลือกเสร็จ ระบบจะทอยลูกเต๋าอัตโนมัติ (หากหมดเวลาระบบจะสุ่มเลือกให้)
               </p>
             )}
           </div>
@@ -513,6 +581,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
           </div>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ModalProps {
@@ -19,6 +20,11 @@ export const Modal: React.FC<ModalProps> = ({
   overlayClassName = 'bg-[#0B0F19]/80',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Lock body scroll and restore on unmount/close
   useEffect(() => {
@@ -88,10 +94,12 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 font-outfit select-none overflow-y-auto ${overlayClassName}`}>
+        <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 font-outfit select-none overflow-y-auto ${overlayClassName}`}>
           {/* Backdrop click close */}
           <div className="absolute inset-0 z-0" onClick={onClose} aria-hidden="true" />
 
@@ -112,6 +120,7 @@ export const Modal: React.FC<ModalProps> = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

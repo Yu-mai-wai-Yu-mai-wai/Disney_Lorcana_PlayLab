@@ -11,14 +11,14 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
   const { t, language } = useLanguageStore();
 
   return (
-    <div className="relative min-h-screen text-[#F1F5F9] font-outfit select-none overflow-x-hidden bg-[#0B0F19]">
+    <div className="relative min-h-screen text-[#F1F5F9] font-outfit select-none overflow-x-hidden bg-transparent">
       {/* Magic Enrichment (Landing only, per design.md R3): gold light + parchment texture */}
       <div className="magic-glow-gold" aria-hidden="true" />
       <div className="magic-parchment" aria-hidden="true" />
 
       {/* Editorial Hero Section */}
       <main className="pt-20 pb-12 px-6 w-full max-w-6xl mx-auto relative z-10 flex flex-col items-center text-center min-h-[60vh] justify-center gap-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141a26] border border-[#30363d] text-[#F59E0B] text-xs font-mono font-bold uppercase">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141a26]/90 border border-[#30363d] text-[#F59E0B] text-xs font-mono font-bold uppercase backdrop-blur-md">
           <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
           <span>{t.hubHeroBadge}</span>
         </div>
@@ -34,7 +34,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
           <button
             onClick={() => setActiveTab('board')}
-            className="btn-primary-magic bg-[#F59E0B] hover:bg-[#D97706] text-black px-7 py-3.5 rounded-lg font-cinzel font-bold text-sm uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="btn-primary-magic bg-[#F59E0B] hover:bg-[#D97706] text-black px-7 py-3.5 rounded-lg font-cinzel font-bold text-sm uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg"
           >
             <Gamepad2 className="w-4 h-4 text-black" />
             <span>{t.hubStartSandbox}</span>
@@ -42,7 +42,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
 
           <button
             onClick={() => setActiveTab('deckbuilder')}
-            className="px-7 py-3.5 rounded-lg font-cinzel font-bold text-sm text-[#F1F5F9] border border-[#30363d] hover:border-[#F59E0B] transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="px-7 py-3.5 rounded-lg font-cinzel font-bold text-sm text-[#F1F5F9] border border-[#30363d] hover:border-[#F59E0B] transition-colors cursor-pointer flex items-center justify-center gap-2 bg-[#141a26]/70 backdrop-blur-md"
           >
             <Layers className="w-4 h-4 text-[#F59E0B]" />
             <span>{t.hubCreateDeck}</span>
@@ -72,7 +72,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
                 setActiveTab('board');
               }
             }}
-            className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors flex flex-col gap-3 items-start group cursor-pointer"
+            className="glass-card rounded-2xl p-6 flex flex-col gap-3 items-start group cursor-pointer"
           >
             <RefreshCw className="w-6 h-6 text-[#F59E0B]" />
             <h3 className="font-cinzel text-lg font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">
@@ -94,7 +94,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
                 setActiveTab('analytics');
               }
             }}
-            className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors flex flex-col gap-3 items-start group cursor-pointer"
+            className="glass-card rounded-2xl p-6 flex flex-col gap-3 items-start group cursor-pointer"
           >
             <Cloud className="w-6 h-6 text-[#F59E0B]" />
             <h3 className="font-cinzel text-lg font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">
@@ -116,7 +116,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
                 setActiveTab('deckbuilder');
               }
             }}
-            className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors flex flex-col gap-3 items-start group cursor-pointer"
+            className="glass-card rounded-2xl p-6 flex flex-col gap-3 items-start group cursor-pointer"
           >
             <Database className="w-6 h-6 text-[#F59E0B]" />
             <h3 className="font-cinzel text-lg font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">
@@ -138,7 +138,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
                 setActiveTab('rules');
               }
             }}
-            className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors flex flex-col gap-3 items-start group cursor-pointer"
+            className="glass-card rounded-2xl p-6 flex flex-col gap-3 items-start group cursor-pointer"
           >
             <BookOpen className="w-6 h-6 text-[#F59E0B]" />
             <h3 className="font-cinzel text-lg font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">
@@ -152,7 +152,7 @@ export const GameHub: React.FC<GameHubProps> = ({ setActiveTab }) => {
       </section>
 
       {/* Editorial Footer */}
-      <footer className="w-full py-12 border-t border-[#30363d] bg-[#0B0F19] mt-12 relative z-10">
+      <footer className="w-full py-12 border-t border-[#30363d]/60 bg-[#0B0F19]/80 backdrop-blur-md mt-12 relative z-10">
         <div className="flex flex-col items-center gap-6 px-6 w-full max-w-6xl mx-auto text-center">
           <div className="flex items-center gap-3">
             <img

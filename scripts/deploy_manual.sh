@@ -89,7 +89,7 @@ aws apigatewayv2 update-stage --api-id "$WS_API" --stage-name "$STAGE" --default
 WS_INT=$(aws apigatewayv2 create-integration --api-id "$WS_API" --integration-type AWS_PROXY \
   --integration-uri "arn:aws:apigateway:${REGION}:lambda:path/2015-03-31/functions/$(aws lambda get-function --function-name lorcana-room --region "$REGION" --query 'Configuration.FunctionArn' --output text)/invocations" \
   --region "$REGION" --query "IntegrationId" --output text)
-for route in '$connect' '$disconnect' '$default' 'sendAction' 'CREATE_ROOM' 'JOIN_ROOM' 'MATCHMAKING_JOIN' 'MATCHMAKING_LEAVE' 'DICE_CHOICE' 'DICE_ROLLED' 'DICE_REROLL' 'FIRST_PLAYER_CHOSEN' 'CARD_MOVED' 'CARD_EXERTED' 'CARD_DRAWN' 'INK_PLAYED' 'LORE_UPDATED' 'QUEST_DONE' 'CHALLENGE_DONE' 'TURN_PASSED' 'CHAT_MESSAGE' 'DECK_SELECTED' 'GAME_RESTART'; do
+for route in '$connect' '$disconnect' '$default' 'sendAction' 'CREATE_ROOM' 'JOIN_ROOM' 'REJOIN_ROOM' 'MATCHMAKING_JOIN' 'MATCHMAKING_LEAVE' 'DICE_CHOICE' 'DICE_ROLLED' 'DICE_REROLL' 'FIRST_PLAYER_CHOSEN' 'CARD_MOVED' 'CARD_EXERTED' 'CARD_DRAWN' 'INK_PLAYED' 'LORE_UPDATED' 'QUEST_DONE' 'CHALLENGE_DONE' 'TURN_PASSED' 'CHAT_MESSAGE' 'DECK_SELECTED' 'GAME_RESTART' 'PLAYER_RECONNECTED' 'REQUEST_STATE_SYNC' 'STATE_SYNC_RESPONSE' 'REQUEST_UNDO' 'RESPOND_UNDO' 'UNDO_REQUESTED' 'UNDO_RESOLVED'; do
   aws apigatewayv2 create-route --api-id "$WS_API" --route-key "$route" --target "integrations/$WS_INT" --region "$REGION" >/dev/null 2>&1 && echo "  WS route: $route" || echo "  WS route $route exists"
 done
 

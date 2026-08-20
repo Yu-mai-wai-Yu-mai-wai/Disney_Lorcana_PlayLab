@@ -50,6 +50,7 @@ export const DeckBuilder: React.FC = () => {
   const [isBoosterModalOpen, setIsBoosterModalOpen] = React.useState(false);
   const [isRecommendedModalOpen, setIsRecommendedModalOpen] = React.useState(false);
   const [isDeckViewerOpen, setIsDeckViewerOpen] = React.useState(false);
+  const [viewingMetaDeck, setViewingMetaDeck] = React.useState<any | null>(null);
 
   const CARDS_PER_PAGE = 24;
 
@@ -188,13 +189,13 @@ export const DeckBuilder: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto flex flex-col md:flex-row gap-6 mt-4 font-outfit select-none bg-[#0B0F19]">
+    <div className="p-6 max-w-7xl mx-auto flex flex-col md:flex-row gap-6 mt-4 font-outfit select-none bg-transparent">
       {/* Left Column: Filter Bar & Card Grid (70%) */}
       <div className="w-full md:w-[70%] flex flex-col gap-6">
         
         {/* Top Feature Banner & Filter Bar */}
         <div className="flex flex-col gap-4">
-          <div className="bg-[#141a26] p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-[#30363d]">
+          <div className="bg-[#141a26]/85 backdrop-blur-md p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-white/10 shadow-lg">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3.5 top-3 w-4 h-4 text-[#94A3B8]" />
@@ -210,7 +211,7 @@ export const DeckBuilder: React.FC = () => {
             {/* Open Booster Pack Button */}
             <button
               onClick={() => setIsBoosterModalOpen(true)}
-              className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-4 py-2 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shrink-0"
+              className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-4 py-2 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shrink-0 shadow-md"
             >
               <Gift className="w-4 h-4 text-black" />
               <span>{t.openBoosterPack}</span>
@@ -218,7 +219,7 @@ export const DeckBuilder: React.FC = () => {
           </div>
 
           {/* Secondary Filters Bar */}
-          <div className="bg-[#141a26] p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-[#30363d]">
+          <div className="bg-[#141a26]/85 backdrop-blur-md p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-white/10 shadow-lg">
             {/* Ink Color Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto py-1">
               {INK_COLORS.map((ink) => {
@@ -466,7 +467,7 @@ export const DeckBuilder: React.FC = () => {
           </div>
         )}
 
-        <div className="bg-[#141a26] p-5 rounded-2xl border border-[#30363d] flex flex-col gap-4 shadow-xl overflow-hidden">
+        <div className="bg-[#141a26]/85 backdrop-blur-md p-5 rounded-2xl border border-white/10 flex flex-col gap-4 shadow-xl overflow-hidden">
           {/* Deck Header & Custom Name Input */}
           <div className="pb-3 border-b border-[#30363d] space-y-2.5">
             <div className="flex justify-between items-center">
@@ -681,14 +682,14 @@ export const DeckBuilder: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 custom-scrollbar">
               {RECOMMENDED_DECKS.map((deck) => {
                 const totalCards = deck.cards.reduce((sum, c) => sum + c.count, 0);
                 return (
                   <div key={deck.id} className="bg-[#0B0F19] rounded-xl border border-[#30363d] p-5 flex flex-col gap-4 hover:border-[#F59E0B] transition-colors group">
                     <div>
                       <h3 className="font-cinzel text-lg font-bold text-[#F1F5F9] group-hover:text-[#F59E0B] transition-colors">{deck.name}</h3>
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {deck.inkColors.map(ink => (
                           <span key={ink} className={`text-[10px] font-bold px-2 py-0.5 rounded border border-[#30363d] ${ink === 'Ruby' ? 'text-rose-400' : ink === 'Amethyst' ? 'text-purple-400' : ink === 'Amber' ? 'text-amber-400' : ink === 'Steel' ? 'text-slate-400' : ink === 'Sapphire' ? 'text-blue-400' : 'text-emerald-400'}`}>
                             {translateInkColor(ink, language)}
@@ -697,32 +698,66 @@ export const DeckBuilder: React.FC = () => {
                       </div>
                     </div>
                     
-                    <p className="text-sm text-[#94A3B8] flex-1">{deck.description}</p>
+                    <p className="text-xs text-[#94A3B8] flex-1 leading-relaxed">{deck.description}</p>
                     
-                    <div className="flex justify-between items-center text-xs font-mono border-t border-[#30363d] pt-4">
-                      <span className="text-[#F1F5F9]">{deck.archetype}</span>
+                    <div className="flex justify-between items-center text-xs font-mono border-t border-[#30363d] pt-3">
+                      <span className="text-[#F1F5F9] bg-[#141a26] px-2 py-0.5 rounded border border-[#30363d]">{deck.archetype}</span>
                       <span className="text-[#F59E0B] font-bold">{totalCards} {t.cardsCount}</span>
                     </div>
 
-                    <button 
-                      onClick={() => {
-                        const confirmMsg = language === 'th' ? 'ต้องการโหลดเด็คนี้หรือไม่? การกระทำนี้จะแทนที่เด็คปัจจุบันของคุณ' : 'Load this deck? This will replace your current deck.';
-                        if(window.confirm(confirmMsg)) {
-                          clearDeck();
-                          setDeckName(deck.name);
-                          deck.cards.forEach(deckCard => {
-                            const foundCard = cardsDatabase.find(c => c.id === deckCard.cardId);
-                            if (foundCard) {
-                              for(let i=0; i<deckCard.count; i++) addCard(foundCard);
-                            }
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button
+                        onClick={() => {
+                          // Enrich recommended deck cards with database metadata
+                          const enrichedCards = deck.cards.map(dc => {
+                            const found = cardsDatabase.find(c => c.id === dc.cardId);
+                            return {
+                              card: found || {
+                                id: dc.cardId,
+                                name: 'Lorcana Card',
+                                cost: 1,
+                                ink: deck.inkColors[0] || 'Amber',
+                                type: 'Character' as any,
+                                inkwell: true,
+                                rarity: 'Common',
+                              },
+                              count: dc.count
+                            };
                           });
-                          setIsRecommendedModalOpen(false);
-                        }
-                      }}
-                      className="w-full bg-[#141a26] hover:bg-[#F59E0B] border border-[#F59E0B] text-[#F59E0B] hover:text-black py-2 rounded font-cinzel font-bold text-xs uppercase tracking-wider transition-colors mt-2 cursor-pointer"
-                    >
-                      {t.loadRecommended}
-                    </button>
+                          setIsDeckViewerOpen(true);
+                          setViewingMetaDeck({
+                            name: deck.name,
+                            cards: enrichedCards,
+                            deckId: deck.id,
+                            rawDeck: deck
+                          });
+                        }}
+                        className="w-full bg-[#0B0F19] hover:bg-[#1f2738] border border-[#30363d] hover:border-[#F59E0B] text-[#94A3B8] hover:text-[#F1F5F9] py-2 rounded font-cinzel font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>{language === 'th' ? 'ดูการ์ด' : 'View'}</span>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          const confirmMsg = language === 'th' ? 'ต้องการโหลดเด็คนี้หรือไม่? การกระทำนี้จะแทนที่เด็คปัจจุบันของคุณ' : 'Load this deck? This will replace your current deck.';
+                          if(window.confirm(confirmMsg)) {
+                            clearDeck();
+                            setDeckName(deck.name);
+                            deck.cards.forEach(deckCard => {
+                              const foundCard = cardsDatabase.find(c => c.id === deckCard.cardId);
+                              if (foundCard) {
+                                for(let i=0; i<deckCard.count; i++) addCard(foundCard);
+                              }
+                            });
+                            setIsRecommendedModalOpen(false);
+                          }
+                        }}
+                        className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-black py-2 rounded font-cinzel font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {t.loadRecommended}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -734,11 +769,27 @@ export const DeckBuilder: React.FC = () => {
       {/* FULL DECK VIEWER POP-UP MODAL */}
       <DeckViewerModal
         isOpen={isDeckViewerOpen}
-        deck={{
+        deck={viewingMetaDeck ? viewingMetaDeck : {
           name: deckName,
           cards: currentDeck,
         }}
-        onClose={() => setIsDeckViewerOpen(false)}
+        onClose={() => {
+          setIsDeckViewerOpen(false);
+          setViewingMetaDeck(null);
+        }}
+        onSelect={viewingMetaDeck ? () => {
+          clearDeck();
+          setDeckName(viewingMetaDeck.rawDeck.name);
+          viewingMetaDeck.rawDeck.cards.forEach((deckCard: any) => {
+            const foundCard = cardsDatabase.find(c => c.id === deckCard.cardId);
+            if (foundCard) {
+              for(let i=0; i<deckCard.count; i++) addCard(foundCard);
+            }
+          });
+          setIsDeckViewerOpen(false);
+          setIsRecommendedModalOpen(false);
+          setViewingMetaDeck(null);
+        } : undefined}
       />
     </div>
   );

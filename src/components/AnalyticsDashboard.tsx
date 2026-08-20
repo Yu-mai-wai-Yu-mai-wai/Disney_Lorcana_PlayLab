@@ -6,9 +6,9 @@ export const AnalyticsDashboard: React.FC = () => {
   const { t, language } = useLanguageStore();
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 mt-4 font-outfit select-none bg-[#0B0F19]">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 mt-4 font-outfit select-none bg-transparent">
       {/* Top Banner Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-[#30363d] pb-6 gap-4 bg-[#141a26] p-6 rounded-xl border border-[#30363d]">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end pb-6 gap-4 bg-[#141a26]/85 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-lg">
         <div>
           <h1 className="font-cinzel font-bold text-2xl md:text-3xl text-[#F1F5F9] mb-2">
             {t.analyticsTitle}
@@ -19,7 +19,7 @@ export const AnalyticsDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-[#0B0F19] px-4 py-2.5 rounded-lg flex items-center gap-3 border border-[#30363d]">
+        <div className="bg-[#0B0F19]/80 px-4 py-2.5 rounded-xl flex items-center gap-3 border border-[#30363d] backdrop-blur-sm">
           <div className="flex -space-x-2">
             <div className="w-7 h-7 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B] flex items-center justify-center text-[10px] font-bold text-[#F59E0B]">
               Am
@@ -38,7 +38,7 @@ export const AnalyticsDashboard: React.FC = () => {
       {/* KPI Metrics Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Metric 1: Ink Efficiency */}
-        <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
+        <div className="glass-card rounded-2xl p-6">
           <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest mb-4">
             {t.analyticsEfficiencyScore}
           </div>
@@ -46,14 +46,14 @@ export const AnalyticsDashboard: React.FC = () => {
             <div className="font-cinzel text-4xl font-bold text-[#F1F5F9]">
               88<span className="text-sm font-normal text-[#94A3B8]">/100</span>
             </div>
-            <div className="w-10 h-10 rounded-full border-2 border-[#F59E0B] flex items-center justify-center bg-[#0B0F19]">
+            <div className="w-10 h-10 rounded-full border-2 border-[#F59E0B] flex items-center justify-center bg-[#0B0F19]/80 shadow-md">
               <TrendingDown className="w-5 h-5 text-[#F59E0B] rotate-180" />
             </div>
           </div>
         </div>
 
         {/* Metric 2: Avg Ink Cost */}
-        <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
+        <div className="glass-card rounded-2xl p-6">
           <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest mb-4">
             {t.analyticsAvgCost}
           </div>
@@ -68,7 +68,7 @@ export const AnalyticsDashboard: React.FC = () => {
         </div>
 
         {/* Metric 3: Inkable Ratio */}
-        <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
+        <div className="glass-card rounded-2xl p-6">
           <div className="flex justify-between items-start mb-4">
             <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest">
               {t.analyticsInkableRatio}
@@ -84,7 +84,7 @@ export const AnalyticsDashboard: React.FC = () => {
         </div>
 
         {/* Metric 4: Lore Potential */}
-        <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] hover:border-[#F59E0B] transition-colors">
+        <div className="glass-card rounded-2xl p-6">
           <div className="text-[#94A3B8] font-bold text-xs uppercase tracking-widest mb-4">
             {t.analyticsLorePotential}
           </div>
@@ -100,7 +100,7 @@ export const AnalyticsDashboard: React.FC = () => {
       {/* Main Charts Area */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar Chart Area */}
-        <div className="bg-[#141a26] rounded-xl p-6 border border-[#30363d] lg:col-span-2 flex flex-col h-[400px]">
+        <div className="glass-panel rounded-2xl p-6 lg:col-span-2 flex flex-col h-[400px]">
           <h3 className="font-cinzel font-bold text-lg text-[#F1F5F9] mb-6 border-b border-[#30363d] pb-4 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[#F59E0B]" />
             <span>{t.analyticsCurveDist}</span>

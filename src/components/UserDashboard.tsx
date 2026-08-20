@@ -125,11 +125,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   };
 
   return (
-    <div className="min-h-screen text-[#F1F5F9] font-outfit select-none pt-16 pb-16 px-6 max-w-7xl mx-auto space-y-8 bg-[#0B0F19]">
+    <div className="min-h-screen text-[#F1F5F9] font-outfit select-none pt-16 pb-16 px-6 max-w-7xl mx-auto space-y-8 bg-transparent">
       {!isAuthenticated || !user ? (
         /* Unauthenticated View: Centered Login / Register Form */
         <div className="max-w-md mx-auto">
-          <div className="bg-[#141a26] p-8 rounded-xl border border-[#30363d] space-y-6">
+          <div className="glass-panel p-8 rounded-2xl space-y-6 shadow-2xl">
             <div className="flex items-center gap-3.5 pb-4 border-b border-[#30363d]">
               <div className="w-10 h-10 rounded-lg bg-[#0B0F19] border border-[#30363d] flex items-center justify-center text-[#F59E0B]">
                 <Sparkles className="w-5 h-5" />
@@ -268,7 +268,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: User Profile Card (Span 4) */}
           <section className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-[#141a26] p-8 rounded-xl border border-[#30363d] flex flex-col justify-between">
+            <div className="glass-panel p-8 rounded-2xl flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#30363d]">
                   <div className="w-10 h-10 rounded-lg bg-[#0B0F19] border border-[#30363d] flex items-center justify-center text-[#F59E0B]">
@@ -310,7 +310,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
             </div>
 
             {/* Playmat Skin Customizer Card */}
-            <div className="bg-[#141a26] p-6 rounded-xl border border-[#30363d] relative overflow-hidden shadow-xl">
+            <div className="glass-panel p-6 rounded-2xl relative overflow-hidden shadow-xl">
               <div
                 className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{

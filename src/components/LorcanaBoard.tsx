@@ -23,12 +23,21 @@ import {
   ChevronDown,
   Dices,
   Palette,
+  Undo2,
+  WifiOff,
+  BookOpen,
+  Crown,
+  Trophy,
+  HelpCircle,
+  Flame,
+  Info,
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
 import { DiceDuelModal } from './DiceDuelModal';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
+import { AbilityNotificationBanner, type AbilityAlert } from './AbilityNotificationBanner';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { usePlaymatStore } from '../store/usePlaymatStore';
@@ -37,6 +46,36 @@ import { translateCardAbilityText, translateCardType, translateInkColor } from '
 import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
 
 export type LorcanaCard = PoolCard & { isWet?: boolean };
+
+export interface SavedBoardState {
+  playerLore: number;
+  opponentLore: number;
+  inkwellCapacity: number;
+  availableInk: number;
+  opponentInk: number;
+  opponentInkCapacity: number;
+  hasInkedThisTurn: boolean;
+  turnNumber: number;
+  firstPlayerRole: 'player1' | 'player2';
+  isMyTurn: boolean;
+  handCards: LorcanaCard[];
+  deckCards: LorcanaCard[];
+  deckCount: number;
+  discardCount: number;
+  opponentDeckCount: number;
+  opponentDiscardCount: number;
+  fieldCards: LorcanaCard[];
+  opponentFieldCards: LorcanaCard[];
+  exertedCards: Record<string, boolean>;
+  opponentExerted: Record<string, boolean>;
+  damage: Record<string, number>;
+  turnPhase: 'beginning' | 'main' | 'end';
+  hasMulliganed: boolean;
+  isMulliganPhase: boolean;
+  logMessages: string[];
+  undoCountRemaining: number;
+  timestamp: number;
+}
 
 export const isCardInkable = (card?: LorcanaCard | null): boolean => {
   if (!card) return false;
@@ -50,6 +89,7 @@ export interface LorcanaBoardProps {
   roomId?: string;
   playerRole?: 'player1' | 'player2';
   matchMode?: boolean;
+  isRejoin?: boolean;
   onExitMatch?: () => void;
 }
 
@@ -58,6 +98,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   roomId,
   playerRole,
   matchMode = false,
+  isRejoin = false,
   onExitMatch,
 }) => {
   const { user } = useAuthStore();
@@ -65,24 +106,44 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const { getCurrentPlaymat } = usePlaymatStore();
   const currentPlaymat = getCurrentPlaymat();
   const [isPlaymatModalOpen, setIsPlaymatModalOpen] = useState(false);
+  const [isRulesQuickModalOpen, setIsRulesQuickModalOpen] = useState(false);
+  const [rulesActiveTab, setRulesActiveTab] = useState<'steps' | 'actions' | 'keywords' | 'win'>('steps');
   const myUsername = user?.username || webSocketService.getUsername() || 'Illumineer';
 
-  // ==== REAL GAME STATE — no mock values. Match starts fresh every time. ====
-  const [playerLore, setPlayerLore] = useState(0);
-  const [opponentLore, setOpponentLore] = useState(0);
-  const [inkwellCapacity, setInkwellCapacity] = useState(0);
-  const [availableInk, setAvailableInk] = useState(0);
-  const [opponentInk, setOpponentInk] = useState(0);
-  const [opponentInkCapacity, setOpponentInkCapacity] = useState(0);
-  const [hasInkedThisTurn, setHasInkedThisTurn] = useState(false);
-  const [turnNumber, setTurnNumber] = useState(1);
-  const [firstPlayerRole, setFirstPlayerRole] = useState<'player1' | 'player2'>('player1');
-  const [isDiceDuelOpen, setIsDiceDuelOpen] = useState(matchMode);
-  const [isMyTurn, setIsMyTurn] = useState(() => {
-    // In a real match, player1 starts first by default unless dice duel decides otherwise
+  // Load saved active board state for this room (if available, recent, and explicitly in isRejoin mode)
+  const savedBoard: SavedBoardState | null = React.useMemo(() => {
+    if (!roomId || !isRejoin) return null;
+    try {
+      const raw = localStorage.getItem(`lorcana_board_state_${roomId}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - (parsed.timestamp || 0) < 7200000) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load saved board state', e);
+    }
+    return null;
+  }, [roomId, isRejoin]);
+
+  // ==== REAL GAME STATE — restored from saved state on Rejoin or fresh start ====
+  const [playerLore, setPlayerLore] = useState<number>(() => (savedBoard ? savedBoard.playerLore ?? 0 : 0));
+  const [opponentLore, setOpponentLore] = useState<number>(() => (savedBoard ? savedBoard.opponentLore ?? 0 : 0));
+  const [inkwellCapacity, setInkwellCapacity] = useState<number>(() => (savedBoard ? savedBoard.inkwellCapacity ?? 0 : 0));
+  const [availableInk, setAvailableInk] = useState<number>(() => (savedBoard ? savedBoard.availableInk ?? 0 : 0));
+  const [opponentInk, setOpponentInk] = useState<number>(() => (savedBoard ? savedBoard.opponentInk ?? 0 : 0));
+  const [opponentInkCapacity, setOpponentInkCapacity] = useState<number>(() => (savedBoard ? savedBoard.opponentInkCapacity ?? 0 : 0));
+  const [hasInkedThisTurn, setHasInkedThisTurn] = useState<boolean>(() => (savedBoard ? savedBoard.hasInkedThisTurn ?? false : false));
+  const [turnNumber, setTurnNumber] = useState<number>(() => (savedBoard ? savedBoard.turnNumber ?? 1 : 1));
+  const [firstPlayerRole, setFirstPlayerRole] = useState<'player1' | 'player2'>(() => (savedBoard ? savedBoard.firstPlayerRole ?? 'player1' : 'player1'));
+  const [isDiceDuelOpen, setIsDiceDuelOpen] = useState<boolean>(() => (isRejoin ? false : matchMode));
+  const [isMyTurn, setIsMyTurn] = useState<boolean>(() => {
+    if (savedBoard) return savedBoard.isMyTurn ?? (playerRole !== 'player2');
     if (matchMode) return playerRole !== 'player2';
     return true;
   });
+
   // Build initial 60-card deck from initialDeck or standard starter pool
   const [initialFullDeck] = useState<LorcanaCard[]>(() => {
     let deck: LorcanaCard[] = [];
@@ -112,21 +173,21 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     return deck.sort(() => Math.random() - 0.5);
   });
 
-  // Deal initial 7 cards to hand, remaining to deckCards
-  const [handCards, setHandCards] = useState<LorcanaCard[]>(() => initialFullDeck.slice(0, 7));
-  const [deckCards, setDeckCards] = useState<LorcanaCard[]>(() => initialFullDeck.slice(7));
-  const [deckCount, setDeckCount] = useState<number>(() => initialFullDeck.length - 7);
-  const [discardCount, setDiscardCount] = useState(0);
+  // Deal initial 7 cards to hand, remaining to deckCards (or restore saved hand/deck)
+  const [handCards, setHandCards] = useState<LorcanaCard[]>(() => (savedBoard?.handCards && savedBoard.handCards.length > 0 ? savedBoard.handCards : initialFullDeck.slice(0, 7)));
+  const [deckCards, setDeckCards] = useState<LorcanaCard[]>(() => (savedBoard?.deckCards ? savedBoard.deckCards : initialFullDeck.slice(7)));
+  const [deckCount, setDeckCount] = useState<number>(() => (savedBoard?.deckCount !== undefined ? savedBoard.deckCount : (savedBoard?.deckCards ? savedBoard.deckCards.length : initialFullDeck.length - 7)));
+  const [discardCount, setDiscardCount] = useState<number>(() => (savedBoard?.discardCount ?? 0));
 
-  const [opponentDeckCount, setOpponentDeckCount] = useState(53);
-  const [opponentDiscardCount, setOpponentDiscardCount] = useState(0);
+  const [opponentDeckCount, setOpponentDeckCount] = useState<number>(() => (savedBoard?.opponentDeckCount ?? 53));
+  const [opponentDiscardCount, setOpponentDiscardCount] = useState<number>(() => (savedBoard?.opponentDiscardCount ?? 0));
 
   const [cardPool, setCardPool] = useState<LorcanaCard[]>([]);
-  const [damage, setDamage] = useState<Record<string, number>>({});
+  const [damage, setDamage] = useState<Record<string, number>>(() => (savedBoard?.damage ?? {}));
   const [selectedAttacker, setSelectedAttacker] = useState<string | null>(null);
-  const [turnPhase, setTurnPhase] = useState<'beginning' | 'main' | 'end'>('beginning');
-  const [hasMulliganed, setHasMulliganed] = useState(false);
-  const [isMulliganPhase, setIsMulliganPhase] = useState(false);
+  const [turnPhase, setTurnPhase] = useState<'beginning' | 'main' | 'end'>(() => (savedBoard?.turnPhase ?? 'beginning'));
+  const [hasMulliganed, setHasMulliganed] = useState<boolean>(() => (savedBoard?.hasMulliganed ?? (isRejoin ? true : false)));
+  const [isMulliganPhase, setIsMulliganPhase] = useState<boolean>(() => (savedBoard ? (savedBoard.isMulliganPhase ?? false) : false));
   const [mulliganSelectedIds, setMulliganSelectedIds] = useState<string[]>([]);
 
   // Mutable refs to prevent stale closure issues in WebSocket callbacks
@@ -255,16 +316,84 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [isDraggingCard, setIsDraggingCard] = useState(false);
   const [isDraggingOverInkwell, setIsDraggingOverInkwell] = useState(false);
 
-  const [exertedCards, setExertedCards] = useState<Record<string, boolean>>({});
+  const [exertedCards, setExertedCards] = useState<Record<string, boolean>>(() => (savedBoard?.exertedCards ?? {}));
 
-  const [logMessages, setLogMessages] = useState<string[]>([
-    'Match started. Initial 60-card decks shuffled and 7 cards dealt to hand.',
-  ]);
+  // ABILITY & COMPLEX EFFECTS NOTIFICATION STATE
+  const [abilityAlerts, setAbilityAlerts] = useState<AbilityAlert[]>([]);
+
+  const dismissAbilityAlert = (id: string) => {
+    setAbilityAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const triggerAbilityAlert = (
+    card: LorcanaCard,
+    abilityName: string,
+    abilityText: string,
+    source: 'player' | 'opponent' = 'player',
+    category: 'auto_resolved' | 'keyword' | 'complex_effect' | 'trigger' = 'auto_resolved',
+    actionHint?: string
+  ) => {
+    const newAlert: AbilityAlert = {
+      id: `${card.id}-${Date.now()}-${Math.random()}`,
+      source,
+      cardName: card.name,
+      cardTitle: card.title,
+      cardImage: card.imageUrl,
+      inkColor: card.ink,
+      abilityName: abilityName || 'Special Ability',
+      originalText: abilityText,
+      thaiText: translateCardAbilityText(abilityText),
+      category,
+      actionHint,
+      timestamp: Date.now(),
+    };
+
+    setAbilityAlerts((prev) => [newAlert, ...prev.slice(0, 2)]);
+
+    if (source === 'player' && matchModeRef.current) {
+      webSocketService.sendAction('ABILITY_TRIGGERED' as any, {
+        roomId: roomId || undefined,
+        role: playerRoleRef.current,
+        cardId: card.id,
+        cardName: card.name,
+        cardTitle: card.title,
+        cardImage: card.imageUrl,
+        inkColor: card.ink,
+        abilityName: abilityName || 'Special Ability',
+        abilityText: abilityText,
+        thaiText: translateCardAbilityText(abilityText),
+        category,
+        actionHint,
+        payload: {
+          cardName: card.name,
+          cardTitle: card.title,
+          cardImage: card.imageUrl,
+          inkColor: card.ink,
+          abilityName: abilityName || 'Special Ability',
+          abilityText: abilityText,
+          thaiText: translateCardAbilityText(abilityText),
+          category,
+          actionHint,
+        },
+      });
+    }
+  };
+
+  const [logMessages, setLogMessages] = useState<string[]>(() => {
+    if (savedBoard?.logMessages && savedBoard.logMessages.length > 0) {
+      return [`🔄 Restored active game state (Turn ${savedBoard.turnNumber || 1}). Resuming match...`, ...savedBoard.logMessages];
+    }
+    if (isRejoin) {
+      return [`🔄 Reconnected to match in room ${roomId || ''}. Resuming gameplay...`];
+    }
+    return ['Match started. Initial 60-card decks shuffled and 7 cards dealt to hand.'];
+  });
 
   // Initial player battlefield cards state
-  const [fieldCards, setFieldCards] = useState<LorcanaCard[]>([]);
+  const [fieldCards, setFieldCards] = useState<LorcanaCard[]>(() => (savedBoard?.fieldCards ?? []));
   
   const [opponentFieldCards, setOpponentFieldCards] = useState<LorcanaCard[]>(() => {
+    if (savedBoard?.opponentFieldCards) return savedBoard.opponentFieldCards;
     if (matchMode) return [];
     return [
       {
@@ -275,7 +404,187 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }
     ];
   });
-  const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>({});
+  const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>(() => (savedBoard?.opponentExerted ?? {}));
+
+  // UNDO / RETURN VOTE SYSTEM STATES
+  const [previousSnapshot, setPreviousSnapshot] = useState<any | null>(null);
+  const [undoCountRemaining, setUndoCountRemaining] = useState<number>(() => (savedBoard?.undoCountRemaining ?? 2)); // Max 2 undos per match
+  const [isUndoPending, setIsUndoPending] = useState(false);
+  const [incomingUndoRequest, setIncomingUndoRequest] = useState<{ requesterUsername: string; previousState: any } | null>(null);
+  const [undoVoteTimer, setUndoVoteTimer] = useState(15);
+  const undoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-persist board state to localStorage whenever state changes
+  React.useEffect(() => {
+    if (!matchMode || !roomId) return;
+    try {
+      const stateToSave: SavedBoardState = {
+        playerLore,
+        opponentLore,
+        inkwellCapacity,
+        availableInk,
+        opponentInk,
+        opponentInkCapacity,
+        hasInkedThisTurn,
+        turnNumber,
+        firstPlayerRole,
+        isMyTurn,
+        handCards,
+        deckCards,
+        deckCount,
+        discardCount,
+        opponentDeckCount,
+        opponentDiscardCount,
+        fieldCards,
+        opponentFieldCards,
+        exertedCards,
+        opponentExerted,
+        damage,
+        turnPhase,
+        hasMulliganed,
+        isMulliganPhase,
+        logMessages: logMessages.slice(0, 30),
+        undoCountRemaining,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(`lorcana_board_state_${roomId}`, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.error('Failed to auto-save board state', e);
+    }
+  }, [
+    matchMode,
+    roomId,
+    playerLore,
+    opponentLore,
+    inkwellCapacity,
+    availableInk,
+    opponentInk,
+    opponentInkCapacity,
+    hasInkedThisTurn,
+    turnNumber,
+    firstPlayerRole,
+    isMyTurn,
+    handCards,
+    deckCards,
+    deckCount,
+    discardCount,
+    opponentDeckCount,
+    opponentDiscardCount,
+    fieldCards,
+    opponentFieldCards,
+    exertedCards,
+    opponentExerted,
+    damage,
+    turnPhase,
+    hasMulliganed,
+    isMulliganPhase,
+    logMessages,
+    undoCountRemaining,
+  ]);
+
+  // OPPONENT DISCONNECT OVERLAY STATE (60s Grace Period)
+  const [isOpponentDisconnected, setIsOpponentDisconnected] = useState(false);
+  const [disconnectCountdown, setDisconnectCountdown] = useState(60);
+  const disconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Capture game snapshot before an action
+  const captureSnapshot = () => {
+    setPreviousSnapshot({
+      playerLore,
+      opponentLore,
+      inkwellCapacity,
+      availableInk,
+      opponentInk,
+      opponentInkCapacity,
+      hasInkedThisTurn,
+      turnNumber,
+      isMyTurn,
+      handCards: [...handCards],
+      deckCards: [...deckCards],
+      deckCount,
+      discardCount,
+      fieldCards: [...fieldCards],
+      opponentFieldCards: [...opponentFieldCards],
+      exertedCards: { ...exertedCards },
+      opponentExerted: { ...opponentExerted },
+      damage: { ...damage },
+    });
+  };
+
+  const handleRequestUndo = () => {
+    if (!previousSnapshot) {
+      showNotice('No previous action to undo this turn!', 'warning');
+      return;
+    }
+    if (undoCountRemaining <= 0) {
+      showNotice('You have reached the maximum undo limit (2 per game)!', 'error');
+      return;
+    }
+    if (!isMyTurn) {
+      showNotice('You can only request undo during your turn!', 'warning');
+      return;
+    }
+
+    setIsUndoPending(true);
+    webSocketService.requestUndo(previousSnapshot, roomId);
+    showNotice('Sent undo request to opponent (Waiting for vote)...', 'warning');
+    setLogMessages(prev => ['You requested to undo the last action. Waiting for opponent vote...', ...prev]);
+  };
+
+  const handleRespondUndoVote = (accept: boolean) => {
+    if (!incomingUndoRequest) return;
+    if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+    
+    webSocketService.respondUndo(accept, incomingUndoRequest.previousState, roomId);
+    if (accept && incomingUndoRequest.previousState) {
+      // Restore from opponent perspective (i.e. I am NOT the requester)
+      applySnapshot(incomingUndoRequest.previousState, false);
+      showNotice('You accepted opponent undo request. Game state restored.', 'success');
+      setLogMessages(prev => ['You voted YES to undo. Game rolled back to previous state.', ...prev]);
+    } else {
+      showNotice('You declined opponent undo request.', 'warning');
+      setLogMessages(prev => ['You voted NO to undo request.', ...prev]);
+    }
+    setIncomingUndoRequest(null);
+  };
+
+  const applySnapshot = (snap: any, isRequester: boolean = true) => {
+    if (!snap) return;
+
+    if (isRequester) {
+      // Full restore for the player who requested undo
+      if (snap.playerLore !== undefined) setPlayerLore(snap.playerLore);
+      if (snap.opponentLore !== undefined) setOpponentLore(snap.opponentLore);
+      if (snap.inkwellCapacity !== undefined) setInkwellCapacity(snap.inkwellCapacity);
+      if (snap.availableInk !== undefined) setAvailableInk(snap.availableInk);
+      if (snap.opponentInk !== undefined) setOpponentInk(snap.opponentInk);
+      if (snap.opponentInkCapacity !== undefined) setOpponentInkCapacity(snap.opponentInkCapacity);
+      if (snap.hasInkedThisTurn !== undefined) setHasInkedThisTurn(snap.hasInkedThisTurn);
+      if (snap.turnNumber !== undefined) setTurnNumber(snap.turnNumber);
+      if (snap.isMyTurn !== undefined) setIsMyTurn(snap.isMyTurn);
+      if (snap.handCards) setHandCards(snap.handCards);
+      if (snap.deckCards) {
+        setDeckCards(snap.deckCards);
+        deckCardsRef.current = snap.deckCards;
+      }
+      if (snap.deckCount !== undefined) setDeckCount(snap.deckCount);
+      if (snap.discardCount !== undefined) setDiscardCount(snap.discardCount);
+      if (snap.fieldCards) setFieldCards(snap.fieldCards);
+      if (snap.opponentFieldCards) setOpponentFieldCards(snap.opponentFieldCards);
+      if (snap.exertedCards) setExertedCards(snap.exertedCards);
+      if (snap.opponentExerted) setOpponentExerted(snap.opponentExerted);
+      if (snap.damage) setDamage(snap.damage);
+    } else {
+      // Perspective restore for opponent who accepted requester's undo
+      if (snap.playerLore !== undefined) setOpponentLore(snap.playerLore);
+      if (snap.opponentLore !== undefined) setPlayerLore(snap.opponentLore);
+      if (snap.availableInk !== undefined) setOpponentInk(snap.availableInk);
+      if (snap.inkwellCapacity !== undefined) setOpponentInkCapacity(snap.inkwellCapacity);
+      if (snap.fieldCards) setOpponentFieldCards(snap.fieldCards);
+      if (snap.exertedCards) setOpponentExerted(snap.exertedCards);
+      if (snap.damage) setDamage(snap.damage);
+    }
+  };
 
   // Sync service params on mount / changes
   React.useEffect(() => {
@@ -285,17 +594,42 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     }
     if (playerRole) {
       webSocketService.setRole(playerRole);
-      if (matchMode) {
+      if (matchMode && !isRejoin) {
         setIsMyTurn(playerRole === 'player1');
       }
     }
     if (user?.username) {
       webSocketService.setUsername(user.username);
     }
-  }, [roomId, playerRole, matchMode, user]);
+
+    // If mounting as Rejoin or Match, broadcast active state & request sync immediately
+    if (matchMode && roomId) {
+      setTimeout(() => {
+        webSocketService.sendAction('PLAYER_RECONNECTED' as any, {
+          roomId,
+          role: playerRole,
+          username: myUsername,
+          isSelf: false,
+        });
+        webSocketService.sendAction('REQUEST_STATE_SYNC' as any, {
+          roomId,
+          role: playerRole,
+          username: myUsername,
+        });
+      }, 200);
+    }
+  }, [roomId, playerRole, matchMode, user, isRejoin, myUsername]);
 
   React.useEffect(() => {
     if (!matchMode) return;
+
+    const markOpponentActive = (username?: string) => {
+      setIsOpponentDisconnected(false);
+      if (disconnectTimerRef.current) {
+        clearInterval(disconnectTimerRef.current);
+        disconnectTimerRef.current = null;
+      }
+    };
 
     const checkFromMe = (data: any) => {
       if (data.role && playerRole && data.role === playerRole) return true;
@@ -305,24 +639,76 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
     const unsubMoved = webSocketService.subscribe('CARD_MOVED', (data) => {
       if (checkFromMe(data)) return;
-      if (data.payload?.zone === 'field' && data.payload?.card) {
-        const oppCard = { ...data.payload.card, isWet: data.payload.card.isWet !== undefined ? data.payload.card.isWet : true };
+      markOpponentActive(data.username);
+      const p = data.payload || data;
+      const card = p.card || data.card;
+      if ((p.zone === 'field' || data.zone === 'field') && card) {
+        const oppCard = { ...card, isWet: card.isWet !== undefined ? card.isWet : true };
         setOpponentFieldCards((prev) => {
           if (!prev.find(c => c.id === oppCard.id)) {
             return [...prev, oppCard];
           }
           return prev;
         });
-        setOpponentDeckCount((prev) => Math.max(0, prev - 1));
-        if (data.availableInk !== undefined) {
-          setOpponentInk(data.availableInk);
+        const availInk = p.availableInk !== undefined ? p.availableInk : data.availableInk;
+        if (availInk !== undefined) {
+          setOpponentInk(availInk);
         }
         setLogMessages(prev => [`Opponent played Character: ${oppCard.name}! (Ink drying...)`, ...prev]);
       }
     });
 
+    const unsubActionPlayed = webSocketService.subscribe('ACTION_PLAYED', (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      const p = data.payload || data;
+      const availInk = p.availableInk !== undefined ? p.availableInk : data.availableInk;
+      if (availInk !== undefined) {
+        setOpponentInk(availInk);
+      }
+      setOpponentDiscardCount(prev => prev + 1);
+      const cName = p.cardName || p.card?.name || data.cardName || 'Action/Song';
+      const cType = p.cardType || 'Action';
+      setLogMessages(prev => [`Opponent cast ${cType}: ${cName}! (Sent to Discard)`, ...prev]);
+      showNotice(`Opponent cast "${cName}"!`, 'warning');
+    });
+
+    const unsubAbility = webSocketService.subscribe('ABILITY_TRIGGERED' as any, (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      const p = data.payload || data;
+      const cName = p.cardName || data.cardName || 'Card';
+      const cTitle = p.cardTitle || data.cardTitle;
+      const cImg = p.cardImage || data.cardImage;
+      const ink = p.inkColor || data.inkColor;
+      const abName = p.abilityName || data.abilityName || 'Special Ability';
+      const abText = p.abilityText || data.abilityText || '';
+      const thText = p.thaiText || data.thaiText || translateCardAbilityText(abText);
+      const cat = p.category || data.category || 'trigger';
+      const hint = p.actionHint || data.actionHint;
+
+      const newAlert: AbilityAlert = {
+        id: `opp-${Date.now()}-${Math.random()}`,
+        source: 'opponent',
+        cardName: cName,
+        cardTitle: cTitle,
+        cardImage: cImg,
+        inkColor: ink,
+        abilityName: abName,
+        originalText: abText,
+        thaiText: thText,
+        category: cat,
+        actionHint: hint ? `⚡ คู่แข่ง: ${hint}` : undefined,
+        timestamp: Date.now(),
+      };
+
+      setAbilityAlerts((prev) => [newAlert, ...prev.slice(0, 2)]);
+      setLogMessages((prev) => [`[⚡ Opponent Ability: ${abName}] ${cName} triggered!`, ...prev]);
+    });
+
     const unsubExerted = webSocketService.subscribe('CARD_EXERTED', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       if (data.cardId) {
         setOpponentExerted((prev) => ({ ...prev, [data.cardId!]: !!data.isExerted }));
       }
@@ -330,18 +716,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
     const unsubInk = webSocketService.subscribe('INK_PLAYED', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       setLogMessages((prev) => [`Opponent added a card to Inkwell.`, ...prev]);
-      if (data.inkCount !== undefined) {
-        setOpponentInkCapacity(data.inkCount);
+      const p = data.payload || data;
+      const inkCap = p.inkCount !== undefined ? p.inkCount : (p.inkwellCapacity !== undefined ? p.inkwellCapacity : data.inkCount);
+      const inkAvail = p.availableInk !== undefined ? p.availableInk : data.availableInk;
+      if (inkCap !== undefined) {
+        setOpponentInkCapacity(inkCap);
       }
-      if (data.availableInk !== undefined) {
-        setOpponentInk(data.availableInk);
+      if (inkAvail !== undefined) {
+        setOpponentInk(inkAvail);
       }
-      setOpponentDeckCount((prev) => Math.max(0, prev - 1));
     });
 
     const unsubLore = webSocketService.subscribe('LORE_UPDATED', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       if (data.loreScore !== undefined) {
         setOpponentLore(data.loreScore);
         if (data.loreScore >= 20) {
@@ -352,6 +742,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
     const unsubQuest = webSocketService.subscribe('QUEST_DONE', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       if (data.loreScore !== undefined) {
         setOpponentLore(data.loreScore);
         if (data.cardId) {
@@ -365,15 +756,34 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
     const unsubPassed = webSocketService.subscribe('TURN_PASSED', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       setLogMessages(prev => [`Opponent ended their turn.`, ...prev]);
       // Opponent's cards that were played on their turn will dry up and ready
       setOpponentFieldCards(prev => prev.map(c => ({ ...c, isWet: false })));
+      
+      const p = data.payload || data;
+      if (p.senderInk !== undefined || data.senderInk !== undefined) {
+        setOpponentInk(p.senderInk !== undefined ? p.senderInk : data.senderInk);
+      }
+      if (p.senderInkCapacity !== undefined || data.senderInkCapacity !== undefined) {
+        setOpponentInkCapacity(p.senderInkCapacity !== undefined ? p.senderInkCapacity : data.senderInkCapacity);
+      }
+      if (p.senderLore !== undefined || data.senderLore !== undefined) {
+        setOpponentLore(p.senderLore !== undefined ? p.senderLore : data.senderLore);
+      }
+      if (p.senderExerted || data.senderExerted) {
+        setOpponentExerted(p.senderExerted || data.senderExerted);
+      }
+      if (p.senderFieldCards || data.senderFieldCards) {
+        setOpponentFieldCards(p.senderFieldCards || data.senderFieldCards);
+      }
       // Use the turn number from the sender so both players see the SAME turn
-      handleStartTurn(data.turnNumber);
+      handleStartTurn(data.turnNumber || p.turnNumber);
     });
 
     const unsubChallenge = webSocketService.subscribe('CHALLENGE_DONE', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       const p = data.payload;
       if (!p) return;
 
@@ -396,12 +806,194 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }
     });
 
-    const unsubDisconnect = webSocketService.subscribe('OPPONENT_DISCONNECTED', () => {
-      showNotice('Opponent disconnected!', 'warning');
+    const unsubDisconnect = webSocketService.subscribe('OPPONENT_DISCONNECTED', (data: any) => {
+      if (checkFromMe(data)) return;
+      showNotice('Opponent disconnected! Grace period started (60s)...', 'warning');
+      setIsOpponentDisconnected(true);
+      setDisconnectCountdown(60);
+
+      if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
+      disconnectTimerRef.current = setInterval(() => {
+        setDisconnectCountdown((prev) => {
+          if (prev <= 1) {
+            if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     });
+
+    const unsubReconnected = webSocketService.subscribe('PLAYER_RECONNECTED', (data: any) => {
+      markOpponentActive(data.username);
+      if (!data.isSelf) {
+        showNotice(`🎉 ${data.username || 'Opponent'} reconnected to the match!`, 'success');
+        setLogMessages(prev => [`Opponent reconnected to the room. Match resumed.`, ...prev]);
+
+        // Send current full match state so rejoining opponent gets updated instantly
+        const isP1 = playerRole === 'player1';
+        webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
+          roomId,
+          role: playerRole,
+          username: myUsername,
+          payload: {
+            loreP1: isP1 ? playerLore : opponentLore,
+            loreP2: isP1 ? opponentLore : playerLore,
+            inkP1: isP1 ? availableInk : opponentInk,
+            inkP2: isP1 ? opponentInk : availableInk,
+            inkCapP1: isP1 ? inkwellCapacity : opponentInkCapacity,
+            inkCapP2: isP1 ? opponentInkCapacity : inkwellCapacity,
+            turnNumber: turnNumberRef.current,
+            isTurnP1: isP1 ? isMyTurn : !isMyTurn,
+            p1FieldCards: isP1 ? fieldCards : opponentFieldCards,
+            p2FieldCards: isP1 ? opponentFieldCards : fieldCards,
+            damage: damage,
+            p1Exerted: isP1 ? exertedCards : opponentExerted,
+            p2Exerted: isP1 ? opponentExerted : exertedCards,
+          },
+        });
+      }
+    });
+
+    // Request State Sync (When a rejoining player asks for current board status)
+    const unsubSyncRequest = webSocketService.subscribe('REQUEST_STATE_SYNC', (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      const isP1 = playerRole === 'player1';
+      webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
+        roomId,
+        role: playerRole,
+        username: myUsername,
+        payload: {
+          loreP1: isP1 ? playerLore : opponentLore,
+          loreP2: isP1 ? opponentLore : playerLore,
+          inkP1: isP1 ? availableInk : opponentInk,
+          inkP2: isP1 ? opponentInk : availableInk,
+          inkCapP1: isP1 ? inkwellCapacity : opponentInkCapacity,
+          inkCapP2: isP1 ? opponentInkCapacity : inkwellCapacity,
+          turnNumber: turnNumberRef.current,
+          isTurnP1: isP1 ? isMyTurn : !isMyTurn,
+          p1FieldCards: isP1 ? fieldCards : opponentFieldCards,
+          p2FieldCards: isP1 ? opponentFieldCards : fieldCards,
+          damage: damage,
+          p1Exerted: isP1 ? exertedCards : opponentExerted,
+          p2Exerted: isP1 ? opponentExerted : exertedCards,
+        },
+      });
+    });
+
+    // State Sync Response (Apply full board status from active peer)
+    const unsubSyncResponse = webSocketService.subscribe('STATE_SYNC_RESPONSE', (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      const p = data.payload || data;
+      if (p) {
+        const isP1 = playerRole === 'player1';
+        if (p.loreP1 !== undefined && p.loreP2 !== undefined) {
+          const myL = isP1 ? (p.loreP1 ?? 0) : (p.loreP2 ?? 0);
+          const oppL = isP1 ? (p.loreP2 ?? 0) : (p.loreP1 ?? 0);
+          setPlayerLore(myL);
+          setOpponentLore(oppL);
+        }
+        if (p.inkP1 !== undefined && p.inkP2 !== undefined) {
+          const myI = isP1 ? (p.inkP1 ?? 0) : (p.inkP2 ?? 0);
+          const oppI = isP1 ? (p.inkP2 ?? 0) : (p.inkP1 ?? 0);
+          const myCap = isP1 ? (p.inkCapP1 ?? 0) : (p.inkCapP2 ?? 0);
+          const oppCap = isP1 ? (p.inkCapP2 ?? 0) : (p.inkCapP1 ?? 0);
+          setAvailableInk(myI);
+          setInkwellCapacity(myCap);
+          setOpponentInk(oppI);
+          setOpponentInkCapacity(oppCap);
+        }
+        if (p.turnNumber !== undefined) {
+          setTurnNumber(p.turnNumber);
+          turnNumberRef.current = p.turnNumber;
+        }
+        if (p.isTurnP1 !== undefined) {
+          setIsMyTurn(isP1 ? p.isTurnP1 : !p.isTurnP1);
+        }
+        const oppF = isP1 ? (p.p2FieldCards || p.fieldCards) : (p.p1FieldCards || p.opponentFieldCards || p.fieldCards);
+        const myF = isP1 ? (p.p1FieldCards || p.opponentFieldCards) : (p.p2FieldCards || p.fieldCards);
+        if (oppF && Array.isArray(oppF)) {
+          setOpponentFieldCards(oppF);
+        }
+        if (myF && Array.isArray(myF) && myF.length > 0 && (!fieldCards || fieldCards.length === 0)) {
+          setFieldCards(myF);
+        }
+        if (p.damage) {
+          setDamage(prev => ({ ...prev, ...p.damage }));
+        }
+        const oppEx = isP1 ? (p.p2Exerted || p.exertedCards) : (p.p1Exerted || p.opponentExerted || p.exertedCards);
+        if (oppEx) {
+          setOpponentExerted(prev => ({ ...prev, ...oppEx }));
+        }
+        showNotice('Game state synced with match server.', 'success');
+      }
+    });
+
+    // Undo requested by opponent (Supports UNDO_REQUESTED & REQUEST_UNDO)
+    const handleUndoRequestedEvent = (data: any) => {
+      const p = data.payload || data;
+      const fromUsername = p.requesterUsername || p.username || data.username || data.requesterUsername;
+      const fromRole = p.requesterRole || p.role || data.role || data.requesterRole;
+      
+      // If sent from self, ignore
+      if ((fromUsername && myUsername && fromUsername === myUsername) || (fromRole && playerRole && fromRole === playerRole)) {
+        return;
+      }
+
+      markOpponentActive(fromUsername);
+      setIncomingUndoRequest({
+        requesterUsername: fromUsername || 'Opponent',
+        previousState: p.previousState || data.previousState,
+      });
+      setUndoVoteTimer(15);
+      if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+      undoTimerRef.current = setInterval(() => {
+        setUndoVoteTimer((prev) => {
+          if (prev <= 1) {
+            if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+            // Auto decline on timer expiry
+            handleRespondUndoVote(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    };
+
+    const unsubUndoRequested = webSocketService.subscribe('UNDO_REQUESTED', handleUndoRequestedEvent);
+    const unsubRequestUndo = webSocketService.subscribe('REQUEST_UNDO', handleUndoRequestedEvent);
+
+    // Undo resolved by opponent (Supports UNDO_RESOLVED & RESPOND_UNDO)
+    const handleUndoResolvedEvent = (data: any) => {
+      const p = data.payload || data;
+      const fromUser = p.respondedBy || p.username || data.username;
+      markOpponentActive(fromUser);
+      setIsUndoPending(false);
+
+      const isAccepted = p.voteAccepted === true || data.voteAccepted === true;
+      const stateToRestore = p.previousState || data.previousState;
+
+      if (isAccepted) {
+        if (stateToRestore) {
+          applySnapshot(stateToRestore, true);
+        }
+        setUndoCountRemaining(prev => Math.max(0, prev - 1));
+        showNotice('Opponent accepted your undo request! Action reverted.', 'success');
+        setLogMessages(prev => [`Undo request ACCEPTED by opponent. Turn action rolled back.`, ...prev]);
+      } else {
+        showNotice('Opponent declined your undo request.', 'error');
+        setLogMessages(prev => [`Undo request DECLINED by opponent.`, ...prev]);
+      }
+    };
+
+    const unsubUndoResolved = webSocketService.subscribe('UNDO_RESOLVED', handleUndoResolvedEvent);
+    const unsubRespondUndo = webSocketService.subscribe('RESPOND_UNDO', handleUndoResolvedEvent);
 
     const unsubDrawn = webSocketService.subscribe('CARD_DRAWN', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       if (data.deckCount !== undefined) {
         setOpponentDeckCount(data.deckCount);
       } else {
@@ -412,6 +1004,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
     const unsubChat = webSocketService.subscribe('CHAT_MESSAGE', (data) => {
       if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
       if (data.message && data.username) {
         setChatMessages(prev => [...prev, { username: data.username!, message: data.message!, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
         setUnreadChatCount(prev => prev + 1);
@@ -419,35 +1012,66 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }
     });
 
-    // Handle INITIAL SYNC on GAME_START/ROOM_STATE
-    const unsubGameStart = webSocketService.subscribe('GAME_START', () => {
-      setPlayerLore(0);
-      setOpponentLore(0);
-      setAvailableInk(0);
-      setInkwellCapacity(0);
-      setOpponentInk(0);
-      setOpponentInkCapacity(0);
-      setTurnNumber(1);
-      if (matchMode) {
-        setIsMyTurn(playerRole === 'player1');
+    // Catch-all subscriber: Any message from opponent clears disconnected overlay
+    const unsubAll = webSocketService.subscribe('all', (data: any) => {
+      if (!checkFromMe(data) && data.action !== 'OPPONENT_DISCONNECTED' && data.gameAction !== 'OPPONENT_DISCONNECTED') {
+        markOpponentActive(data.username);
       }
     });
 
-    const unsubRoomState = webSocketService.subscribe('ROOM_STATE', () => {
-      setPlayerLore(0);
-      setOpponentLore(0);
-      setAvailableInk(0);
-      setInkwellCapacity(0);
-      setOpponentInk(0);
-      setOpponentInkCapacity(0);
-      setTurnNumber(1);
-      if (matchMode) {
-        setIsMyTurn(playerRole === 'player1');
+    // Handle INITIAL SYNC on GAME_START/ROOM_STATE
+    const unsubGameStart = webSocketService.subscribe('GAME_START', () => {
+      markOpponentActive();
+      if (!isRejoin && !savedBoard) {
+        setPlayerLore(0);
+        setOpponentLore(0);
+        setAvailableInk(0);
+        setInkwellCapacity(0);
+        setOpponentInk(0);
+        setOpponentInkCapacity(0);
+        setTurnNumber(1);
+        if (matchMode) {
+          setIsMyTurn(playerRole === 'player1');
+        }
+      }
+    });
+
+    const unsubRoomState = webSocketService.subscribe('ROOM_STATE', (data: any) => {
+      markOpponentActive(data.username);
+      if (data?.payload) {
+        const p = data.payload;
+        if (p.loreP1 !== undefined || p.loreP2 !== undefined) {
+          const myLore = playerRole === 'player1' ? (p.loreP1 || 0) : (p.loreP2 || 0);
+          const oppLore = playerRole === 'player1' ? (p.loreP2 || 0) : (p.loreP1 || 0);
+          const myInk = playerRole === 'player1' ? (p.inkP1 || 0) : (p.inkP2 || 0);
+          const oppInk = playerRole === 'player1' ? (p.inkP2 || 0) : (p.inkP1 || 0);
+          setPlayerLore(myLore);
+          setOpponentLore(oppLore);
+          setAvailableInk(myInk);
+          setInkwellCapacity(myInk);
+          setOpponentInk(oppInk);
+          setOpponentInkCapacity(oppInk);
+          return;
+        }
+      }
+      if (!isRejoin && !savedBoard) {
+        setPlayerLore(0);
+        setOpponentLore(0);
+        setAvailableInk(0);
+        setInkwellCapacity(0);
+        setOpponentInk(0);
+        setOpponentInkCapacity(0);
+        setTurnNumber(1);
+        if (matchMode) {
+          setIsMyTurn(playerRole === 'player1');
+        }
       }
     });
 
     return () => {
       unsubMoved();
+      unsubActionPlayed();
+      unsubAbility();
       unsubExerted();
       unsubInk();
       unsubLore();
@@ -455,12 +1079,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       unsubPassed();
       unsubChallenge();
       unsubDisconnect();
+      unsubReconnected();
+      unsubSyncRequest();
+      unsubSyncResponse();
+      unsubUndoRequested();
+      unsubRequestUndo();
+      unsubUndoResolved();
+      unsubRespondUndo();
       unsubDrawn();
       unsubChat();
+      unsubAll();
       unsubGameStart();
       unsubRoomState();
+      if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+      if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
     };
-  }, [matchMode, playerRole, myUsername, roomId]);
+  }, [matchMode, playerRole, myUsername, roomId, isRejoin, playerLore, opponentLore, availableInk, opponentInk, inkwellCapacity, opponentInkCapacity, isMyTurn, fieldCards, opponentFieldCards]);
 
   const handleJoinRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -490,6 +1124,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
        showNotice(`You can only challenge Exerted characters!`, 'warning');
        return;
     }
+
+    captureSnapshot();
     
     const attackerDmg = target.strength || 0;
     const targetDmg = attacker.strength || 0;
@@ -550,6 +1186,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       return;
     }
     if (!exertedCards[card.id]) {
+      captureSnapshot();
       const loreGain = card.lore || 1;
       setExertedCards((prev) => ({ ...prev, [card.id]: true }));
       webSocketService.sendAction('CARD_EXERTED', { roomId: roomId || undefined, role: playerRole, cardId: card.id, isExerted: true });
@@ -565,6 +1202,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       });
       setLogMessages((prev) => [`You exerted ${card.name} for ${loreGain} Lore!`, ...prev]);
       showNotice(`${card.name} Quested for +${loreGain} Lore!`, 'success');
+
+      // Check quest-triggered abilities & Support keyword
+      const qAbilities = (card.abilities || []).filter(a => /whenever this character quests/i.test(a.text) || /support/i.test(a.name) || /support/i.test(a.text));
+      if (qAbilities.length > 0) {
+        qAbilities.forEach(ab => {
+          triggerAbilityAlert(card, ab.name, ab.text, 'player', 'trigger', '💡 ความสามารถเมื่อทำ Quest ถูกเปิดใช้งาน!');
+        });
+      }
     }
   };
 
@@ -584,9 +1229,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       return false;
     }
 
+    captureSnapshot();
+
+    const newCap = inkwellCapacity + 1;
+    const newAvail = availableInk + 1;
     setHandCards((prev) => prev.filter((c) => c.id !== card.id));
-    setInkwellCapacity((prev) => prev + 1);
-    setAvailableInk((prev) => prev + 1);
+    setInkwellCapacity(newCap);
+    setAvailableInk(newAvail);
     setHasInkedThisTurn(true);
     setSelectedHandCard(null);
 
@@ -594,19 +1243,51 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       roomId: roomId || undefined,
       role: playerRole,
       cardId: card.id,
-      inkCount: inkwellCapacity + 1,
-      availableInk: availableInk + 1
+      inkCount: newCap,
+      availableInk: newAvail,
+      payload: {
+        cardId: card.id,
+        inkCount: newCap,
+        availableInk: newAvail,
+      }
     });
-    setLogMessages((prev) => [`You converted ${card.name} into Inkwell! (Capacity: ${inkwellCapacity + 1})`, ...prev]);
+    setLogMessages((prev) => [`You converted ${card.name} into Inkwell! (Capacity: ${newCap})`, ...prev]);
     showNotice(`Converted "${card.name}" into Inkwell! (+1 Ink Capacity)`, 'success');
     return true;
   };
 
   const resolveAbilities = (card: LorcanaCard) => {
+    const fullDesc = `${card.name} ${(card.abilities || []).map(a => `${a.name} ${a.text}`).join(' ')}`.toLowerCase();
+
+    // 1. KEYWORD NOTIFICATIONS (Trigger visual cue when playing cards with active keywords)
+    if (fullDesc.includes('rush') && !card.abilities?.some(a => a.name.toLowerCase().includes('rush'))) {
+      triggerAbilityAlert(card, 'Rush (จู่โจมทันที)', 'This character can challenge the turn they\'re played.', 'player', 'keyword', '💡 สามารถสั่ง Challenge โจมตีตัวละครฝ่ายตรงข้ามที่ Exerted ได้ทันทีในเทิร์นนี้');
+    }
+    if (fullDesc.includes('bodyguard') && !card.abilities?.some(a => a.name.toLowerCase().includes('bodyguard'))) {
+      triggerAbilityAlert(card, 'Bodyguard (ผู้คุ้มกัน)', 'An opposing character who challenges must choose a character with Bodyguard if able.', 'player', 'keyword', '💡 คู่แข่งถูกบังคับให้ต้องเลือกโจมตีตัวละครที่มี Bodyguard ก่อนตัวอื่น');
+    }
+    if (fullDesc.includes('ward') && !card.abilities?.some(a => a.name.toLowerCase().includes('ward'))) {
+      triggerAbilityAlert(card, 'Ward (ม่านคุ้มครอง)', 'Opponents can\'t choose this character except to challenge.', 'player', 'keyword', '💡 คู่แข่งไม่สามารถเลือกการ์ดนี้เป็นเป้าหมายของเวทมนตร์หรือความสามารถได้');
+    }
+    if (fullDesc.includes('evasive') && !card.abilities?.some(a => a.name.toLowerCase().includes('evasive'))) {
+      triggerAbilityAlert(card, 'Evasive (หลบหลีก)', 'Only characters with Evasive can challenge this character.', 'player', 'keyword', '💡 เฉพาะตัวละครที่มี Evasive เท่านั้นที่จะ Challenge ตัวนี้ได้');
+    }
+    const singerMatch = fullDesc.match(/singer (\d+)/);
+    if (singerMatch) {
+      triggerAbilityAlert(card, `Singer ${singerMatch[1]} (นักร้องระดับสูง)`, `This character counts as cost ${singerMatch[1]} to sing songs.`, 'player', 'keyword', `💡 ตัวละครนี้นับเป็น Cost ${singerMatch[1]} สำหรับการร้องเพลง Song ได้ฟรี`);
+    }
+    const shiftMatch = fullDesc.match(/shift (\d+)/);
+    if (shiftMatch) {
+      triggerAbilityAlert(card, `Shift ${shiftMatch[1]} (วิวัฒนาการร่าง)`, `You may pay ${shiftMatch[1]} Ink to play this on top of one of your characters named ${card.name}.`, 'player', 'keyword', `💡 สามารถจ่าย ${shiftMatch[1]} Ink เพื่อลงทับตัวละครชื่อเดียวกันในสนาม`);
+    }
+
     if (!card.abilities || !Array.isArray(card.abilities)) return;
+
     card.abilities.forEach(ability => {
       const text = (ability.text || '').toLowerCase();
-      
+      let isAutoResolved = false;
+      let hint: string | undefined = undefined;
+
       // Draw card ability (e.g. "draw a card", "draw 2 cards")
       const drawMatch = text.match(/draw (\d+) cards/);
       if (drawMatch) {
@@ -615,9 +1296,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           handleDrawCard();
         }
         setLogMessages(logs => [`[Ability: ${ability.name}] Drew ${count} cards!`, ...logs]);
+        isAutoResolved = true;
+        hint = `จั่วการ์ด ${count} ใบเข้ามือเรียบร้อยแล้ว`;
       } else if (/draw a card/.test(text)) {
         handleDrawCard();
         setLogMessages(logs => [`[Ability: ${ability.name}] Drew 1 card!`, ...logs]);
+        isAutoResolved = true;
+        hint = 'จั่วการ์ด 1 ใบเข้ามือเรียบร้อยแล้ว';
       }
 
       // Gain lore
@@ -630,6 +1315,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           return next;
         });
         setLogMessages(logs => [`[Ability: ${ability.name}] Gained ${gain} Lore!`, ...logs]);
+        isAutoResolved = true;
+        hint = `เพิ่มคะแนน Lore +${gain} แต้มทันที`;
       }
 
       // Banish chosen character
@@ -641,6 +1328,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           }
           return prev;
         });
+        isAutoResolved = true;
+        hint = 'ทำลาย (Banish) ตัวละครฝ่ายตรงข้ามลงสุสานทันที';
       }
 
       // Damage to each opposing character
@@ -663,6 +1352,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           });
           return next;
         });
+        isAutoResolved = true;
+        hint = `สร้างความเสียหายหมู่ ${dmg} Damage ให้ตัวละครฝ่ายตรงข้ามทุกคน`;
       }
 
       // Exert characters
@@ -677,7 +1368,29 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           return next;
         });
         setLogMessages(logs => [`[Ability: ${ability.name}] Exerted ${count} opposing characters!`, ...logs]);
+        isAutoResolved = true;
+        hint = `หมุน Exert ตัวละครฝ่ายตรงข้าม ${count} ตัวเรียบร้อยแล้ว`;
       }
+
+      // Complex Effects / Actionable Prompts
+      let category: 'auto_resolved' | 'keyword' | 'complex_effect' | 'trigger' = isAutoResolved ? 'auto_resolved' : 'trigger';
+      if (!isAutoResolved) {
+        if (/look at the top (\d+) cards/i.test(text) || /look at the top card/i.test(text)) {
+          category = 'complex_effect';
+          hint = '💡 ความสามารถเปิดดูการ์ดบนสุดของกอง: คุณสามารถคลิกดูเด็คเพื่อหยิบการ์ดขึ้นมือตามเงื่อนไข';
+        } else if (/return (chosen|another) character (to your hand|to their player's hand)/i.test(text) || /bounce/i.test(text)) {
+          category = 'complex_effect';
+          hint = '💡 ความสามารถ Bounce: เลือกนำตัวละครกลับขึ้นมือเพื่อรับผลคอมโบ';
+        } else if (/banish chosen item/i.test(text) || /banish an item/i.test(text)) {
+          category = 'complex_effect';
+          hint = '💡 ความสามารถ Item Sacrifice: เลือก Banish ไอเทมเพื่อจั่วการ์ดหรือสร้างเอฟเฟกต์';
+        } else if (/sing together/i.test(text)) {
+          category = 'complex_effect';
+          hint = '💡 Sing Together: คุณสามารถเลือก Exert ตัวละครหลายตัวรวมกันเพื่อร้องเพลงนี้ได้ฟรี';
+        }
+      }
+
+      triggerAbilityAlert(card, ability.name, ability.text, 'player', category, hint);
     });
   };
 
@@ -688,8 +1401,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       return false;
     }
 
+    captureSnapshot();
+
     // Deduct Ink
-    setAvailableInk((prev) => prev - card.cost);
+    const nextAvailInk = availableInk - card.cost;
+    setAvailableInk(nextAvailInk);
     setHandCards((prev) => prev.filter((c) => c.id !== card.id));
     setSelectedHandCard(null);
 
@@ -699,6 +1415,24 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setDiscardCount((prev) => prev + 1);
       setLogMessages((prev) => [`You played ${card.type.toUpperCase()}: ${card.name}! (Sent to Discard Pile)`, ...prev]);
       showNotice(`Cast Action "${card.name}"! (${card.cost} Ink used, sent to Discard)`, 'success');
+      if (matchModeRef.current) {
+        webSocketService.sendAction('ACTION_PLAYED' as any, {
+          roomId: roomId || undefined,
+          role: playerRoleRef.current,
+          cardId: card.id,
+          cardName: card.name,
+          cardType: card.type,
+          cost: card.cost,
+          availableInk: nextAvailInk,
+          payload: {
+            card,
+            availableInk: nextAvailInk,
+            cardName: card.name,
+            cardType: card.type,
+            cost: card.cost,
+          }
+        });
+      }
       resolveAbilities(card);
     } else {
       // Characters enter battlefield with isWet: true
@@ -710,8 +1444,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         roomId: roomId || undefined,
         role: playerRole,
         cardId: card.id, 
-        availableInk: availableInk - card.cost,
-        payload: { zone: 'field', card: newFieldCard } 
+        availableInk: nextAvailInk,
+        payload: { zone: 'field', card: newFieldCard, availableInk: nextAvailInk } 
       });
       resolveAbilities(card);
     }
@@ -814,7 +1548,20 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       webSocketService.sendAction('TURN_PASSED', {
         roomId: roomId || undefined,
         role: playerRoleRef.current,
-        turnNumber: nextTurn
+        turnNumber: nextTurn,
+        senderInk: availableInk,
+        senderInkCapacity: inkwellCapacity,
+        senderLore: playerLore,
+        senderExerted: exertedCards,
+        senderFieldCards: fieldCards,
+        payload: {
+          turnNumber: nextTurn,
+          senderInk: availableInk,
+          senderInkCapacity: inkwellCapacity,
+          senderLore: playerLore,
+          senderExerted: exertedCards,
+          senderFieldCards: fieldCards,
+        }
       });
     } else {
       setTimeout(() => {
@@ -875,6 +1622,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   return (
     <div className="relative w-full h-full max-h-full flex bg-[#0B0F19] text-[#F1F5F9] font-outfit select-none overflow-hidden">
       
+      {/* Ability Trigger & Complex Effect Notification Banner */}
+      <AbilityNotificationBanner alerts={abilityAlerts} onDismiss={dismissAbilityAlert} />
+
       {/* Notice Banner */}
       <AnimatePresence>
         {notice && (
@@ -1442,6 +2192,30 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* UNDO / RETURN BUTTON */}
+            {isMyTurn && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleRequestUndo}
+                disabled={!previousSnapshot || undoCountRemaining <= 0 || isUndoPending}
+                className="bg-[#141a26] hover:bg-[#1e2638] disabled:opacity-40 disabled:hover:bg-[#141a26] text-[#F59E0B] border border-[#F59E0B]/40 hover:border-[#F59E0B] px-4 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                title={
+                  !previousSnapshot
+                    ? 'No action to undo'
+                    : undoCountRemaining <= 0
+                    ? 'No undos remaining'
+                    : `Request opponent to undo last action (${undoCountRemaining} remaining)`
+                }
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                <span>
+                  {language === 'th' ? `ขอแก้มือ (${undoCountRemaining})` : `Return (${undoCountRemaining})`}
+                </span>
+                {isUndoPending && <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-ping ml-1" />}
+              </motion.button>
+            )}
+
             {turnNumber === 1 && isMyTurn && !hasMulliganed && (
                <motion.button
                  whileHover={{ scale: 1.02 }}
@@ -1871,6 +2645,24 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     setDiscardCount((prev) => prev + 1);
                     setLogMessages((prev) => [language === 'th' ? `คุณร้องเพลง ${selectedHandCard.name} โดยใช้ ${singer.name}!` : `You sang ${selectedHandCard.name} using ${singer.name}!`, ...prev]);
                     showNotice(language === 'th' ? `ร้องเพลง "${selectedHandCard.name}" โดย ${singer.name} สำเร็จ!` : `Sang "${selectedHandCard.name}" using ${singer.name}!`, 'success');
+                    if (matchModeRef.current) {
+                      webSocketService.sendAction('ACTION_PLAYED' as any, {
+                        roomId: roomId || undefined,
+                        role: playerRoleRef.current,
+                        cardId: selectedHandCard.id,
+                        cardName: selectedHandCard.name,
+                        cardType: `Song (Sung by ${singer.name})`,
+                        cost: 0,
+                        availableInk: availableInk,
+                        payload: {
+                          card: selectedHandCard,
+                          availableInk: availableInk,
+                          cardName: selectedHandCard.name,
+                          cardType: `Song (Sung by ${singer.name})`,
+                          cost: 0,
+                        }
+                      });
+                    }
                     resolveAbilities(selectedHandCard);
                   }}
                   disabled={!fieldCards.some(c => !c.isWet && !exertedCards[c.id] && (c.cost || 0) >= selectedHandCard.cost)}
@@ -2028,6 +2820,117 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         onDuelFinished={handleDuelFinished}
         isSandbox={!matchMode}
       />
+
+      {/* UNDO / RETURN VOTE PROMPT MODAL (FOR OPPONENT) */}
+      <AnimatePresence>
+        {incomingUndoRequest && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0B0F19]/85 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#141a26] border-2 border-[#F59E0B] rounded-2xl p-6 max-w-md w-full shadow-[0_0_40px_rgba(245,158,11,0.3)] flex flex-col items-center text-center gap-4"
+            >
+              <div className="w-14 h-14 rounded-full bg-[#F59E0B]/20 border border-[#F59E0B] flex items-center justify-center text-[#F59E0B]">
+                <Undo2 className="w-7 h-7" />
+              </div>
+
+              <div>
+                <h3 className="font-cinzel text-xl font-bold text-[#F1F5F9] mb-1">
+                  {language === 'th' ? 'คู่แข่งขออนุญาตย้อนการเล่น' : 'Opponent Requested Undo'}
+                </h3>
+                <p className="text-sm text-slate-300 font-outfit">
+                  {language === 'th'
+                    ? `ผู้เล่น "${incomingUndoRequest.requesterUsername}" ขออนุญาตย้อนการเล่นแอคชั่นล่าสุด คุณยินยอมหรือไม่?`
+                    : `Player "${incomingUndoRequest.requesterUsername}" wants to undo their last action. Do you accept?`}
+                </p>
+              </div>
+
+              <div className="w-full bg-[#0B0F19] rounded-xl p-3 border border-[#30363d] flex items-center justify-between text-xs font-mono text-[#F59E0B]">
+                <span>{language === 'th' ? 'เวลาในการตัดสินใจ:' : 'Time remaining:'}</span>
+                <span className="text-base font-bold px-2 py-0.5 rounded bg-[#F59E0B]/20 border border-[#F59E0B]/40">
+                  {undoVoteTimer}s
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 w-full mt-2">
+                <button
+                  onClick={() => handleRespondUndoVote(false)}
+                  className="flex-1 py-3 rounded-xl bg-[#0B0F19] hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500 text-rose-300 font-cinzel font-bold text-sm transition-all cursor-pointer"
+                >
+                  {language === 'th' ? '❌ ปฏิเสธ (Decline)' : '❌ Decline'}
+                </button>
+                <button
+                  onClick={() => handleRespondUndoVote(true)}
+                  className="flex-1 py-3 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm transition-all shadow-md cursor-pointer"
+                >
+                  {language === 'th' ? '✅ ยินยอม (Accept)' : '✅ Accept'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* OPPONENT DISCONNECTED OVERLAY (60s GRACE PERIOD) */}
+      <AnimatePresence>
+        {isOpponentDisconnected && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0B0F19]/90 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#141a26] border-2 border-amber-500/70 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-[0_0_50px_rgba(245,158,11,0.25)] flex flex-col items-center text-center gap-5"
+            >
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500 flex items-center justify-center text-amber-400 animate-pulse">
+                <WifiOff className="w-8 h-8" />
+              </div>
+
+              <div>
+                <h3 className="font-cinzel text-2xl font-bold text-[#F1F5F9] mb-2">
+                  {language === 'th' ? 'คู่แข่งขาดการเชื่อมต่อ' : 'Opponent Disconnected'}
+                </h3>
+                <p className="text-sm text-slate-300 font-outfit max-w-md">
+                  {language === 'th'
+                    ? 'สัญญาณเน็ตของคู่แข่งหลุดชั่วคราว ระบบกำลังรอการเชื่อมต่อใหม่ (Rejoin) ให้โอกาสกลับเข้าห้อง'
+                    : 'Your opponent lost connection. The system is waiting for them to rejoin the match.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-2 w-full bg-[#0B0F19] rounded-2xl p-4 border border-[#30363d]">
+                <span className="text-xs text-slate-400 font-mono uppercase tracking-wider">
+                  {language === 'th' ? 'เวลารอเชื่อมต่อคงเหลือ' : 'Grace Period Remaining'}
+                </span>
+                <span className="text-3xl font-mono font-black text-[#F59E0B] tracking-wider">
+                  {disconnectCountdown}s
+                </span>
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1">
+                  <div
+                    className="bg-[#F59E0B] h-full transition-all duration-1000"
+                    style={{ width: `${(disconnectCountdown / 60) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {disconnectCountdown === 0 && (
+                <div className="w-full flex flex-col gap-2">
+                  <p className="text-xs text-rose-400 font-mono">
+                    {language === 'th' ? 'หมดเวลาเชื่อมต่อ คู่แข่งไม่กลับเข้าห้อง' : 'Grace period expired. Opponent did not rejoin.'}
+                  </p>
+                  {onExitMatch && (
+                    <button
+                      onClick={onExitMatch}
+                      className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-cinzel font-bold text-sm transition-all cursor-pointer shadow-lg"
+                    >
+                      {language === 'th' ? 'ออกจากห้อง (Victory by Abandon)' : 'Exit Match'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* PLAYMAT SKIN SELECTOR MODAL */}
       <PlaymatSelectorModal

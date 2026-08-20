@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
   const { language, toggleLanguage, t } = useLanguageStore();
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0B0F19] border-b border-[#30363d] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 bg-[#0B0F19]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 shadow-lg">
       {/* Brand Logo & Lorcana Seal */}
       <div
         role="button"
@@ -28,17 +28,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
             setActiveTab('hub');
           }
         }}
-        className="flex items-center gap-3 cursor-pointer group"
+        className="flex items-center gap-2.5 cursor-pointer group shrink-0"
       >
         <img
           src="/Logo_cloudgame.png"
           alt="Lorcana PlayLab Cloud Logo"
-          className="w-10 h-10 object-contain rounded-lg border border-[#F59E0B]/40 bg-[#141a26] p-1 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+          className="w-9 h-9 object-contain rounded-lg border border-[#F59E0B]/40 bg-[#141a26] p-1 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
         />
 
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-cinzel font-bold text-lg tracking-wider text-[#F1F5F9]">
+          <div className="flex items-center gap-1.5">
+            <h1 className="font-cinzel font-bold text-base sm:text-lg tracking-wider text-[#F1F5F9]">
               LORCANA <span className="foil-text">PLAYLAB</span>
             </h1>
             <button
@@ -47,14 +47,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
                 if (onOpenPatchNotes) onOpenPatchNotes();
               }}
               title={t.navPatchNotes}
-              className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/40 rounded-full hover:bg-[#F59E0B] hover:text-black transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+              className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/40 rounded-full hover:bg-[#F59E0B] hover:text-black transition-all cursor-pointer flex items-center gap-0.5 shadow-sm"
             >
               <Tag className="w-2.5 h-2.5" />
               <span>{APP_VERSION}</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#94A3B8] font-semibold uppercase tracking-widest">
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] text-[#94A3B8] font-semibold uppercase tracking-widest leading-none">
               {t.navSubtitle}
             </span>
           </div>
@@ -62,93 +62,93 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
       </div>
 
       {/* Navigation Mode Switcher */}
-      <nav className="flex flex-wrap items-center gap-1 bg-[#141a26] p-1 rounded-lg border border-[#30363d]">
+      <nav className="hidden lg:flex items-center gap-1 bg-[#141a26]/90 p-1 rounded-xl border border-white/10 shrink-0">
         <button
           onClick={() => setActiveTab('hub')}
           aria-label={t.navHome}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer ${
             activeTab === 'hub'
-              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
-              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+              ? 'text-[#F59E0B] bg-[#F59E0B]/15 border border-[#F59E0B]/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5'
           }`}
         >
           <Sparkles className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
-          <span className="hidden sm:inline">{t.navHome}</span>
+          <span>{t.navHome}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('match')}
           aria-label={t.navMatch}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer ${
             activeTab === 'match'
-              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
-              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+              ? 'text-[#F59E0B] bg-[#F59E0B]/15 border border-[#F59E0B]/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5'
           }`}
         >
-          <Swords className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          <span className="hidden sm:inline">{t.navMatch}</span>
+          <Swords className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+          <span>{t.navMatch}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('board')}
           aria-label={t.navSandbox}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer ${
             activeTab === 'board'
-              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
-              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+              ? 'text-[#F59E0B] bg-[#F59E0B]/15 border border-[#F59E0B]/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5'
           }`}
         >
-          <Gamepad2 className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          <span className="hidden sm:inline">{t.navSandbox}</span>
+          <Gamepad2 className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+          <span>{t.navSandbox}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('deckbuilder')}
           aria-label={t.navDeckBuilder}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer ${
             activeTab === 'deckbuilder'
-              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
-              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+              ? 'text-[#F59E0B] bg-[#F59E0B]/15 border border-[#F59E0B]/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5'
           }`}
         >
-          <Layers className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          <span className="hidden sm:inline">{t.navDeckBuilder}</span>
+          <Layers className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+          <span>{t.navDeckBuilder}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('analytics')}
           aria-label={t.navAnalytics}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer ${
             activeTab === 'analytics'
-              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
-              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+              ? 'text-[#F59E0B] bg-[#F59E0B]/15 border border-[#F59E0B]/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5'
           }`}
         >
-          <BarChart3 className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          <span className="hidden sm:inline">{t.navAnalytics}</span>
+          <BarChart3 className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+          <span>{t.navAnalytics}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('rules')}
           aria-label={t.navHowToPlay}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wide transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer ${
             activeTab === 'rules'
-              ? 'text-[#F59E0B] border-b-2 border-[#F59E0B]'
-              : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+              ? 'text-[#F59E0B] bg-[#F59E0B]/15 border border-[#F59E0B]/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+              : 'text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/5'
           }`}
         >
-          <CloudLightning className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          <span className="hidden sm:inline">{t.navHowToPlay}</span>
+          <CloudLightning className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+          <span>{t.navHowToPlay}</span>
         </button>
       </nav>
 
       {/* Right Controls: Language Switcher, Live Indicator & User Account */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Language Switcher Button */}
         <button
           onClick={toggleLanguage}
           title={`Switch Language (Current: ${language.toUpperCase()})`}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-xs font-mono font-bold text-[#F1F5F9] transition-all cursor-pointer shadow-sm hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#141a26] border border-white/10 hover:border-[#F59E0B] text-xs font-mono font-bold text-[#F1F5F9] transition-all cursor-pointer shadow-sm hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
         >
           <Globe className="w-3.5 h-3.5 text-[#F59E0B]" />
           <span className={language === 'th' ? 'text-[#F59E0B]' : 'text-[#94A3B8]'}>TH</span>
@@ -157,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
         </button>
 
         {/* Live Server Connection Indicator */}
-        <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded bg-[#141a26] border border-[#30363d] text-[11px] font-medium text-[#94A3B8]">
+        <div className="hidden xl:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#141a26] border border-white/10 text-[11px] font-medium text-[#94A3B8]">
           <CloudLightning className="w-3.5 h-3.5 text-[#F59E0B]" />
           <span>{t.navServerOnline}</span>
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -174,14 +174,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
                 setActiveTab('dashboard');
               }
             }}
-            className="flex items-center gap-2 bg-[#141a26] border border-[#30363d] px-3 py-1.5 rounded-lg cursor-pointer hover:border-[#F59E0B] transition-colors"
+            className="flex items-center gap-2 bg-[#141a26] border border-white/10 px-2.5 py-1.5 rounded-lg cursor-pointer hover:border-[#F59E0B] transition-colors"
           >
-            <div className="w-6 h-6 rounded bg-[#F59E0B] flex items-center justify-center font-bold text-xs text-black">
+            <div className="w-6 h-6 rounded-md bg-[#F59E0B] flex items-center justify-center font-bold text-xs text-black font-mono">
               {user.username.charAt(0).toUpperCase()}
             </div>
             <div className="text-left hidden sm:block">
-              <p className="text-xs font-bold text-[#F1F5F9]">{user.username}</p>
-              <p className="text-[9px] text-[#F59E0B] font-medium">{t.navMyDecks}</p>
+              <p className="text-xs font-bold text-[#F1F5F9] leading-tight">{user.username}</p>
+              <p className="text-[9px] text-[#F59E0B] font-medium leading-tight">{t.navMyDecks}</p>
             </div>
             <button
               onClick={(e) => {
@@ -189,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
                 logout();
               }}
               aria-label={t.navSignOut}
-              className="ml-1 p-1 text-[#94A3B8] hover:text-rose-400 rounded transition-colors cursor-pointer"
+              className="ml-0.5 p-1 text-[#94A3B8] hover:text-rose-400 rounded transition-colors cursor-pointer"
               title={t.navSignOut}
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -198,7 +198,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenPatchNotes, ac
         ) : (
           <button
             onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#F59E0B] text-black hover:bg-[#D97706] transition-colors cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#F59E0B] text-black hover:bg-[#D97706] transition-colors cursor-pointer shadow-sm font-cinzel"
           >
             <User className="w-3.5 h-3.5 text-black" />
             <span>{t.navAccountLogin}</span>

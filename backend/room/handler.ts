@@ -41,22 +41,28 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
         const userItem = scanRes.Items[0];
         const roomId = userItem.roomId;
 
-        // Delete from table
+        // Mark user as disconnected instead of instant delete to allow rejoin within grace period
         await docClient.send(
-          new DeleteCommand({
+          new PutCommand({
             TableName: ROOM_TABLE,
-            Key: { roomId, connectionId },
+            Item: {
+              ...userItem,
+              status: 'disconnected',
+              disconnectedAt: new Date().toISOString(),
+            },
           })
         );
 
-        // Notify remaining room members
+        // Notify remaining room members that player disconnected temporarily
         const roomMembers = await getRoomMembers(roomId);
         for (const member of roomMembers) {
-          if (member.connectionId !== connectionId) {
+          if (member.connectionId !== connectionId && member.status !== 'disconnected') {
             await sendMessageToConnection(apigwManagementApi, member.connectionId, {
               action: 'OPPONENT_DISCONNECTED',
+              gameAction: 'OPPONENT_DISCONNECTED',
               roomId,
               username: userItem.username,
+              role: userItem.role,
             });
           }
         }
@@ -78,6 +84,160 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
   }
 
   const action = body.gameAction || body.realAction || body.type || body.action || routeKey;
+
+  // 3. REJOIN_ROOM — Reconnect to active room after network disconnect
+  if (action === 'REJOIN_ROOM') {
+    const roomId = body.roomId;
+    const username = body.username;
+    const role = body.role;
+
+    if (!roomId) {
+      await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room ID is required to rejoin.' });
+      return { statusCode: 400, body: 'Missing roomId' };
+    }
+
+    try {
+      const roomMembers = await getRoomMembers(roomId);
+      if (roomMembers.length === 0) {
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room no longer exists or expired.' });
+        return { statusCode: 404, body: 'Room not found' };
+      }
+
+      // Find user entry in room (either by username or role)
+      const existingUser: any = roomMembers.find((m: any) => m.username === username || m.role === role);
+      if (!existingUser) {
+        await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Player session not found in this room.' });
+        return { statusCode: 403, body: 'Not a member' };
+      }
+
+      // Delete old connection record
+      if (existingUser.connectionId !== connectionId) {
+        await docClient.send(
+          new DeleteCommand({
+            TableName: ROOM_TABLE,
+            Key: { roomId, connectionId: existingUser.connectionId },
+          })
+        ).catch(() => {});
+      }
+
+      // Insert updated connection record
+      const updatedUser: any = {
+        ...existingUser,
+        connectionId,
+        status: 'active',
+        rejoinedAt: new Date().toISOString(),
+      };
+
+      await docClient.send(
+        new PutCommand({
+          TableName: ROOM_TABLE,
+          Item: updatedUser,
+        })
+      );
+
+      // Notify the rejoining player of success
+      await sendMessageToConnection(apigwManagementApi, connectionId, {
+        action: 'PLAYER_RECONNECTED',
+        gameAction: 'PLAYER_RECONNECTED',
+        roomId,
+        role: updatedUser.role,
+        username: updatedUser.username,
+        deckId: updatedUser.deckId,
+        deckName: updatedUser.deckName,
+        isSelf: true,
+      });
+
+      // Notify other room members
+      const activeMembers = await getRoomMembers(roomId);
+      for (const member of activeMembers) {
+        if (member.connectionId !== connectionId) {
+          await sendMessageToConnection(apigwManagementApi, member.connectionId, {
+            action: 'PLAYER_RECONNECTED',
+            gameAction: 'PLAYER_RECONNECTED',
+            roomId,
+            role: updatedUser.role,
+            username: updatedUser.username,
+            isSelf: false,
+          });
+        }
+      }
+
+      return { statusCode: 200, body: 'Rejoined successfully' };
+    } catch (err: any) {
+      console.error('[Rejoin Error]', err);
+      return { statusCode: 500, body: err.message };
+    }
+  }
+
+  // 3.5 REQUEST_UNDO & RESPOND_UNDO — Vote to Undo / Return Last Action
+  if (action === 'REQUEST_UNDO' || action === 'UNDO_REQUESTED') {
+    const roomId = body.roomId;
+    const requesterUsername = body.requesterUsername || body.username || 'Player';
+    const requesterRole = body.requesterRole || body.role || 'player1';
+    const previousState = body.previousState || body.payload?.previousState || null;
+
+    try {
+      const roomMembers = await getRoomMembers(roomId);
+      for (const member of roomMembers) {
+        if (member.connectionId !== connectionId) {
+          await sendMessageToConnection(apigwManagementApi, member.connectionId, {
+            action: 'UNDO_REQUESTED',
+            gameAction: 'UNDO_REQUESTED',
+            type: 'UNDO_REQUESTED',
+            roomId,
+            username: requesterUsername,
+            role: requesterRole,
+            requesterUsername,
+            requesterRole,
+            previousState,
+            payload: {
+              roomId,
+              requesterUsername,
+              requesterRole,
+              previousState,
+            },
+          });
+        }
+      }
+      return { statusCode: 200, body: 'Undo Requested' };
+    } catch (err: any) {
+      console.error('[Request Undo Error]', err);
+      return { statusCode: 500, body: err.message };
+    }
+  }
+
+  if (action === 'RESPOND_UNDO' || action === 'UNDO_RESOLVED') {
+    const roomId = body.roomId;
+    const voteAccepted = body.voteAccepted === true || body.payload?.voteAccepted === true;
+    const previousState = body.previousState || body.payload?.previousState || null;
+    const respondedBy = body.respondedBy || body.username || 'Opponent';
+
+    try {
+      const roomMembers = await getRoomMembers(roomId);
+      for (const member of roomMembers) {
+        await sendMessageToConnection(apigwManagementApi, member.connectionId, {
+          action: 'UNDO_RESOLVED',
+          gameAction: 'UNDO_RESOLVED',
+          type: 'UNDO_RESOLVED',
+          roomId,
+          voteAccepted,
+          previousState,
+          respondedBy,
+          username: respondedBy,
+          payload: {
+            roomId,
+            voteAccepted,
+            previousState,
+            respondedBy,
+          },
+        });
+      }
+      return { statusCode: 200, body: 'Undo Response Broadcasted' };
+    } catch (err: any) {
+      console.error('[Respond Undo Error]', err);
+      return { statusCode: 500, body: err.message };
+    }
+  }
 
   // 4. CREATE_ROOM — host creates a lobby room with a 6-digit code
   if (action === 'CREATE_ROOM') {
@@ -276,6 +436,13 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     action === 'DICE_REROLL' ||
     action === 'FIRST_PLAYER_CHOSEN' ||
     action === 'GAME_RESTART' ||
+    action === 'PLAYER_RECONNECTED' ||
+    action === 'REQUEST_STATE_SYNC' ||
+    action === 'STATE_SYNC_RESPONSE' ||
+    action === 'UNDO_REQUESTED' ||
+    action === 'UNDO_RESOLVED' ||
+    action === 'ACTION_PLAYED' ||
+    action === 'ABILITY_TRIGGERED' ||
     action === 'sendAction' ||
     (body.roomId && action !== 'CREATE_ROOM' && action !== 'JOIN_ROOM' && action !== 'MATCHMAKING_JOIN' && action !== 'MATCHMAKING_LEAVE')
   ) {

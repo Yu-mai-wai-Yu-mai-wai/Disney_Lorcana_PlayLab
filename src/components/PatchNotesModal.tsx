@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Tag, Calendar, CheckCircle2, ChevronRight, Layers, Swords, ShieldCheck, Wrench } from 'lucide-react';
 import { PATCH_NOTES, APP_VERSION, APP_BUILD_DATE, PatchNote } from '../data/patchNotes';
@@ -10,8 +11,25 @@ interface PatchNotesModalProps {
 
 export const PatchNotesModal: React.FC<PatchNotesModalProps> = ({ isOpen, onClose }) => {
   const [selectedVersion, setSelectedVersion] = useState<string>(PATCH_NOTES[0].version);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and restore on unmount/close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!mounted || !isOpen) return null;
 
   const currentPatch = PATCH_NOTES.find((p) => p.version === selectedVersion) || PATCH_NOTES[0];
 
@@ -49,9 +67,9 @@ export const PatchNotesModal: React.FC<PatchNotesModalProps> = ({ isOpen, onClos
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -186,7 +204,8 @@ export const PatchNotesModal: React.FC<PatchNotesModalProps> = ({ isOpen, onClos
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

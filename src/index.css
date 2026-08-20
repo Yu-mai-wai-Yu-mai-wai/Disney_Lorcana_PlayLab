@@ -10,6 +10,15 @@
   --color-rule: oklch(0.30 0.015 260);
   --color-accent: oklch(0.79 0.16 85);
   --color-accent-ink: oklch(0.16 0.05 85);
+
+  /* Lorcana 6 Inks Theme Tokens */
+  --color-ink-amber: #f59e0b;
+  --color-ink-amethyst: #a855f7;
+  --color-ink-emerald: #10b981;
+  --color-ink-ruby: #f43f5e;
+  --color-ink-sapphire: #3b82f6;
+  --color-ink-steel: #94a3b8;
+
   --font-display: "Cinzel", "Bai Jamjuree", serif;
   --font-body: "Outfit", "Bai Jamjuree", sans-serif;
   --font-outfit: "Outfit", "Bai Jamjuree", sans-serif;
@@ -23,25 +32,43 @@
   :root {
     --bg-dark: #0B0F19;
     --bg-card: #141a26;
+    --bg-card-elevated: #1a2233;
     
-    /* Lorcana Ink Colors - Flat Badges */
+    /* Lorcana Ink Colors - Flat & RGB values for glow/alpha composition */
     --ink-amber: #f59e0b;
+    --ink-amber-rgb: 245, 158, 11;
     --ink-amethyst: #a855f7;
+    --ink-amethyst-rgb: 168, 85, 247;
     --ink-emerald: #10b981;
+    --ink-emerald-rgb: 16, 185, 129;
     --ink-ruby: #f43f5e;
+    --ink-ruby-rgb: 244, 63, 94;
     --ink-sapphire: #3b82f6;
+    --ink-sapphire-rgb: 59, 130, 246;
     --ink-steel: #94a3b8;
+    --ink-steel-rgb: 148, 163, 184;
+
+    /* Glassmorphism System Tokens */
+    --glass-bg: rgba(20, 26, 38, 0.75);
+    --glass-bg-heavy: rgba(11, 15, 25, 0.85);
+    --glass-bg-subtle: rgba(20, 26, 38, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-gold: rgba(245, 158, 11, 0.25);
+    --glass-blur: 16px;
+    --glass-blur-heavy: 24px;
+    --glass-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    --glass-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+
+    /* Animation Easing Tokens */
+    --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
   body {
-    background-color: #0B0F19;
-    background-image: 
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E"),
-      radial-gradient(at 20% 20%, rgba(245, 158, 11, 0.03) 0px, transparent 60%),
-      radial-gradient(at 80% 80%, rgba(30, 41, 59, 0.2) 0px, transparent 60%);
-    background-attachment: fixed;
+    background-color: #060913;
     font-family: 'Outfit', 'Bai Jamjuree', sans-serif;
     color: #F1F5F9;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, .font-cinzel {
@@ -50,16 +77,67 @@
   }
 }
 
-/* Solid Editorial Panels (replaces glassmorphism blur slop) */
-.glass-panel, .glass-panel-heavy, .ether-panel {
-  background: #141a26;
-  border: 1px solid #30363d;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+/* ============================================================
+   MODERN GLASSMORPHISM SURFACES (Refined with Specular Highlights)
+   ============================================================ */
+
+/* Standard Editorial Glass Panel */
+.glass-panel, .ether-panel {
+  background: rgba(20, 26, 38, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
+/* Deep / Heavy Glass Panel for Modals, Sidebars & Overlays */
+.glass-panel-heavy {
+  background: rgba(11, 15, 25, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Glass Navigation Header with fine border & depth */
 .glass-nav-header {
-  background: #0B0F19;
-  border-bottom: 1px solid #30363d;
+  background: rgba(11, 15, 25, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Interactive Modern Glass Card */
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(20, 26, 38, 0.75) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 18px rgba(245, 158, 11, 0.12);
+}
+
+/* Subtle Glass Surface for nested elements / inner pills */
+.glass-subtle {
+  background: rgba(20, 26, 38, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Modal Glass Surface with gold rim illumination */
+.glass-modal {
+  background: rgba(15, 21, 33, 0.92);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(245, 158, 11, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
 }
 
 .gold-border {
@@ -70,16 +148,126 @@
   border-color: rgba(245, 158, 11, 0.7);
 }
 
-/* De-slopped Foil Card Light - Thin gold border + subtle sheen on hover ONLY */
+/* ============================================================
+   SPOTLIGHT CARDS (Dynamic Radial Light & Focus Effects)
+   ============================================================ */
+
+/* Base Spotlight Card */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(20, 26, 38, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: 12px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(245, 158, 11, 0.12),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spotlight-card:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.12);
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+/* Spotlight Card Color Variants */
+.spotlight-card-amber::before {
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(245, 158, 11, 0.15), transparent 40%);
+}
+.spotlight-card-amber:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+.spotlight-card-amethyst::before {
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(168, 85, 247, 0.15), transparent 40%);
+}
+.spotlight-card-amethyst:hover {
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.15);
+}
+
+.spotlight-card-emerald::before {
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(16, 185, 129, 0.15), transparent 40%);
+}
+.spotlight-card-emerald:hover {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.15);
+}
+
+.spotlight-card-ruby::before {
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(244, 63, 94, 0.15), transparent 40%);
+}
+.spotlight-card-ruby:hover {
+  border-color: rgba(244, 63, 94, 0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(244, 63, 94, 0.15);
+}
+
+.spotlight-card-sapphire::before {
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(59, 130, 246, 0.15), transparent 40%);
+}
+.spotlight-card-sapphire:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.spotlight-card-steel::before {
+  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(148, 163, 184, 0.15), transparent 40%);
+}
+.spotlight-card-steel:hover {
+  border-color: rgba(148, 163, 184, 0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(148, 163, 184, 0.15);
+}
+
+/* Card Spotlight Sheen for board & deckbuilder cards */
+.card-spotlight {
+  position: relative;
+  isolation: isolate;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.card-spotlight:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.2);
+}
+
+/* Foil Card Light - Gold border + subtle sheen on hover */
 .card-foil-light, .card-foil {
   border: 1px solid rgba(245, 158, 11, 0.25);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .card-foil-light:hover, .card-foil:hover {
   border-color: rgba(245, 158, 11, 0.75);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 158, 11, 0.2);
 }
+
+/* Ink-Specific Foil Cards */
+.card-foil-amber:hover { border-color: rgba(245, 158, 11, 0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(245, 158, 11, 0.3); }
+.card-foil-amethyst:hover { border-color: rgba(168, 85, 247, 0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(168, 85, 247, 0.3); }
+.card-foil-emerald:hover { border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(16, 185, 129, 0.3); }
+.card-foil-ruby:hover { border-color: rgba(244, 63, 94, 0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(244, 63, 94, 0.3); }
+.card-foil-sapphire:hover { border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(59, 130, 246, 0.3); }
+.card-foil-steel:hover { border-color: rgba(148, 163, 184, 0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 0 14px rgba(148, 163, 184, 0.3); }
 
 /* Primary Button - Solid Gold Accent */
 .btn-primary {
@@ -88,11 +276,12 @@
   font-family: 'Cinzel', 'Bai Jamjuree', serif;
   font-weight: 700;
   border-radius: 8px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-primary:hover {
   background-color: #D97706;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
 }
 
 .playmat-bg {
@@ -126,7 +315,11 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Lorcana Ink Color Pills (Flat mono badges with colored text + 1px border, NO glow) */
+/* ============================================================
+   LORCANA INK COLOR PILLS & BADGES
+   ============================================================ */
+
+/* Lorcana Ink Color Pills (Flat mono badges with colored text + 1px border) */
 .ink-amber { background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); color: #F59E0B; }
 .ink-amethyst { background-color: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.4); color: #A855F7; }
 .ink-emerald { background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); color: #10B981; }
@@ -134,7 +327,7 @@
 .ink-sapphire { background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.4); color: #3B82F6; }
 .ink-steel { background-color: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.4); color: #94A3B8; }
 
-/* Badges & Inputs */
+/* Base Badges & Inputs */
 .shadcn-badge {
   display: inline-flex;
   align-items: center;
@@ -164,6 +357,177 @@
   border-color: #f59e0b;
   outline: none;
 }
+
+/* ============================================================
+   SHIMMER BADGES (Sweeping Sheen Animation)
+   ============================================================ */
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  50%, 100% {
+    transform: translateX(150%) skewX(-20deg);
+  }
+}
+
+.shimmer-badge, .badge-shimmer {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.shimmer-badge::after, .badge-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 100%
+  );
+  transform: translateX(-150%) skewX(-20deg);
+  animation: shimmer-sweep 3.5s infinite ease-in-out;
+  pointer-events: none;
+}
+
+/* Shimmer Badges for Lorcana Ink Colors */
+.badge-shimmer-amber, .shimmer-badge-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+}
+.badge-shimmer-amber::after, .shimmer-badge-amber::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(245, 158, 11, 0.35) 50%, transparent 100%);
+}
+
+.badge-shimmer-amethyst, .shimmer-badge-amethyst {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+}
+.badge-shimmer-amethyst::after, .shimmer-badge-amethyst::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(168, 85, 247, 0.35) 50%, transparent 100%);
+}
+
+.badge-shimmer-emerald, .shimmer-badge-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+.badge-shimmer-emerald::after, .shimmer-badge-emerald::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.35) 50%, transparent 100%);
+}
+
+.badge-shimmer-ruby, .shimmer-badge-ruby {
+  background: rgba(244, 63, 94, 0.12);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
+}
+.badge-shimmer-ruby::after, .shimmer-badge-ruby::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(244, 63, 94, 0.35) 50%, transparent 100%);
+}
+
+.badge-shimmer-sapphire, .shimmer-badge-sapphire {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+.badge-shimmer-sapphire::after, .shimmer-badge-sapphire::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.35) 50%, transparent 100%);
+}
+
+.badge-shimmer-steel, .shimmer-badge-steel {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.15);
+}
+.badge-shimmer-steel::after, .shimmer-badge-steel::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+}
+
+.badge-shimmer-gold, .shimmer-badge-gold {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+.badge-shimmer-gold::after, .shimmer-badge-gold::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(254, 240, 138, 0.45) 50%, transparent 100%);
+}
+
+/* ============================================================
+   AMBIENT INK GLOWS (Lorcana 6 Inks: Amber, Amethyst, Emerald, Ruby, Sapphire, Steel)
+   ============================================================ */
+
+/* Box Glows */
+.glow-amber { box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.35); }
+.glow-amber-lg { box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.45); }
+.glow-amethyst { box-shadow: 0 0 20px -3px rgba(168, 85, 247, 0.35); }
+.glow-amethyst-lg { box-shadow: 0 0 35px -5px rgba(168, 85, 247, 0.45); }
+.glow-emerald { box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.35); }
+.glow-emerald-lg { box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.45); }
+.glow-ruby { box-shadow: 0 0 20px -3px rgba(244, 63, 94, 0.35); }
+.glow-ruby-lg { box-shadow: 0 0 35px -5px rgba(244, 63, 94, 0.45); }
+.glow-sapphire { box-shadow: 0 0 20px -3px rgba(59, 130, 246, 0.35); }
+.glow-sapphire-lg { box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.45); }
+.glow-steel { box-shadow: 0 0 20px -3px rgba(148, 163, 184, 0.35); }
+.glow-steel-lg { box-shadow: 0 0 35px -5px rgba(148, 163, 184, 0.45); }
+
+/* Text Glows */
+.ink-glow-amber { text-shadow: 0 0 12px rgba(245, 158, 11, 0.6); }
+.ink-glow-amethyst { text-shadow: 0 0 12px rgba(168, 85, 247, 0.6); }
+.ink-glow-emerald { text-shadow: 0 0 12px rgba(16, 185, 129, 0.6); }
+.ink-glow-ruby { text-shadow: 0 0 12px rgba(244, 63, 94, 0.6); }
+.ink-glow-sapphire { text-shadow: 0 0 12px rgba(59, 130, 246, 0.6); }
+.ink-glow-steel { text-shadow: 0 0 12px rgba(148, 163, 184, 0.6); }
+
+/* Border Glows */
+.border-glow-amber { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
+.border-glow-amethyst { border-color: #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+.border-glow-emerald { border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+.border-glow-ruby { border-color: #f43f5e; box-shadow: 0 0 15px rgba(244, 63, 94, 0.3); }
+.border-glow-sapphire { border-color: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+.border-glow-steel { border-color: #94a3b8; box-shadow: 0 0 15px rgba(148, 163, 184, 0.3); }
+
+/* Hover Glows */
+.hover-glow-amber:hover { border-color: #f59e0b; box-shadow: 0 0 20px rgba(245, 158, 11, 0.35); }
+.hover-glow-amethyst:hover { border-color: #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.35); }
+.hover-glow-emerald:hover { border-color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.35); }
+.hover-glow-ruby:hover { border-color: #f43f5e; box-shadow: 0 0 20px rgba(244, 63, 94, 0.35); }
+.hover-glow-sapphire:hover { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.35); }
+.hover-glow-steel:hover { border-color: #94a3b8; box-shadow: 0 0 20px rgba(148, 163, 184, 0.35); }
+
+/* Ambient Radial Ink Auras (Background light backdrop) */
+.ambient-amber { background: radial-gradient(circle at center, rgba(245, 158, 11, 0.15) 0%, transparent 70%); }
+.ambient-amethyst { background: radial-gradient(circle at center, rgba(168, 85, 247, 0.15) 0%, transparent 70%); }
+.ambient-emerald { background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%); }
+.ambient-ruby { background: radial-gradient(circle at center, rgba(244, 63, 94, 0.15) 0%, transparent 70%); }
+.ambient-sapphire { background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%); }
+.ambient-steel { background: radial-gradient(circle at center, rgba(148, 163, 184, 0.15) 0%, transparent 70%); }
+
+/* Ink Aura Absolute Backdrops */
+.ink-aura-amber { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245, 158, 11, 0.18) 0%, transparent 70%); filter: blur(24px); z-index: 0; }
+.ink-aura-amethyst { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(168, 85, 247, 0.18) 0%, transparent 70%); filter: blur(24px); z-index: 0; }
+.ink-aura-emerald { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(16, 185, 129, 0.18) 0%, transparent 70%); filter: blur(24px); z-index: 0; }
+.ink-aura-ruby { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(244, 63, 94, 0.18) 0%, transparent 70%); filter: blur(24px); z-index: 0; }
+.ink-aura-sapphire { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(59, 130, 246, 0.18) 0%, transparent 70%); filter: blur(24px); z-index: 0; }
+.ink-aura-steel { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(148, 163, 184, 0.18) 0%, transparent 70%); filter: blur(24px); z-index: 0; }
 
 /* ============================================================
    MAGIC ENRICHMENT (Landing only) — Dark Editorial + Magic R3
@@ -282,10 +646,13 @@
 
 /* Accessibility: Prefers Reduced Motion Override (Preserved from R1) */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }
+

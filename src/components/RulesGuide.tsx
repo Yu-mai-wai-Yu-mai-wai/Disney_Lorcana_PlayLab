@@ -54,11 +54,11 @@ export const RulesGuide: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <div className="relative z-10 pt-4 sm:pt-8 pb-16 px-3 sm:px-6 max-w-6xl mx-auto flex flex-col items-center font-outfit select-none bg-[#0B0F19] text-[#F1F5F9] w-full">
+    <div className="relative z-10 pt-4 sm:pt-8 pb-16 px-3 sm:px-6 max-w-6xl mx-auto flex flex-col items-center font-outfit select-none bg-transparent text-[#F1F5F9] w-full">
       {/* Header */}
-      <header className="text-center mb-8 max-w-4xl space-y-3 bg-[#141a26] p-6 sm:p-8 rounded-2xl border border-[#30363d] w-full shadow-2xl relative overflow-hidden">
+      <header className="text-center mb-8 max-w-4xl space-y-3 bg-[#141a26]/85 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-white/10 w-full shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#F59E0B]/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-mono font-bold tracking-wider uppercase mb-1">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-mono font-bold tracking-wider uppercase mb-1 backdrop-blur-sm">
           <BookOpen className="w-3.5 h-3.5" />
           <span>Official Disney Lorcana Rulebook (v2.2.0 Compliant)</span>
         </div>
