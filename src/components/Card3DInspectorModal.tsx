@@ -4,7 +4,7 @@ import { LorcanaCard } from '../types/lorcana';
 import { InkSymbol } from './InkSymbol';
 import { Modal } from './ui/Modal';
 import { useLanguageStore } from '../store/useLanguageStore';
-import { translateCardAbilityText, extractKeywordsFromText, translateCardType, translateRarity, translateInkColor } from '../utils/cardTranslator';
+import { translateCardAbilityText, translateAbilityName, extractKeywordsFromText, translateCardType, translateRarity, translateInkColor } from '../utils/cardTranslator';
 
 interface Card3DInspectorModalProps {
   card: LorcanaCard | null;
@@ -232,9 +232,9 @@ export const Card3DInspectorModal: React.FC<Card3DInspectorModalProps> = ({
 
                 {card.abilities.map((ab, idx) => (
                   <div key={idx} className="text-[11px] font-mono leading-relaxed bg-[#141a26]/70 p-2 rounded border border-[#30363d]/60">
-                    <span className="font-bold text-[#F59E0B]">{ab.name}: </span>
+                    <span className="font-bold text-[#F59E0B]">{showThai ? translateAbilityName(ab.name, ab.text, 'th') : translateAbilityName(ab.name, ab.text, 'en')}: </span>
                     <span className="text-[#F1F5F9]">
-                      {showThai ? translateCardAbilityText(ab.text) : ab.text}
+                      {showThai ? translateCardAbilityText(ab.text, ab.name, 'th') : translateCardAbilityText(ab.text, ab.name, 'en')}
                     </span>
                   </div>
                 ))}

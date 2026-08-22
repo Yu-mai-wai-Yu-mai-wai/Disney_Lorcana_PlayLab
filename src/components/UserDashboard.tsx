@@ -127,139 +127,146 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   return (
     <div className="min-h-screen text-[#F1F5F9] font-outfit select-none pt-16 pb-16 px-6 max-w-7xl mx-auto space-y-8 bg-transparent">
       {!isAuthenticated || !user ? (
-        /* Unauthenticated View: Centered Login / Register Form */
-        <div className="max-w-md mx-auto">
-          <div className="glass-panel p-8 rounded-2xl space-y-6 shadow-2xl">
-            <div className="flex items-center gap-3.5 pb-4 border-b border-[#30363d]">
-              <div className="w-10 h-10 rounded-lg bg-[#0B0F19] border border-[#30363d] flex items-center justify-center text-[#F59E0B]">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-cinzel text-xl font-bold text-[#F1F5F9]">{t.accountTitle}</h2>
-                <p className="text-xs text-[#94A3B8]">{t.accountSubtitle}</p>
-              </div>
-            </div>
-
-            {/* Tab Switcher */}
-            <div className="flex bg-[#0B0F19] p-1 rounded-lg border border-[#30363d]">
-              <button
-                onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
-                className={`flex-1 py-2 text-xs font-bold rounded transition-colors cursor-pointer ${
-                  mode === 'login' ? 'bg-[#F59E0B] text-black font-bold' : 'text-[#94A3B8] hover:text-white'
-                }`}
-              >
-                {t.signIn}
-              </button>
-              <button
-                onClick={() => { setMode('register'); setError(null); setSuccess(null); }}
-                className={`flex-1 py-2 text-xs font-bold rounded transition-colors cursor-pointer ${
-                  mode === 'register' ? 'bg-[#F59E0B] text-black font-bold' : 'text-[#94A3B8] hover:text-white'
-                }`}
-              >
-                {t.register}
-              </button>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {success && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{success}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
-                  {t.username}
-                </label>
-                <div className="relative">
-                  <UserCheck className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
-                  <input
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="scholar@illuminary.cloud"
-                    className="w-full bg-[#0B0F19] text-white font-mono text-xs rounded-lg py-2.5 pl-10 pr-4 border border-[#30363d] focus:border-[#F59E0B] transition-colors outline-none"
-                  />
+        /* Unauthenticated View: Centered Login / Register Form (Matched Large Size) */
+        <div className="max-w-xl mx-auto w-full">
+          <div className="glass-panel p-8 md:p-10 rounded-2xl shadow-2xl min-h-[580px] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3.5 pb-5 border-b border-[#30363d] mb-6">
+                <div className="w-12 h-12 rounded-xl bg-[#0B0F19] border border-[#30363d] flex items-center justify-center text-[#F59E0B] shadow-inner">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="font-cinzel text-2xl font-bold text-[#F1F5F9]">{t.accountTitle}</h2>
+                  <p className="text-xs text-[#94A3B8] mt-0.5">{t.accountSubtitle}</p>
                 </div>
               </div>
 
-              {mode === 'register' && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
-                    {t.email}
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="scholar@illuminary.cloud"
-                      className="w-full bg-[#0B0F19] text-white font-mono text-xs rounded-lg py-2.5 pl-10 pr-4 border border-[#30363d] focus:border-[#F59E0B] transition-colors outline-none"
-                    />
-                  </div>
+              {/* Tab Switcher */}
+              <div className="flex bg-[#0B0F19] p-1.5 rounded-xl border border-[#30363d] mb-6">
+                <button
+                  onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
+                  className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                    mode === 'login' ? 'bg-[#F59E0B] text-black font-bold shadow' : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  {t.signIn}
+                </button>
+                <button
+                  onClick={() => { setMode('register'); setError(null); setSuccess(null); }}
+                  className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                    mode === 'register' ? 'bg-[#F59E0B] text-black font-bold shadow' : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  {t.register}
+                </button>
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3.5 mb-5 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-300 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
-                  {t.password}
-                </label>
-                <div className="relative">
-                  <Key className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full bg-[#0B0F19] text-white font-mono text-xs rounded-lg py-2.5 pl-10 pr-4 border border-[#30363d] focus:border-[#F59E0B] transition-colors outline-none"
-                  />
+              {success && (
+                <div className="flex items-center gap-2 p-3.5 mb-5 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{success}</span>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded bg-[#0B0F19] border-[#30363d] text-[#F59E0B] w-4 h-4 focus:ring-0"
-                  />
-                  <span className="text-xs text-[#94A3B8] font-mono">{language === 'th' ? 'จดจำการเข้าสู่ระบบ' : 'Remember Session'}</span>
-                </label>
-                <a href="#" className="text-xs text-[#F59E0B] hover:underline">Forgot Password?</a>
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
+                    {t.username}
+                  </label>
+                  <div className="relative">
+                    <UserCheck className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="scholar@illuminary.cloud"
+                      className="w-full bg-[#0B0F19] text-white font-mono text-sm rounded-xl py-3 pl-11 pr-4 border border-[#30363d] focus:border-[#F59E0B] transition-colors outline-none"
+                    />
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full mt-4 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-black" />
-                    <span>{language === 'th' ? 'กำลังดำเนินการ...' : 'Signing In...'}</span>
-                  </>
+                {mode === 'register' ? (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
+                      {t.email}
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="scholar@illuminary.cloud"
+                        className="w-full bg-[#0B0F19] text-white font-mono text-sm rounded-xl py-3 pl-11 pr-4 border border-[#30363d] focus:border-[#F59E0B] transition-colors outline-none"
+                      />
+                    </div>
+                  </div>
                 ) : (
-                  <span>{mode === 'login' ? (language === 'th' ? 'เข้าสู่ระบบเพื่อดูเด็ค' : 'Sign In to View Decks') : (language === 'th' ? 'สร้างบัญชีใหม่' : 'Create Account')}</span>
+                  <div className="p-3 rounded-xl bg-[#0B0F19]/60 border border-[#30363d]/60 flex items-center gap-2.5 text-xs text-[#94A3B8]">
+                    <Sparkles className="w-4 h-4 text-[#F59E0B] shrink-0" />
+                    <span>{language === 'th' ? 'เข้าสู่ระบบเพื่อซิงค์เด็คและบันทึกการแข่งขันบนคลาวด์' : 'Sign in to sync your decks & real-time matches across the cloud.'}</span>
+                  </div>
                 )}
-              </button>
-            </form>
 
-            <div className="pt-4 border-t border-[#30363d] flex items-center justify-center gap-2 text-[#94A3B8] font-mono text-xs">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-mono uppercase tracking-widest text-[#94A3B8]">
+                    {t.password}
+                  </label>
+                  <div className="relative">
+                    <Key className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-[#0B0F19] text-white font-mono text-sm rounded-xl py-3 pl-11 pr-4 border border-[#30363d] focus:border-[#F59E0B] transition-colors outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="rounded bg-[#0B0F19] border-[#30363d] text-[#F59E0B] w-4 h-4 focus:ring-0"
+                    />
+                    <span className="text-xs text-[#94A3B8] font-mono">{language === 'th' ? 'จดจำการเข้าสู่ระบบ' : 'Remember Session'}</span>
+                  </label>
+                  <a href="#" className="text-xs text-[#F59E0B] hover:underline">Forgot Password?</a>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full mt-4 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm py-3.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      <span>{language === 'th' ? 'กำลังดำเนินการ...' : 'Signing In...'}</span>
+                    </>
+                  ) : (
+                    <span>{mode === 'login' ? (language === 'th' ? 'เข้าสู่ระบบเพื่อดูเด็ค' : 'Sign In to View Decks') : (language === 'th' ? 'สร้างบัญชีใหม่' : 'Create Account')}</span>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            <div className="pt-6 mt-4 border-t border-[#30363d] flex items-center justify-center gap-2 text-[#94A3B8] font-mono text-xs">
               <Lock className="w-4 h-4 text-[#F59E0B]" />
-              <span>{language === 'th' ? 'ระบบจัดเก็บข้อมูลปลอดภัยบนคลาวด์' : 'Secured Account Storage'}</span>
+              <span>{language === 'th' ? 'ระบบจัดเก็บข้อมูลปลอดภัยบนคลาวด์ Illuminary Vault' : 'Secured Cloud Storage in Illuminary Vault'}</span>
             </div>
           </div>
         </div>

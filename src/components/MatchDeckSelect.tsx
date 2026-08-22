@@ -5,7 +5,7 @@ import { DeckViewerModal } from './DeckViewerModal';
 import { RECOMMENDED_DECKS } from '../data/recommendedDecks';
 import { translateInkColor } from '../utils/cardTranslator';
 import { InkSymbol } from './InkSymbol';
-import { fetchFullDataset, PoolCard } from '../data/cardPool';
+import { fetchFullDataset, enrichCard, PoolCard } from '../data/cardPool';
 
 interface MatchDeckSelectProps {
   decks: any[];
@@ -36,10 +36,14 @@ export const MatchDeckSelect: React.FC<MatchDeckSelectProps> = ({ decks, selecte
     archetype: d.archetype,
     isMeta: true,
     totalCards: d.cards.reduce((sum, c) => sum + c.count, 0),
-    cards: d.cards.map((c) => ({
-      cardId: c.cardId,
-      count: c.count,
-    })),
+    cards: d.cards.map((c) => {
+      const found = dataset.find((dc) => dc.id === c.cardId);
+      return {
+        cardId: c.cardId,
+        count: c.count,
+        card: found || enrichCard({ id: c.cardId, cardId: c.cardId }, dataset),
+      };
+    }),
   }));
 
   const displayedDecks = activeTab === 'myDecks' ? decks : formattedMetaDecks;
@@ -135,111 +139,112 @@ export const MatchDeckSelect: React.FC<MatchDeckSelectProps> = ({ decks, selecte
                   key={deckIdentifier} 
                   onMouseMove={handleMouseMove}
                   onClick={() => onSelect(deckIdentifier, deck.name, deck)}
-                  className={`spotlight-card spotlight-card-${primaryInk} group relative rounded-2xl border transition-all duration-250 cursor-pointer overflow-hidden p-4 sm:p-4.5 min-h-[92px] ${
+                  className={`spotlight-card spotlight-card-${primaryInk} group relative rounded-2xl border transition-all duration-250 cursor-pointer overflow-hidden p-3 sm:p-3.5 ${
                     isSelected 
                       ? 'border-[#F59E0B] bg-gradient-to-br from-[#1c2436]/95 via-[#141a26]/90 to-[#101622]/95 shadow-[0_0_25px_rgba(245,158,11,0.25),inset_0_1px_0_0_rgba(254,240,138,0.2)]' 
                       : 'border-white/10 bg-gradient-to-br from-[#141a26]/80 via-[#101622]/70 to-[#0b0f19]/80 hover:border-white/20 hover:bg-[#161d2b]/90 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]'
                   }`}
                 >
-                  <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4 w-full">
-                    <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
-                      {/* Deck Cover Thumbnail with Card-Foil Light */}
-                      <div className={`relative w-12 h-16 sm:w-14 sm:h-20 rounded-xl overflow-hidden flex items-center justify-center shrink-0 border transition-all duration-300 ${
-                        isSelected 
-                          ? 'border-[#F59E0B] shadow-[0_0_14px_rgba(245,158,11,0.4)]' 
-                          : 'border-white/15 group-hover:border-white/30 shadow-md'
-                      }`}>
-                        {coverImage ? (
-                          <img 
-                            src={coverImage} 
-                            alt={deck.name} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#0B0F19] flex items-center justify-center">
-                            <Layers className="w-6 h-6 text-[#F59E0B]" />
-                          </div>
-                        )}
-                        {isSelected && (
-                          <div className="absolute inset-0 bg-[#F59E0B]/15 backdrop-blur-[0.5px] pointer-events-none" />
-                        )}
-                      </div>
+                  <div className="relative z-10 flex items-center gap-3 sm:gap-3.5 w-full">
+                    {/* Deck Cover Thumbnail with Card-Foil Light */}
+                    <div className={`relative w-12 h-16 sm:w-14 sm:h-18 rounded-xl overflow-hidden flex items-center justify-center shrink-0 border transition-all duration-300 shadow-md ${
+                      isSelected 
+                        ? 'border-[#F59E0B] shadow-[0_0_14px_rgba(245,158,11,0.4)]' 
+                        : 'border-white/15 group-hover:border-white/30'
+                    }`}>
+                      {coverImage ? (
+                        <img 
+                          src={coverImage} 
+                          alt={deck.name} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-[#0B0F19] flex items-center justify-center">
+                          <Layers className="w-6 h-6 text-[#F59E0B]" />
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-[#F59E0B]/15 backdrop-blur-[0.5px] pointer-events-none" />
+                      )}
+                    </div>
 
-                      {/* Deck Information */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className={`font-cinzel font-bold text-sm sm:text-base md:text-lg truncate transition-colors ${
+                    {/* Deck Information & Actions Column (Uniform Sizing) */}
+                    <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
+                      {/* Top Row: Title + Badges + Right Action Buttons */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <h3 className={`font-cinzel font-bold text-sm sm:text-base leading-snug transition-colors truncate ${
                             isSelected ? 'text-[#F59E0B]' : 'text-[#F1F5F9] group-hover:text-white'
                           }`}>
                             {deck.name}
                           </h3>
 
                           {deck.isMeta && (
-                            <span className="shimmer-badge badge-shimmer-gold text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0 font-bold">
+                            <span className="shimmer-badge badge-shimmer-gold text-[9px] font-mono px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 font-bold">
                               <Flame className="w-2.5 h-2.5 text-amber-400" />
                               <span>META</span>
                             </span>
                           )}
                         </div>
 
-                        {deck.description && (
-                          <p className="text-xs text-[#94A3B8] truncate max-w-full font-outfit mt-0.5">
-                            {deck.description}
-                          </p>
-                        )}
-
-                        {/* Badges Bar: Shimmer Inks, Card Count, Archetype */}
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 sm:mt-2.5">
-                          <span className="shimmer-badge badge-shimmer-amber text-[10px] sm:text-[11px] font-mono px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0 font-semibold">
-                            <Layers className="w-3 h-3" />
-                            <span>{totalCards} {t.cardsCount}</span>
-                          </span>
-
-                          {deck.archetype && (
-                            <span className="shimmer-badge text-[10px] sm:text-[11px] font-mono text-slate-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full shrink-0 font-semibold">
-                              {deck.archetype}
-                            </span>
+                        {/* Right Action Controls */}
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                          {isSelected && (
+                            <div 
+                              className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#F59E0B] text-black font-bold shadow-[0_0_10px_rgba(245,158,11,0.6)] animate-in zoom-in-50 duration-200 shrink-0"
+                              title={language === 'th' ? 'เด็คที่เลือก' : 'Selected Deck'}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-black text-[#F59E0B]" />
+                            </div>
                           )}
-
-                          {deck.inkColors && deck.inkColors.map((ink: string) => {
-                            const inkLower = ink.toLowerCase();
-                            return (
-                              <span 
-                                key={ink} 
-                                className={`shimmer-badge badge-shimmer-${inkLower} text-[10px] sm:text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 font-bold font-mono tracking-wide shrink-0`}
-                              >
-                                <InkSymbol ink={ink} size={12} className="shrink-0" />
-                                <span>{translateInkColor(ink, language)}</span>
-                              </span>
-                            );
-                          })}
+                          
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewingDeck(deck);
+                            }}
+                            className="px-2.5 py-1 text-xs border border-[#F59E0B]/50 hover:border-[#F59E0B] text-[#F59E0B] hover:text-black bg-[#F59E0B]/10 hover:bg-[#F59E0B] rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1 shadow-sm hover:shadow-[0_0_12px_rgba(245,158,11,0.35)] backdrop-blur-sm shrink-0 active:scale-95 font-cinzel font-bold"
+                            title={language === 'th' ? 'ดูการ์ดทั้งหมดในเด็ค' : 'View Deck Cards'}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{language === 'th' ? 'ดูการ์ด' : 'View'}</span>
+                            <span className="sm:hidden">{language === 'th' ? 'ดู' : 'View'}</span>
+                          </button>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Right Action Controls: Dedicated container for Selection badge & View Cards button */}
-                    <div className="relative z-10 flex items-center gap-2 sm:gap-2.5 shrink-0 ml-2 sm:ml-3">
-                      {isSelected && (
-                        <div 
-                          className="flex items-center justify-center w-7 h-7 rounded-full bg-[#F59E0B] text-black font-bold shadow-[0_0_14px_rgba(245,158,11,0.6)] animate-in zoom-in-50 duration-200 shrink-0"
-                          title={language === 'th' ? 'เด็คที่เลือก' : 'Selected Deck'}
-                        >
-                          <CheckCircle2 className="w-4.5 h-4.5 fill-black text-[#F59E0B]" />
-                        </div>
-                      )}
-                      
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setViewingDeck(deck);
-                        }}
-                        className="px-3.5 py-2 text-xs border border-[#F59E0B]/50 hover:border-[#F59E0B] text-[#F59E0B] hover:text-black bg-[#F59E0B]/10 hover:bg-[#F59E0B] rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] backdrop-blur-sm shrink-0 active:scale-95 group/btn font-cinzel font-bold"
-                        title={language === 'th' ? 'ดูการ์ดทั้งหมดในเด็ค' : 'View Deck Cards'}
-                      >
-                        <Eye className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
-                        <span>{language === 'th' ? 'ดูการ์ด' : 'View Cards'}</span>
-                      </button>
+                      {/* Description / Subtitle: Uniform 1-line clamp across all decks */}
+                      <p className="text-[11px] sm:text-xs text-[#94A3B8] font-outfit truncate leading-tight">
+                        {deck.description || (language === 'th' ? 'เด็คส่วนตัวพร้อมสำหรับการประลอง' : 'Custom deck ready for match play')}
+                      </p>
+
+                      {/* Badges Bar: Inks, Card Count, Archetype */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5 pt-1 border-t border-white/5">
+                        <span className="shimmer-badge badge-shimmer-amber text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded-full flex items-center gap-1 shrink-0 font-semibold">
+                          <Layers className="w-2.5 h-2.5" />
+                          <span>{totalCards} {t.cardsCount}</span>
+                        </span>
+
+                        {deck.archetype && (
+                          <span className="shimmer-badge text-[9px] sm:text-[10px] font-mono text-slate-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full shrink-0 font-semibold">
+                            {deck.archetype}
+                          </span>
+                        )}
+
+                        {deck.inkColors && deck.inkColors.map((ink: string) => {
+                          const inkLower = ink.toLowerCase();
+                          return (
+                            <span 
+                              key={ink} 
+                              className={`shimmer-badge badge-shimmer-${inkLower} text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 font-bold font-mono tracking-wide shrink-0`}
+                            >
+                              <InkSymbol ink={ink} size={10} className="shrink-0" />
+                              <span>{translateInkColor(ink, language)}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -4,9 +4,13 @@ const WS_ENDPOINT = import.meta.env.VITE_WS_ENDPOINT || 'wss://demo.execute-api.
 
 type MessageCallback = (data: WebSocketMessagePayload) => void;
 
+type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
+
 class WebSocketService {
   private socket: WebSocket | null = null;
   private listeners: Map<string, Set<MessageCallback>> = new Map();
+  private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
+  private connectionStatus: ConnectionStatus = 'disconnected';
   private isConnected: boolean = false;
   private currentRoomId: string | null = null;
   private currentRole: 'player1' | 'player2' = 'player1';
@@ -16,6 +20,30 @@ class WebSocketService {
 
   constructor() {
     this.listeners.set('all', new Set());
+  }
+
+  private setConnectionStatus(status: ConnectionStatus): void {
+    this.connectionStatus = status;
+    this.isConnected = status === 'connected';
+    this.statusListeners.forEach((cb) => {
+      try {
+        cb(status);
+      } catch (err) {
+        console.error('[WebSocket] Status listener error:', err);
+      }
+    });
+  }
+
+  public onStatusChange(cb: (status: ConnectionStatus) => void): () => void {
+    this.statusListeners.add(cb);
+    cb(this.connectionStatus);
+    return () => {
+      this.statusListeners.delete(cb);
+    };
+  }
+
+  public getStatus(): ConnectionStatus {
+    return this.connectionStatus;
   }
 
   private messageQueue: any[] = [];
@@ -28,22 +56,24 @@ class WebSocketService {
       try {
         // Reuse already open connection
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-          this.isConnected = true;
+          this.setConnectionStatus('connected');
           resolve(true);
           return;
         }
+
+        this.setConnectionStatus('connecting');
 
         // Wait if already connecting
         if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
           const checkTimer = setInterval(() => {
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
               clearInterval(checkTimer);
-              this.isConnected = true;
+              this.setConnectionStatus('connected');
               this.flushQueue();
               resolve(true);
             } else if (!this.socket || this.socket.readyState > WebSocket.OPEN) {
               clearInterval(checkTimer);
-              this.isConnected = false;
+              this.setConnectionStatus('disconnected');
               resolve(false);
             }
           }, 50);
@@ -53,7 +83,7 @@ class WebSocketService {
         // Mock socket mode for offline testing / sandbox fallback
         if (WS_ENDPOINT.includes('demo.execute-api')) {
           console.log('[WebSocket] Sandbox Mock Active (AWS Ready)');
-          this.isConnected = true;
+          this.setConnectionStatus('connected');
           this.emitMockState();
           resolve(true);
           return;
@@ -63,7 +93,7 @@ class WebSocketService {
 
         this.socket.onopen = () => {
           console.log('[WebSocket] 🟢 Connected to AWS API Gateway WebSockets');
-          this.isConnected = true;
+          this.setConnectionStatus('connected');
           this.reconnectAttempts = 0;
           this.flushQueue();
           resolve(true);
@@ -80,18 +110,18 @@ class WebSocketService {
 
         this.socket.onerror = (err) => {
           console.warn('[WebSocket] Connection Error:', err);
-          this.isConnected = false;
+          this.setConnectionStatus('disconnected');
           resolve(false);
         };
 
         this.socket.onclose = () => {
           console.log('[WebSocket] 🔴 Connection Closed');
-          this.isConnected = false;
+          this.setConnectionStatus('disconnected');
           this.attemptReconnect();
         };
       } catch (err) {
         console.error('[WebSocket] Connect Exception:', err);
-        this.isConnected = false;
+        this.setConnectionStatus('disconnected');
         resolve(false);
       }
     });
@@ -434,11 +464,14 @@ class WebSocketService {
   private attemptReconnect(): void {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
+      this.setConnectionStatus('reconnecting');
       const timeout = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000);
       console.log(`[WebSocket] Auto-reconnecting in ${timeout / 1000}s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
       setTimeout(() => {
         this.connect();
       }, timeout);
+    } else {
+      this.setConnectionStatus('disconnected');
     }
   }
 
@@ -504,7 +537,7 @@ class WebSocketService {
       this.socket.close();
       this.socket = null;
     }
-    this.isConnected = false;
+    this.setConnectionStatus('disconnected');
     this.currentRoomId = null;
   }
 

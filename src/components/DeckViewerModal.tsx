@@ -170,6 +170,11 @@ export const DeckViewerModal: React.FC<DeckViewerModalProps> = ({
                     </span>
                   ))}
                 </div>
+                {deck.description && (
+                  <p className="text-xs text-[#94A3B8] font-outfit mt-1.5 leading-relaxed max-w-2xl">
+                    {deck.description}
+                  </p>
+                )}
               </div>
             </div>
 

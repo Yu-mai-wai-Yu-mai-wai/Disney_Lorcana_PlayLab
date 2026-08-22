@@ -388,7 +388,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
               className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
             >
               <LogIn className="w-4 h-4" />
-              <span>{language === 'th' ? 'กลับเข้าห้องเดิม (Rejoin)' : 'Rejoin Match'}</span>
+              <span>{language === 'th' ? 'กลับเข้าห้องเดิม' : 'Rejoin Match'}</span>
             </button>
             <button
               onClick={handleDismissSession}
@@ -417,9 +417,9 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
         </div>
       )}
 
-      <div className="flex-1 max-w-[1720px] 2xl:max-w-[1850px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-5 md:py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 xl:gap-7 items-start">
+      <div className="flex-1 max-w-[1780px] 2xl:max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-5 md:py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 xl:gap-7 items-start">
         {/* LEFT: Deck Selection & Playmat Customization */}
-        <div className="md:col-span-2 lg:col-span-7 xl:col-span-6 2xl:col-span-6 flex flex-col gap-4">
+        <div className="md:col-span-2 lg:col-span-5 xl:col-span-5 2xl:col-span-5 flex flex-col gap-4">
           <div className="glass-panel p-4 sm:p-5 lg:p-6 rounded-2xl flex flex-col shadow-2xl border border-white/10 bg-[#141a26]/85 backdrop-blur-xl">
             <MatchDeckSelect decks={decks} selectedDeckId={selectedDeckId} onSelect={handleDeckSelect} />
           </div>
@@ -465,7 +465,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
         </div>
 
         {/* MIDDLE: Private Room Controls with Glassmorphism */}
-        <div className="md:col-span-1 lg:col-span-5 xl:col-span-3 2xl:col-span-3 flex flex-col">
+        <div className="md:col-span-1 lg:col-span-4 xl:col-span-4 2xl:col-span-4 flex flex-col gap-6">
           <div 
             onMouseMove={handleCardMouseMove}
             className="spotlight-card spotlight-card-amber p-5 sm:p-6 rounded-2xl relative overflow-hidden shadow-2xl flex flex-col justify-between border border-white/10 bg-[#141a26]/85 backdrop-blur-xl min-h-[440px]"
@@ -477,7 +477,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
                 <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                   <Plus className="w-5 h-5 text-[#F59E0B]" />
                 </div>
-                <span>{language === 'th' ? 'ห้องเล่นส่วนตัว (Private Match)' : 'Private Match'}</span>
+                <span>{language === 'th' ? 'ห้องเล่นส่วนตัว' : 'Private Match'}</span>
               </h2>
               
               <div className="flex flex-col gap-6">
@@ -573,10 +573,10 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
         </div>
 
         {/* RIGHT: Ranked Matchmaking with Glassmorphic Ambient Radar */}
-        <div className="md:col-span-1 lg:col-span-12 xl:col-span-3 2xl:col-span-3 flex flex-col">
+        <div className="md:col-span-1 lg:col-span-3 xl:col-span-3 2xl:col-span-3 flex flex-col">
           <div 
             onMouseMove={handleCardMouseMove}
-            className="spotlight-card spotlight-card-amber p-6 md:p-8 rounded-2xl flex flex-col justify-between shadow-2xl border border-white/10 bg-[#141a26]/85 backdrop-blur-xl relative overflow-hidden min-h-[480px]"
+            className="spotlight-card spotlight-card-amber p-5 sm:p-6 rounded-2xl flex flex-col justify-between shadow-2xl border border-white/10 bg-[#141a26]/85 backdrop-blur-xl relative overflow-hidden min-h-[440px]"
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F59E0B] to-transparent pointer-events-none"></div>
 
@@ -585,7 +585,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
                 <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                   <Swords className="w-5 h-5 text-[#F59E0B]" />
                 </div>
-                <span>{language === 'th' ? 'ค้นหาคู่แข่ง (Matchmaking)' : 'Ranked Matchmaking'}</span>
+                <span>{language === 'th' ? 'ค้นหาคู่แข่ง' : 'Ranked Matchmaking'}</span>
               </h2>
             </div>
             

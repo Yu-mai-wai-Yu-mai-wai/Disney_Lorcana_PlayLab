@@ -53,7 +53,7 @@ export function App() {
   const isFullscreenMatch = activeTab === 'board' && matchInfo;
 
   return (
-    <div className={`${activeTab === 'board' ? 'h-screen' : 'min-h-screen'} flex flex-col text-[#F1F5F9] bg-[#0B0F19]/60 relative selection:bg-[#F59E0B]/30 selection:text-white`}>
+    <div className={`${activeTab === 'board' ? 'h-screen' : 'min-h-screen'} flex flex-col text-[#F1F5F9] bg-[#0B0F19]/60 relative selection:bg-[#F59E0B]/30 selection:text-white overflow-x-hidden`}>
       {/* Luxury WebGL Gold & Lore Ink Background Shader */}
       <GoldInkShaderCanvas opacity={0.88} speed={1.0} interactive={true} />
 
@@ -106,7 +106,7 @@ export function App() {
               <Tag className="w-3 h-3" />
               <span className="font-mono font-bold">{APP_VERSION} Patch Notes</span>
             </button>
-            <span className="text-[#64748B]">AWS Serverless Powered</span>
+            <span className="text-[#64748B]">Illuminary Cloud Network</span>
           </div>
         </footer>
       )}

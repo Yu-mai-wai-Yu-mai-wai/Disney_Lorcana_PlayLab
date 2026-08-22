@@ -57,27 +57,42 @@ export async function fetchFullDataset(): Promise<PoolCard[]> {
 
 export function enrichCard(card: any, dataset?: PoolCard[]): PoolCard {
   if (!card) return toPoolCard({});
-  if (dataset && dataset.length > 0) {
-    const match = dataset.find(d => 
-      (card.id && d.id === card.id) ||
-      (card.name && d.name.toLowerCase() === card.name.toLowerCase() && (!card.title || d.title?.toLowerCase() === card.title.toLowerCase())) ||
-      (card.name && d.name.toLowerCase() === card.name.toLowerCase())
-    );
+  const activeDataset = (dataset && dataset.length > 0) ? dataset : (cachedFullDataset || STARTER_POOL);
+  if (activeDataset && activeDataset.length > 0) {
+    const rawCardId = card.cardId || card.id || '';
+    const cleanId = typeof rawCardId === 'string' ? rawCardId.trim() : '';
+    const match = activeDataset.find(d => {
+      if (!d) return false;
+      if (cleanId && d.id === cleanId) return true;
+      if (card.cardId && d.id === card.cardId) return true;
+      if (card.baseCardId && d.id === card.baseCardId) return true;
+      if (typeof card.id === 'string' && d.id && (card.id === d.id || card.id.startsWith(`${d.id}-`))) return true;
+      if (card.name && card.name !== 'Unknown Card' && d.name && d.name.toLowerCase() === card.name.toLowerCase()) {
+        if (!card.title || d.title?.toLowerCase() === card.title.toLowerCase()) return true;
+      }
+      return false;
+    });
     if (match) {
+      const resolvedImg = match.imageUrl || match.img || card.imageUrl || card.img || '';
       return {
         ...match,
         ...card,
         id: card.id || match.id,
+        name: match.name || card.name,
+        title: match.title || card.title || '',
+        cost: match.cost !== undefined ? match.cost : (card.cost ?? 0),
+        ink: match.ink || card.ink || 'Amber',
+        type: match.type || card.type || 'Character',
+        rarity: match.rarity || card.rarity || 'Common',
         abilities: (card.abilities && card.abilities.length > 0) ? card.abilities : match.abilities,
         strength: card.strength !== undefined ? card.strength : match.strength,
         willpower: card.willpower !== undefined ? card.willpower : match.willpower,
         lore: card.lore !== undefined ? card.lore : match.lore,
-        inkwell: match.inkwell,
-        isInkable: match.isInkable,
-        title: card.title || match.title,
-        flavorText: card.flavorText || match.flavorText,
-        imageUrl: card.imageUrl || card.img || match.imageUrl,
-        img: card.imageUrl || card.img || match.img,
+        inkwell: match.inkwell !== undefined ? match.inkwell : (card.inkwell ?? true),
+        isInkable: match.isInkable !== undefined ? match.isInkable : (card.isInkable ?? true),
+        flavorText: match.flavorText || card.flavorText || '',
+        imageUrl: resolvedImg,
+        img: resolvedImg,
       };
     }
   }

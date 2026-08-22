@@ -341,7 +341,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
               )}
             </div>
             <p className="text-xs font-mono text-[#94A3B8]">
-              {myChoice ? `เลือก: ${myChoice === 'ODD' ? 'เลขคี่ (ODD)' : 'เลขคู่ (EVEN)'}` : 'กำลังตัดสินใจ...'}
+              {myChoice ? `${language === 'th' ? 'เลือก: ' : 'Selected: '}${myChoice === 'ODD' ? (language === 'th' ? 'เลขคี่' : 'ODD') : (language === 'th' ? 'เลขคู่' : 'EVEN')}` : (language === 'th' ? 'กำลังตัดสินใจ...' : 'Choosing...')}
             </p>
           </div>
 
@@ -365,8 +365,8 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
             </div>
             <p className="text-xs font-mono text-[#94A3B8]">
               {opponentChoice
-                ? `เลือก: ${opponentChoice === 'ODD' ? 'เลขคี่ (ODD)' : 'เลขคู่ (EVEN)'}`
-                : (isSandbox ? 'Auto Pick (Sandbox)' : 'กำลังตัดสินใจ...')}
+                ? `${language === 'th' ? 'เลือก: ' : 'Selected: '}${opponentChoice === 'ODD' ? (language === 'th' ? 'เลขคี่' : 'ODD') : (language === 'th' ? 'เลขคู่' : 'EVEN')}`
+                : (isSandbox ? 'Auto Pick (Sandbox)' : (language === 'th' ? 'กำลังตัดสินใจ...' : 'Choosing...'))}
             </p>
           </div>
         </div>
@@ -481,7 +481,10 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
                 {diceValue}
               </div>
               <span className="text-sm font-bold font-cinzel text-[#F1F5F9]">
-                ผลทอยคือเลข {diceValue} — <span className={isOddResult ? 'text-[#F59E0B]' : 'text-cyan-400'}>{isOddResult ? 'ODD (คี่)' : 'EVEN (คู่)'}</span>
+                {language === 'th' ? `ผลทอยคือเลข ${diceValue} — ` : `Rolled ${diceValue} — `}
+                <span className={isOddResult ? 'text-[#F59E0B]' : 'text-cyan-400'}>
+                  {isOddResult ? (language === 'th' ? 'เลขคี่' : 'ODD') : (language === 'th' ? 'เลขคู่' : 'EVEN')}
+                </span>
               </span>
             </motion.div>
 
@@ -500,7 +503,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
             {isWinner ? (
               <div className="space-y-3">
                 <p className="text-xs text-[#CBD5E1]">
-                  คุณชนะการทายลูกเต๋า! กรุณาเลือกสิทธิ์ในการเริ่มเกม:
+                  {language === 'th' ? 'คุณชนะการทายลูกเต๋า! กรุณาเลือกลำดับในการเริ่มเกม:' : 'You won the toss! Choose your turn order:'}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -509,11 +512,11 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
                     className="p-4 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 border-2 border-[#F59E0B] rounded-xl text-left transition-all hover:scale-[1.02] group shadow-md cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-cinzel font-bold text-sm text-[#F59E0B]">PLAY FIRST (เริ่มก่อน)</span>
+                      <span className="font-cinzel font-bold text-sm text-[#F59E0B]">{language === 'th' ? 'เริ่มเล่นคนแรก' : 'PLAY FIRST'}</span>
                       <ArrowRight className="w-4 h-4 text-[#F59E0B] group-hover:translate-x-1 transition-transform" />
                     </div>
                     <p className="text-[11px] text-[#94A3B8]">
-                      ได้เริ่มเดินเกมก่อน ได้เปรียบจังหวะลงการ์ด (ข้ามการจั่วในการเริ่มเทิร์น 1)
+                      {language === 'th' ? 'ได้เริ่มเดินเกมก่อน ได้เปรียบจังหวะลงการ์ด (ข้ามการจั่วในการเริ่มเทิร์น 1)' : 'Play cards first (Skip draw on Turn 1)'}
                     </p>
                   </button>
 
@@ -522,11 +525,11 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
                     className="p-4 bg-cyan-950/30 hover:bg-cyan-900/40 border-2 border-cyan-500/60 rounded-xl text-left transition-all hover:scale-[1.02] group shadow-md cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-cinzel font-bold text-sm text-cyan-300">PLAY SECOND (เริ่มหลัง)</span>
+                      <span className="font-cinzel font-bold text-sm text-cyan-300">{language === 'th' ? 'เริ่มเล่นคนที่สอง' : 'PLAY SECOND'}</span>
                       <ArrowRight className="w-4 h-4 text-cyan-300 group-hover:translate-x-1 transition-transform" />
                     </div>
                     <p className="text-[11px] text-[#94A3B8]">
-                      ได้จั่วการ์ดในเทิร์นแรกทันที มีการ์ดบนมือมากกว่าเพื่อแก้ทาง
+                      {language === 'th' ? 'ได้จั่วการ์ดในเทิร์นแรกทันที มีการ์ดบนมือมากกว่าเพื่อแก้ทาง' : 'Draw a card on Turn 1 (Card advantage)'}
                     </p>
                   </button>
                 </div>
@@ -547,7 +550,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
             <div className="p-4 bg-[#141a26] border-2 border-amber-500/50 rounded-2xl flex flex-col items-center gap-2">
               <span className="text-xs font-mono text-[#94A3B8]">DICE RESULT: {diceValue} ({isOddResult ? 'ODD' : 'EVEN'})</span>
               <div className="text-sm font-bold text-amber-300 font-cinzel">
-                🤝 ผลเสมอกัน! (TIE)
+                {language === 'th' ? '🤝 ผลเสมอกัน!' : '🤝 IT\'S A TIE!'}
               </div>
               <p className="text-xs text-[#94A3B8] max-w-xs">{tieReason}</p>
             </div>
@@ -556,7 +559,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
               onClick={handleReroll}
               className="w-full py-4 bg-[#F59E0B] text-black font-cinzel font-bold text-base rounded-xl hover:bg-[#D97706] hover:scale-[1.02] transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2 cursor-pointer"
             >
-              <RefreshCw className="w-5 h-5" /> RE-ROLL (ทอยตัดสินใหม่)
+              <RefreshCw className="w-5 h-5" /> {language === 'th' ? 'ทอยตัดสินใหม่' : 'RE-ROLL'}
             </button>
           </div>
         )}

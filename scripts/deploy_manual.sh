@@ -13,10 +13,10 @@ BACKEND="D:/Tawanagent/TAWAN-OS/02_STUDY/2026-Semester/Cloud_Computing/Cloud_Pro
 WORK="$(mktemp -d)"
 
 echo "======================================"
-echo " 1/5 Package Lambda zips (auth/deck/room)"
+echo " 1/6 Package Lambda zips (auth/deck/room/analyzer)"
 echo "======================================"
 cd "$BACKEND"
-for fn in auth deck room; do
+for fn in auth deck room analyzer; do
   rm -rf "$WORK/$fn" && mkdir -p "$WORK/$fn"
   cp -r dist/$fn "$WORK/$fn/"
   cp package.json "$WORK/$fn/"
@@ -27,10 +27,10 @@ for fn in auth deck room; do
 done
 
 echo "======================================"
-echo " 2/5 Create/Update Lambda functions"
+echo " 2/6 Create/Update Lambda functions"
 echo "======================================"
 # Note: existing auth lambdas (lorcana-auth-login/register) already deployed via console — update them
-for spec in "lorcana-auth-login:auth/login.handler" "lorcana-auth-register:auth/register.handler" "lorcana-deck:deck/handler.handler" "lorcana-room:room/handler.handler"; do
+for spec in "lorcana-auth-login:auth/login.handler" "lorcana-auth-register:auth/register.handler" "lorcana-deck:deck/handler.handler" "lorcana-room:room/handler.handler" "lorcana-analyzer:analyzer/handler.handler"; do
   name="${spec%%:*}"; handler="${spec##*:}"
   zipname=$(echo "$name" | sed 's/lorcana-//')
   if aws lambda get-function --function-name "$name" --region "$REGION" >/dev/null 2>&1; then
@@ -48,7 +48,27 @@ for spec in "lorcana-auth-login:auth/login.handler" "lorcana-auth-register:auth/
 done
 
 echo "======================================"
-echo " 3/5 HTTP API Gateway (REST) — auth + decks"
+echo " 3/6 SQS Queue & Lambda Event Source Mapping"
+echo "======================================"
+SQS_QUEUE_NAME="lorcana-deck-analyzer"
+aws sqs create-queue --queue-name "$SQS_QUEUE_NAME" --region "$REGION" >/dev/null 2>&1 || true
+QUEUE_URL="https://sqs.us-east-1.amazonaws.com/953899323223/$SQS_QUEUE_NAME"
+QUEUE_ARN=$(aws sqs get-queue-attributes --queue-url "$QUEUE_URL" --attribute-names QueueArn --region "$REGION" --query 'Attributes.QueueArn' --output text)
+
+EXISTING_MAPPING=$(aws lambda list-event-source-mappings --function-name lorcana-analyzer --event-source-arn "$QUEUE_ARN" --region "$REGION" --query "EventSourceMappings[0].UUID" --output text 2>/dev/null || true)
+if [ -z "$EXISTING_MAPPING" ] || [ "$EXISTING_MAPPING" = "None" ]; then
+  aws lambda create-event-source-mapping \
+    --function-name lorcana-analyzer \
+    --event-source-arn "$QUEUE_ARN" \
+    --batch-size 10 \
+    --region "$REGION" >/dev/null
+  echo "  created SQS event source mapping: $SQS_QUEUE_NAME -> lorcana-analyzer"
+else
+  echo "  SQS event source mapping exists ($EXISTING_MAPPING)"
+fi
+
+echo "======================================"
+echo " 4/6 HTTP API Gateway (REST) — auth + decks"
 echo "======================================"
 # Reuse existing HTTP API if present, else create
 HTTP_API=$(aws apigatewayv2 get-apis --region "$REGION" --query "Items[?Name=='LorcanaPlayLabApi'].ApiId" --output text 2>/dev/null || true)
@@ -72,9 +92,11 @@ add_route() { # $1=path $2=method $3=fnName
 add_route "/decks" "POST" "lorcana-deck" 2>/dev/null || echo "  /decks POST exists"
 add_route "/decks" "GET" "lorcana-deck" 2>/dev/null || echo "  /decks GET exists"
 add_route "/decks/{deckId}" "DELETE" "lorcana-deck" 2>/dev/null || echo "  /decks/{deckId} DELETE exists"
+add_route "/decks/{deckId}/analyze" "POST" "lorcana-deck" 2>/dev/null || echo "  /decks/{deckId}/analyze POST exists"
+add_route "/decks/{deckId}/analysis" "GET" "lorcana-deck" 2>/dev/null || echo "  /decks/{deckId}/analysis GET exists"
 
 echo "======================================"
-echo " 4/5 WebSocket API Gateway"
+echo " 5/6 WebSocket API Gateway"
 echo "======================================"
 WS_API=$(aws apigatewayv2 get-apis --region "$REGION" --query "Items[?Name=='LorcanaPlayLabWebSocketApi'].ApiId" --output text 2>/dev/null || true)
 if [ -z "$WS_API" ] || [ "$WS_API" = "None" ]; then
@@ -94,7 +116,7 @@ for route in '$connect' '$disconnect' '$default' 'sendAction' 'CREATE_ROOM' 'JOI
 done
 
 echo "======================================"
-echo " 5/5 Outputs"
+echo " 6/6 Outputs"
 echo "======================================"
 HTTP_URL="https://${HTTP_API}.execute-api.${REGION}.amazonaws.com/${STAGE}"
 WS_URL="wss://${WS_API}.execute-api.${REGION}.amazonaws.com/${STAGE}"

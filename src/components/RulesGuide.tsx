@@ -24,14 +24,14 @@ export const RulesGuide: React.FC = () => {
   const [activeTab, setActiveTab] = useState<GuideTab>('objective');
 
   const TABS: { id: GuideTab; label: string; icon: any }[] = [
-    { id: 'objective', label: language === 'th' ? '1. เป้าหมาย & การชนะ (Objective)' : '1. Objective & Win Conditions', icon: Trophy },
-    { id: 'setup', label: language === 'th' ? '2. การเริ่มเกม & สลับการ์ด (Setup)' : '2. Setup & Mulligan', icon: Dices },
-    { id: 'turn', label: language === 'th' ? '3. โครงสร้างเทิร์น (Ready-Set-Draw)' : '3. Turn Structure (Ready, Set, Draw)', icon: RotateCw },
-    { id: 'inkwell', label: language === 'th' ? '4. บ่อหมึก & ค่าร่าย (Inkwell)' : '4. Inkwell & Cost', icon: Droplets },
-    { id: 'combat', label: language === 'th' ? '5. เควสต์ & ท้าดวล (Quest & Challenge)' : '5. Questing & Challenging', icon: Sword },
-    { id: 'keywords', label: language === 'th' ? '6. คีย์เวิร์ด & ความสามารถ (Keywords)' : '6. Keywords & Abilities', icon: Zap },
-    { id: 'deckbuilding', label: language === 'th' ? '7. กฎการจัดเด็ค (Deck Building)' : '7. Deck Construction Rules', icon: Layers },
-    { id: 'comprehensive', label: language === 'th' ? '8. เอกสารกติกาสากล (Rules Ref)' : '8. Official Rules Reference', icon: BookOpen },
+    { id: 'objective', label: language === 'th' ? '1. เป้าหมาย & การชนะ' : '1. Objective & Win Conditions', icon: Trophy },
+    { id: 'setup', label: language === 'th' ? '2. การเริ่มเกม & สลับการ์ด' : '2. Setup & Mulligan', icon: Dices },
+    { id: 'turn', label: language === 'th' ? '3. โครงสร้างเทิร์น' : '3. Turn Structure (Ready, Set, Draw)', icon: RotateCw },
+    { id: 'inkwell', label: language === 'th' ? '4. บ่อหมึก & ค่าร่าย' : '4. Inkwell & Cost', icon: Droplets },
+    { id: 'combat', label: language === 'th' ? '5. เควสต์ & ท้าดวล' : '5. Questing & Challenging', icon: Sword },
+    { id: 'keywords', label: language === 'th' ? '6. คีย์เวิร์ด & ความสามารถ' : '6. Keywords & Abilities', icon: Zap },
+    { id: 'deckbuilding', label: language === 'th' ? '7. กฎการจัดเด็ค' : '7. Deck Construction Rules', icon: Layers },
+    { id: 'comprehensive', label: language === 'th' ? '8. เอกสารกติกาสากล' : '8. Official Rules Reference', icon: BookOpen },
   ];
 
   useEffect(() => {

@@ -74,7 +74,7 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
               </h2>
               <p className="text-xs text-slate-400 font-outfit">
                 {language === 'th'
-                  ? 'ปรับแต่งสกินและพื้นหลังสนามรบเวทมนตร์ของคุณ (ซิงค์อัตโนมัติทั้ง Sandbox & Multiplayer)'
+                  ? 'ปรับแต่งสกินและพื้นหลังสนามรบเวทมนตร์ของคุณเพื่อใช้งานทั้งในโต๊ะจำลองและสนามดวลออนไลน์'
                   : 'Customize your battlefield theme and magical background (Syncs across Sandbox & Matches)'}
               </p>
             </div>
@@ -96,7 +96,7 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
             <div>
               <div className="text-[10px] font-cinzel font-bold text-[#F59E0B] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                {language === 'th' ? 'ตัวอย่างการแสดงผลในสนาม (Live Preview)' : 'Battlefield Preview'}
+                {language === 'th' ? 'ตัวอย่างการแสดงผลในสนาม' : 'Battlefield Preview'}
               </div>
 
               {/* Battlefield Mockup Frame */}
@@ -180,12 +180,12 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
                 {isEquipped ? (
                   <>
                     <Check className="w-4 h-4 text-emerald-400" />
-                    {language === 'th' ? 'กำลังใช้งานลายนี้ (EQUIPPED)' : 'CURRENTLY EQUIPPED'}
+                    {language === 'th' ? 'กำลังใช้งานลายนี้' : 'CURRENTLY EQUIPPED'}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    {language === 'th' ? 'ติดตั้งลายนี้ลงสนาม (EQUIP PLAYMAT)' : 'EQUIP PLAYMAT'}
+                    {language === 'th' ? 'ติดตั้งลายนี้ลงสนาม' : 'EQUIP PLAYMAT'}
                   </>
                 )}
               </button>
@@ -206,7 +206,7 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
                       : 'bg-[#141a26] text-slate-400 border border-[#30363d] hover:text-white hover:border-slate-500'
                   }`}
                 >
-                  {cat === 'All' ? (language === 'th' ? 'ทุกลาย (All)' : 'All Skins') : cat}
+                  {cat === 'All' ? (language === 'th' ? 'ทุกลาย' : 'All Skins') : cat}
                 </button>
               ))}
             </div>
@@ -295,13 +295,13 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
         <div className="px-6 py-3 border-t border-[#30363d] bg-[#141a26] flex items-center justify-between text-xs text-slate-400 font-outfit">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>{language === 'th' ? 'บันทึกลายอัตโนมัติลง Local Storage' : 'Skins auto-save to browser storage'}</span>
+            <span>{language === 'th' ? 'บันทึกลายอัตโนมัติลงในเบราว์เซอร์' : 'Skins auto-save to browser storage'}</span>
           </div>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-[#0B0F19] border border-[#30363d] hover:border-[#F59E0B] text-slate-200 text-xs font-cinzel font-bold transition-colors cursor-pointer"
           >
-            {language === 'th' ? 'ปิดหน้าต่าง (Done)' : 'Done'}
+            {language === 'th' ? 'ปิดหน้าต่าง' : 'Done'}
           </button>
         </div>
       </motion.div>

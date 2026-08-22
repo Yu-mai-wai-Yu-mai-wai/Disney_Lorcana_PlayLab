@@ -210,7 +210,7 @@ export const AnalyticsDashboard: React.FC = () => {
               </h3>
               <p className="text-xs text-[#94A3B8]">
                 {language === 'th' 
-                  ? 'เด็คของคุณมีจุดพีคของค่าร่ายอยู่ที่การ์ด Cost 3 อย่างลงตัว ช่วยให้ทำเกมเร็วช่วงต้นถึงกลางเกม (Early-Mid Game Tempo) ได้อย่างยอดเยี่ยม เหมาะกับกลยุทธ์ Amber/Amethyst Aggro Lore'
+                  ? 'เด็คของคุณมีจุดพีคของค่าร่ายอยู่ที่การ์ด Cost 3 อย่างลงตัว ช่วยให้คุมจังหวะทำเกมเร็วช่วงต้นถึงกลางเกมได้อย่างยอดเยี่ยม เหมาะกับกลยุทธ์ Amber/Amethyst Aggro Lore'
                   : 'Your deck peaks efficiently at 3-cost cards, providing a strong early-mid game tempo ideal for Amber/Amethyst aggressive lore strategy.'}
               </p>
             </div>

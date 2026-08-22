@@ -9,10 +9,50 @@ export interface PatchNote {
   }[];
 }
 
-export const APP_VERSION = 'v1.3.12';
-export const APP_BUILD_DATE = '2026-08-18';
+export const APP_VERSION = 'v1.4.0';
+export const APP_BUILD_DATE = '2026-08-20';
 
 export const PATCH_NOTES: PatchNote[] = [
+  {
+    version: 'v1.4.0',
+    releaseDate: '2026-08-20',
+    title: 'Match Rejoin, Undo Voting, Meta Decks & Modern UI Overhaul',
+    highlight: 'เพิ่มระบบกู้คืนแมตช์ (Rejoin) เมื่อเน็ตหลุด, ระบบขอย้อนการเล่น (Undo Vote) ผ่านการยอมรับจากคู่แข่ง, ชุด Meta Decks พร้อมตัวดูการ์ด, พื้นหลัง WebGL Shader, และยกระดับ UI/Style ให้โมเดิร์น (Glassmorphism + Spotlight + Shimmer) ครบทุกหน้า',
+    features: [
+      {
+        category: 'Multiplayer',
+        items: [
+          '🔄 Match Rejoin (กู้คืนเมื่อเน็ตหลุด): ระบบ Grace Period กลางหลังหลุด, กดกลับเข้าห้องเดิมจากแบนเนอร์ Rejoin, Restore กระดานจาก localStorage + STATE_SYNC เพื่อเล่นต่อจากจุดเดิม 100%',
+          '↩️ Return / Undo Voting: กดขอย้อนการเล่น (จำกัด 2 ครั้ง/แมตช์) ส่งคำขอถึงคู่แข่งผ่าน `UNDO_REQUESTED`, คู่แข่งกดยินยอม/ปฏิเสธภายใน 15 วินาที, เมื่อยอมรับกระดานทั้งสองฝั่ง Rollback พร้อมกัน',
+          '🔌 SQS Deck Analyzer Flow เต็มวงจร: wire `POST /decks/{id}/analyze` + `GET /analysis` + package/deploy `lorcana-analyzer` + SQS event-source-mapping ใน deploy script เพื่อให้การวิเคราะห์เด็คไหลครบ Cloud',
+        ],
+      },
+      {
+        category: 'UI/UX',
+        items: [
+          '🎨 Modern UI Overhaul: Glassmorphism, Spotlight Cards, Ink Color Shimmer Badges, Ambient Glow ทั้ง 6 สีหมึกบน Navbar/Lobby/Deck Viewer',
+          '🌌 WebGL Gold Ink Background Shader: พื้นหลัง Liquid Magic & Chromatic Lore เรืองแสงบนทุกหน้า, GPU-accelerated + Auto-throttle เมื่อซ่อนแท็บ',
+          '🃏 Meta Decks Library: ชุดเด็ค Meta มาตรฐาน 8 archetypes พร้อมปุ่ม "ดูการ์ด" เปิด DeckViewerPopup ขนาดใหญ่กลางจอ, Search + Ink Filter',
+          '📐 Responsive Fix: จัด Navbar แถวเดียว, Grid Lobby สมดุล, ปุ่ม/การ์ดขนาดพอดีจอที่ Zoom 100% (1920x1080 + laptop/tablet), ปรับ Card3DInspector ให้ฟิตจอ',
+        ],
+      },
+      {
+        category: 'Gameplay',
+        items: [
+          '⚡ Ability Notification HUD: แจ้งเตือนในเกมเมื่อเกิด Ability/Kewword (Auto-resolved, Keyword, Complex Effect) พร้อมคำแนะนำการเล่น, Card Stacking ไม่บังกระดาน',
+          '📊 Ink/Vitals Real-time Sync: ซิงค์ availableInk, lore, exerted ของฝั่งคู่แข่งให้ตรงกันระหว่างเล่น (ACTION_PLAYED, INK_PLAYED, TURN_PASSED snapshot)',
+        ],
+      },
+      {
+        category: 'Fixes',
+        items: [
+          'แก้ไข Rejoin แล้วขึ้น Dice Duel/Reset กระดานเป็นใหม่ (guard isRejoin)',
+          'แก้ไขอีกฝั่งยังขึ้น Disconnected Overlay หลังกลับเข้าเกม (auto-dismiss บนทุก Event)',
+          'แก้ไข popup ดูการ์ดไม่ขึ้นกลางจอ (React Portal สู่ document.body + z-index สูง)',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.3.12',
     releaseDate: '2026-08-18',

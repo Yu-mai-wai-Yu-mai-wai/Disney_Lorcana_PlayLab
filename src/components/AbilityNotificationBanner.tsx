@@ -227,7 +227,7 @@ const AbilityBannerItem: React.FC<AbilityBannerItemProps> = ({ alert, onDismiss 
           onClick={() => onDismiss(alert.id)}
           className="absolute top-2.5 right-2.5 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700 transition-colors cursor-pointer"
           aria-label="Dismiss notification"
-          title="ปิดการแจ้งเตือน (Dismiss)"
+          title="ปิดการแจ้งเตือน"
         >
           <X className="w-4 h-4" />
         </motion.button>

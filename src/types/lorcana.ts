@@ -6,10 +6,13 @@ export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Legendary'
 
 export interface LorcanaCard {
   id: string;
+  cardId?: string;
+  baseCardId?: string;
   name: string;
   title?: string;
   cost: number;
   inkwell: boolean;
+  isInkable?: boolean;
   ink: InkColor;
   type: CardType;
   subtypes?: string[];
@@ -19,6 +22,7 @@ export interface LorcanaCard {
   lore?: number;
   flavorText?: string;
   imageUrl: string;
+  img?: string;
   artist?: string;
   setCode?: string;
   abilities?: { name: string; text: string }[];
@@ -69,6 +73,8 @@ export type WebSocketActionType =
   | 'DICE_REROLL'
   | 'FIRST_PLAYER_CHOSEN'
   | 'GAME_RESTART'
+  | 'GAME_OVER'
+  | 'MATCH_FINISHED'
   | 'ROOM_STATE'
   | 'ERROR'
   | 'CHAT_MESSAGE'
@@ -156,6 +162,12 @@ export interface WebSocketMessagePayload {
   respondedBy?: string;
   previousState?: any;
   isSelf?: boolean;
+  winnerRole?: 'player1' | 'player2';
+  winnerName?: string;
+  loserRole?: 'player1' | 'player2';
+  loserName?: string;
+  winnerLore?: number;
+  loserLore?: number;
   gameAction?: string;
   realAction?: string;
   type?: string;

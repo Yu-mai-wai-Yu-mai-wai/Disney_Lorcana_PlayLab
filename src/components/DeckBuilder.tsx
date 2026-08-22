@@ -671,7 +671,7 @@ export const DeckBuilder: React.FC = () => {
       {/* RECOMMENDED DECKS MODAL */}
       {isRecommendedModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsRecommendedModalOpen(false)}>
-          <div className="bg-[#141a26] border-2 border-[#F59E0B] rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-[0_0_30px_rgba(245,158,11,0.15)]" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#141a26] border-2 border-[#F59E0B] rounded-xl w-full max-w-5xl max-h-[85vh] flex flex-col shadow-[0_0_30px_rgba(245,158,11,0.15)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center p-6 border-b border-[#30363d]">
               <h2 className="font-cinzel text-xl font-bold text-[#F59E0B] flex items-center gap-2">
                 <Star className="w-6 h-6" /> {t.recommendedDecks}

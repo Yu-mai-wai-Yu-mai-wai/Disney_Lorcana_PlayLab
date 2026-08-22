@@ -31,6 +31,8 @@ import {
   HelpCircle,
   Flame,
   Info,
+  Pin,
+  Eye,
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
@@ -38,10 +40,11 @@ import { Modal } from './ui/Modal';
 import { DiceDuelModal } from './DiceDuelModal';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
 import { AbilityNotificationBanner, type AbilityAlert } from './AbilityNotificationBanner';
+import { GameOverModal } from './GameOverModal';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { usePlaymatStore } from '../store/usePlaymatStore';
-import { translateCardAbilityText, translateCardType, translateInkColor } from '../utils/cardTranslator';
+import { translateCardAbilityText, translateAbilityName, translateCardType, translateInkColor } from '../utils/cardTranslator';
 
 import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
 
@@ -88,6 +91,7 @@ export interface LorcanaBoardProps {
   initialDeck?: any;
   roomId?: string;
   playerRole?: 'player1' | 'player2';
+  opponentUsername?: string;
   matchMode?: boolean;
   isRejoin?: boolean;
   onExitMatch?: () => void;
@@ -97,6 +101,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   initialDeck,
   roomId,
   playerRole,
+  opponentUsername,
   matchMode = false,
   isRejoin = false,
   onExitMatch,
@@ -144,6 +149,23 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     return true;
   });
 
+  const [opponentName, setOpponentName] = useState<string>(() => {
+    if (opponentUsername) return opponentUsername;
+    if (playerRole === 'player1') return 'Challenger';
+    if (playerRole === 'player2') return 'Host Illumineer';
+    return 'Opponent Illumineer';
+  });
+
+  const [gameOverData, setGameOverData] = useState<{
+    isOpen: boolean;
+    isWinner: boolean;
+    winnerName: string;
+    loserName: string;
+    winnerLore: number;
+    loserLore: number;
+    turnNumber: number;
+  } | null>(null);
+
   // Build initial 60-card deck from initialDeck or standard starter pool
   const [initialFullDeck] = useState<LorcanaCard[]>(() => {
     let deck: LorcanaCard[] = [];
@@ -151,13 +173,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       initialDeck.cards.forEach((c: any) => {
         const count = c.count || 1;
         const cardData = c.card || c;
+        const baseId = cardData.cardId || cardData.id || cardData.name || 'card';
+        const enriched = enrichCard({ ...cardData, id: baseId, cardId: cardData.cardId || cardData.id });
         for (let i = 0; i < count; i++) {
-          const inkableFlag = cardData.inkwell !== undefined ? Boolean(cardData.inkwell) : (cardData.isInkable !== undefined ? Boolean(cardData.isInkable) : true);
+          const inkableFlag = enriched.inkwell !== undefined ? Boolean(enriched.inkwell) : (enriched.isInkable !== undefined ? Boolean(enriched.isInkable) : true);
           deck.push({
-            ...cardData,
+            ...enriched,
+            baseCardId: baseId,
+            cardId: cardData.cardId || cardData.id,
             inkwell: inkableFlag,
             isInkable: inkableFlag,
-            id: `${cardData.id || cardData.name}-${i}-${Math.random().toString(36).substring(2, 6)}`
+            id: `${baseId}-${i}-${Math.random().toString(36).substring(2, 6)}`
           });
         }
       });
@@ -166,6 +192,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         const c = STARTER_POOL[i % STARTER_POOL.length];
         deck.push({
           ...c,
+          baseCardId: c.id,
+          cardId: c.id,
           id: `${c.id}-${i}-${Math.random().toString(36).substring(2, 6)}`
         });
       }
@@ -205,6 +233,97 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   playerRoleRef.current = playerRole;
   const matchModeRef = useRef<boolean>(matchMode);
   matchModeRef.current = matchMode;
+
+  const handleTriggerGameOver = (
+    winner: 'me' | 'opponent',
+    explicitData?: { winnerName?: string; loserName?: string; winnerLore?: number; loserLore?: number }
+  ) => {
+    const isMeWinner = winner === 'me';
+    const myName = myUsername;
+    const oppName = opponentName || (playerRole === 'player1' ? 'Challenger' : 'Host Illumineer');
+
+    const wName = explicitData?.winnerName || (isMeWinner ? myName : oppName);
+    const lName = explicitData?.loserName || (isMeWinner ? oppName : myName);
+    const wLore = explicitData?.winnerLore ?? (isMeWinner ? playerLore : opponentLore);
+    const lLore = explicitData?.loserLore ?? (isMeWinner ? opponentLore : playerLore);
+
+    setGameOverData({
+      isOpen: true,
+      isWinner: isMeWinner,
+      winnerName: wName,
+      loserName: lName,
+      winnerLore: Math.max(20, wLore),
+      loserLore: lLore,
+      turnNumber: turnNumberRef.current,
+    });
+
+    if (isMeWinner && matchMode) {
+      webSocketService.sendAction('GAME_OVER' as any, {
+        roomId: roomId || undefined,
+        role: playerRole,
+        username: myUsername,
+        winnerRole: playerRole,
+        winnerName: myName,
+        loserRole: playerRole === 'player1' ? 'player2' : 'player1',
+        loserName: oppName,
+        winnerLore: Math.max(20, wLore),
+        loserLore: lLore,
+        turnNumber: turnNumberRef.current,
+      });
+    }
+  };
+
+  const resetGameBoard = () => {
+    setPlayerLore(0);
+    setOpponentLore(0);
+    setAvailableInk(0);
+    setInkwellCapacity(0);
+    setOpponentInk(0);
+    setOpponentInkCapacity(0);
+    setHasInkedThisTurn(false);
+    setTurnNumber(1);
+    turnNumberRef.current = 1;
+    setFieldCards([]);
+    setOpponentFieldCards([]);
+    setExertedCards({});
+    setOpponentExerted({});
+    setDamage({});
+    setDiscardCount(0);
+    setOpponentDiscardCount(0);
+
+    // Re-deal hand & deck
+    const shuffled = [...initialFullDeck].sort(() => Math.random() - 0.5);
+    const initialHand = shuffled.slice(0, 7);
+    const initialDeckList = shuffled.slice(7);
+    deckCardsRef.current = initialDeckList;
+    handCardsRef.current = initialHand;
+    setHandCards(initialHand);
+    setDeckCards(initialDeckList);
+    setDeckCount(initialDeckList.length);
+    setOpponentDeckCount(53);
+    setTurnPhase('beginning');
+    setIsMulliganPhase(false);
+    setHasMulliganed(false);
+    setGameOverData(null);
+
+    if (matchMode) {
+      setIsMyTurn(firstPlayerRole === (playerRole || 'player1'));
+    } else {
+      setIsMyTurn(true);
+    }
+  };
+
+  const handlePlayAgain = () => {
+    resetGameBoard();
+    if (matchMode) {
+      webSocketService.sendAction('GAME_RESTART' as any, {
+        roomId: roomId || undefined,
+        role: playerRole,
+        username: myUsername,
+      });
+    }
+    showNotice('Starting a new match!', 'success');
+  };
 
   const handleDuelFinished = (chosenFirst: 'player1' | 'player2') => {
     setFirstPlayerRole(chosenFirst);
@@ -269,7 +388,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   React.useEffect(() => {
     fetchFullDataset().then(dataset => {
       setCardPool(dataset);
-      setHandCards(prev => prev.map(c => enrichCard(c, dataset)));
+      setHandCards(prev => {
+        const enriched = prev.map(c => enrichCard(c, dataset));
+        handCardsRef.current = enriched;
+        return enriched;
+      });
       setDeckCards(prev => {
         const enriched = prev.map(c => enrichCard(c, dataset));
         deckCardsRef.current = enriched;
@@ -309,12 +432,24 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [chatInput, setChatInput] = useState('');
 
-  // CARD HOVER, DRAG & ACTION MODAL STATES
+  // CARD HOVER, PINNED INSPECTOR, DRAG & ACTION MODAL STATES
   const [hoveredCard, setHoveredCard] = useState<LorcanaCard | null>(null);
+  const [pinnedCard, setPinnedCard] = useState<LorcanaCard | null>(null);
   const [selectedHandCard, setSelectedHandCard] = useState<LorcanaCard | null>(null);
   const [dragPendingCard, setDragPendingCard] = useState<LorcanaCard | null>(null);
   const [isDraggingCard, setIsDraggingCard] = useState(false);
   const [isDraggingOverInkwell, setIsDraggingOverInkwell] = useState(false);
+
+  // Close pinned card inspector on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && pinnedCard) {
+        setPinnedCard(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pinnedCard]);
 
   const [exertedCards, setExertedCards] = useState<Record<string, boolean>>(() => (savedBoard?.exertedCards ?? {}));
 
@@ -340,9 +475,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       cardTitle: card.title,
       cardImage: card.imageUrl,
       inkColor: card.ink,
-      abilityName: abilityName || 'Special Ability',
+      abilityName: translateAbilityName(abilityName || 'Special Ability', abilityText),
       originalText: abilityText,
-      thaiText: translateCardAbilityText(abilityText),
+      thaiText: translateCardAbilityText(abilityText, abilityName),
       category,
       actionHint,
       timestamp: Date.now(),
@@ -359,9 +494,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         cardTitle: card.title,
         cardImage: card.imageUrl,
         inkColor: card.ink,
-        abilityName: abilityName || 'Special Ability',
+        abilityName: translateAbilityName(abilityName || 'Special Ability', abilityText),
         abilityText: abilityText,
-        thaiText: translateCardAbilityText(abilityText),
+        thaiText: translateCardAbilityText(abilityText, abilityName),
         category,
         actionHint,
         payload: {
@@ -369,9 +504,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           cardTitle: card.title,
           cardImage: card.imageUrl,
           inkColor: card.ink,
-          abilityName: abilityName || 'Special Ability',
+          abilityName: translateAbilityName(abilityName || 'Special Ability', abilityText),
           abilityText: abilityText,
-          thaiText: translateCardAbilityText(abilityText),
+          thaiText: translateCardAbilityText(abilityText, abilityName),
           category,
           actionHint,
         },
@@ -629,6 +764,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         clearInterval(disconnectTimerRef.current);
         disconnectTimerRef.current = null;
       }
+      if (username && username !== myUsername) {
+        setOpponentName(username);
+      }
     };
 
     const checkFromMe = (data: any) => {
@@ -683,7 +821,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       const ink = p.inkColor || data.inkColor;
       const abName = p.abilityName || data.abilityName || 'Special Ability';
       const abText = p.abilityText || data.abilityText || '';
-      const thText = p.thaiText || data.thaiText || translateCardAbilityText(abText);
+      const thText = p.thaiText || data.thaiText || translateCardAbilityText(abText, abName);
       const cat = p.category || data.category || 'trigger';
       const hint = p.actionHint || data.actionHint;
 
@@ -735,7 +873,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       if (data.loreScore !== undefined) {
         setOpponentLore(data.loreScore);
         if (data.loreScore >= 20) {
-          showNotice('DEFEAT! Opponent reached 20 Lore and won the match.', 'error');
+          const opp = data.username || opponentName || (playerRole === 'player1' ? 'Challenger' : 'Host Illumineer');
+          showNotice(`DEFEAT! ${opp} reached 20 Lore and won the match.`, 'error');
+          setGameOverData({
+            isOpen: true,
+            isWinner: false,
+            winnerName: opp,
+            loserName: myUsername,
+            winnerLore: data.loreScore,
+            loserLore: playerLore,
+            turnNumber: turnNumberRef.current,
+          });
         }
       }
     });
@@ -749,9 +897,74 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           setOpponentExerted((prev) => ({ ...prev, [data.cardId!]: true }));
         }
         if (data.loreScore >= 20) {
-          showNotice('DEFEAT! Opponent reached 20 Lore and won the match.', 'error');
+          const opp = data.username || opponentName || (playerRole === 'player1' ? 'Challenger' : 'Host Illumineer');
+          showNotice(`DEFEAT! ${opp} reached 20 Lore and won the match.`, 'error');
+          setGameOverData({
+            isOpen: true,
+            isWinner: false,
+            winnerName: opp,
+            loserName: myUsername,
+            winnerLore: data.loreScore,
+            loserLore: playerLore,
+            turnNumber: turnNumberRef.current,
+          });
         }
       }
+    });
+
+    const unsubGameOver = webSocketService.subscribe('GAME_OVER' as any, (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      const p = data.payload || data;
+      const isMeWinner = (p.winnerRole && p.winnerRole === playerRole) || (p.winnerName && p.winnerName === myUsername);
+      const opp = data.username || opponentName || (playerRole === 'player1' ? 'Challenger' : 'Host Illumineer');
+      const wName = p.winnerName || (isMeWinner ? myUsername : opp);
+      const lName = p.loserName || (isMeWinner ? opp : myUsername);
+      const wLore = p.winnerLore || 20;
+      const lLore = p.loserLore !== undefined ? p.loserLore : (isMeWinner ? opponentLore : playerLore);
+
+      setGameOverData({
+        isOpen: true,
+        isWinner: isMeWinner,
+        winnerName: wName,
+        loserName: lName,
+        winnerLore: wLore,
+        loserLore: lLore,
+        turnNumber: p.turnNumber || turnNumberRef.current,
+      });
+
+      if (isMeWinner) {
+        showNotice(`VICTORY! You reached 20 Lore and won the match!`, 'success');
+      } else {
+        showNotice(`DEFEAT! ${wName} reached 20 Lore and won the match.`, 'error');
+      }
+    });
+
+    const unsubMatchFinished = webSocketService.subscribe('MATCH_FINISHED' as any, (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      const p = data.payload || data;
+      const isMeWinner = (p.winnerRole && p.winnerRole === playerRole) || (p.winnerName && p.winnerName === myUsername);
+      const opp = data.username || opponentName || (playerRole === 'player1' ? 'Challenger' : 'Host Illumineer');
+      const wName = p.winnerName || (isMeWinner ? myUsername : opp);
+      const lName = p.loserName || (isMeWinner ? opp : myUsername);
+      const wLore = p.winnerLore || 20;
+      const lLore = p.loserLore !== undefined ? p.loserLore : (isMeWinner ? opponentLore : playerLore);
+
+      setGameOverData({
+        isOpen: true,
+        isWinner: isMeWinner,
+        winnerName: wName,
+        loserName: lName,
+        winnerLore: wLore,
+        loserLore: lLore,
+        turnNumber: p.turnNumber || turnNumberRef.current,
+      });
+    });
+
+    const unsubRestart = webSocketService.subscribe('GAME_RESTART' as any, () => {
+      resetGameBoard();
+      showNotice('Match restarted! A new game has begun.', 'success');
     });
 
     const unsubPassed = webSocketService.subscribe('TURN_PASSED', (data) => {
@@ -1091,6 +1304,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       unsubAll();
       unsubGameStart();
       unsubRoomState();
+      unsubGameOver();
+      unsubMatchFinished();
+      unsubRestart();
       if (undoTimerRef.current) clearInterval(undoTimerRef.current);
       if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
     };
@@ -1197,6 +1413,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         webSocketService.sendAction('QUEST_DONE', { roomId: roomId || undefined, role: playerRole, cardId: card.id, loreScore: next });
         if (next >= 20) {
           showNotice(`VICTORY! You reached 20 Lore and won the Illumineer match!`, 'success');
+          handleTriggerGameOver('me', { winnerLore: next, loserLore: opponentLore });
         }
         return next;
       });
@@ -1312,6 +1529,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         setPlayerLore(prev => {
           const next = Math.min(20, prev + gain);
           webSocketService.sendAction('LORE_UPDATED', { roomId: roomId || undefined, role: playerRole, loreScore: next });
+          if (next >= 20) {
+            showNotice(`VICTORY! You reached 20 Lore and won the Illumineer match!`, 'success');
+            handleTriggerGameOver('me', { winnerLore: next, loserLore: opponentLore });
+          }
           return next;
         });
         setLogMessages(logs => [`[Ability: ${ability.name}] Gained ${gain} Lore!`, ...logs]);
@@ -1329,7 +1550,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           return prev;
         });
         isAutoResolved = true;
-        hint = 'ทำลาย (Banish) ตัวละครฝ่ายตรงข้ามลงสุสานทันที';
+        hint = 'ทำลายตัวละครฝ่ายตรงข้ามลงสุสานทันที';
       }
 
       // Damage to each opposing character
@@ -1781,12 +2002,23 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         <div className="flex justify-between items-center w-full z-20 pb-2 border-b border-[#30363d] shrink-0">
           <div className="flex items-center gap-2.5">
             {/* OPPONENT LORE */}
-            <div className="px-3 py-1.5 rounded-xl border border-rose-500/30 flex items-center gap-2.5 bg-[#141a26] shadow-sm shadow-rose-950/20">
+            <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2.5 bg-[#141a26] shadow-sm transition-all duration-300 ${
+              opponentLore >= 16
+                ? 'border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)] bg-rose-950/30'
+                : 'border-rose-500/30 shadow-rose-950/20'
+            }`}>
               <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                <Sparkles className={`w-3.5 h-3.5 text-rose-400 ${opponentLore >= 16 ? 'animate-spin-slow' : ''}`} />
               </div>
-              <div className="flex flex-col items-start">
-                <span className="text-[9px] font-cinzel font-bold text-[#94A3B8] uppercase tracking-wider">Opponent Lore</span>
+              <div className="flex flex-col items-start min-w-[130px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-cinzel font-bold text-[#94A3B8] uppercase tracking-wider">Opponent Lore</span>
+                  {opponentLore >= 16 && (
+                    <span className="shimmer-badge badge-shimmer-ruby text-[8px] font-mono font-bold px-1.5 py-0.2 rounded-full">
+                      DANGER!
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-baseline gap-1 mt-0.5">
                   <motion.span
                     key={opponentLore}
@@ -1798,6 +2030,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     {opponentLore}
                   </motion.span>
                   <span className="font-cinzel text-xs font-bold text-[#94A3B8]">/ 20</span>
+                </div>
+                <div className="w-full h-1.5 bg-[#0B0F19] rounded-full overflow-hidden border border-[#30363d] mt-1">
+                  <div
+                    className="h-full bg-gradient-to-r from-rose-500 via-rose-400 to-pink-300 transition-all duration-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                    style={{ width: `${Math.min(100, (opponentLore / 20) * 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
@@ -1899,15 +2137,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             </button>
 
             <button
-              onClick={() => setIsDiceDuelOpen(true)}
-              className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] px-2.5 py-1.5 rounded-lg text-xs font-cinzel font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-              title="Open Pre-Match Dice Duel"
-            >
-              <Dices className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Dice Duel</span>
-            </button>
-
-            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B] p-1.5 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5"
             >
@@ -1967,21 +2196,34 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
                       onMouseEnter={() => setHoveredCard(card)}
                       onMouseLeave={() => setHoveredCard(null)}
-                      onClick={() => selectedAttacker && handleAttackTarget(card)}
-                      className={`w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border ${
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setPinnedCard(card);
+                      }}
+                      onClick={() => {
+                        if (selectedAttacker) {
+                          handleAttackTarget(card);
+                        } else {
+                          setPinnedCard(card);
+                        }
+                      }}
+                      className={`w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border cursor-pointer ${
                         selectedAttacker
                           ? isOpExerted
-                            ? 'border-rose-500 cursor-pointer hover:border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                            ? 'border-rose-500 hover:border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
                             : 'border-slate-700 opacity-60 cursor-not-allowed'
                           : isOpExerted
-                          ? 'border-[#F59E0B]/60'
-                          : 'border-[#30363d]'
+                          ? 'border-[#F59E0B]/60 hover:border-[#F59E0B]'
+                          : 'border-[#30363d] hover:border-[#F59E0B]/60'
                       }`}
                     >
                       <img
-                        src={card.imageUrl || card.img}
-                        alt={card.name}
+                        src={card.imageUrl || card.img || '/Lorcana_Card_Back.png'}
+                        alt={card.name || 'Disney Lorcana Card'}
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/Lorcana_Card_Back.png';
+                        }}
                         className="w-full h-full object-cover opacity-70"
                       />
                       
@@ -2078,6 +2320,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     tabIndex={0}
                     onMouseEnter={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setPinnedCard(card);
+                    }}
                     onClick={handleCardInteraction}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -2099,11 +2345,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                         <span className="text-[8px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                       </div>
                       <img
-                        src={card.imageUrl || card.img}
-                        alt={card.name}
+                        src={card.imageUrl || card.img || '/Lorcana_Card_Back.png'}
+                        alt={card.name || 'Disney Lorcana Card'}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          (e.currentTarget as HTMLImageElement).src = '/Lorcana_Card_Back.png';
                         }}
                         className="w-full h-full object-cover rounded-xl relative z-10"
                       />
@@ -2172,10 +2418,21 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         </div>
 
         {/* PLAYER LORE & PASS TURN CONTROLS BAR (IN-FLOW) */}
-        <div className="w-full flex justify-between items-center z-20 py-2 px-4 border border-[#30363d] bg-[#141a26] rounded-xl shrink-0">
+        <div className={`w-full flex justify-between items-center z-20 py-2 px-4 border rounded-xl shrink-0 transition-all duration-300 bg-[#141a26] ${
+          playerLore >= 16
+            ? 'border-[#F59E0B] shadow-[0_0_20px_rgba(245,158,11,0.35)] bg-gradient-to-r from-[#141a26] via-amber-950/20 to-[#141a26]'
+            : 'border-[#30363d]'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="flex flex-col items-start">
-              <span className="text-[9px] font-cinzel font-bold text-[#F59E0B] uppercase tracking-wider">Your Lore Score</span>
+            <div className="flex flex-col items-start min-w-[140px]">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-cinzel font-bold text-[#F59E0B] uppercase tracking-wider">Your Lore Score</span>
+                {playerLore >= 16 && (
+                  <span className="shimmer-badge badge-shimmer-gold text-[8px] font-mono font-bold px-1.5 py-0.2 rounded-full animate-pulse">
+                    MATCH POINT!
+                  </span>
+                )}
+              </div>
               <div className="flex items-baseline gap-1 mt-0.5">
                 <motion.span
                   key={playerLore}
@@ -2187,6 +2444,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   {playerLore}
                 </motion.span>
                 <span className="font-cinzel text-xs font-bold text-[#94A3B8]">/ 20</span>
+              </div>
+              <div className="w-full h-1.5 bg-[#0B0F19] rounded-full overflow-hidden border border-[#30363d] mt-1">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                  style={{ width: `${Math.min(100, (playerLore / 20) * 100)}%` }}
+                />
               </div>
             </div>
           </div>
@@ -2224,7 +2487,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                  className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-5 py-2 rounded-xl font-cinzel font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
                >
                  <RotateCw className="w-3.5 h-3.5" />
-                 <span>{language === 'th' ? 'สลับการ์ด (Mulligan)' : 'Mulligan'}</span>
+                 <span>{language === 'th' ? 'สลับการ์ด' : 'Mulligan'}</span>
                </motion.button>
             )}
             {matchMode ? (
@@ -2291,6 +2554,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     key={card.id}
                     onMouseEnter={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setPinnedCard(card);
+                    }}
                     onClick={() => {
                       if (isSelected) {
                         setMulliganSelectedIds(prev => prev.filter(id => id !== card.id));
@@ -2305,9 +2572,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     }`}
                   >
                      <img
-                       src={card.imageUrl || card.img}
-                       alt={card.name}
+                       src={card.imageUrl || card.img || '/Lorcana_Card_Back.png'}
+                       alt={card.name || 'Disney Lorcana Card'}
                        className="w-full h-full object-cover rounded-xl"
+                       onError={(e) => {
+                         (e.currentTarget as HTMLImageElement).src = '/Lorcana_Card_Back.png';
+                       }}
                      />
                   </motion.div>
                 );
@@ -2385,6 +2655,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     onDragStart={() => setIsDraggingCard(true)}
                     onMouseEnter={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setPinnedCard(card);
+                    }}
                     onClick={() => setSelectedHandCard(card)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -2404,8 +2678,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                         <span className="text-[9px] text-[#94A3B8] font-mono mt-0.5">Image unavailable</span>
                       </div>
                       <img
-                        src={card.imageUrl || card.img}
-                        alt={card.name}
+                        src={card.imageUrl || card.img || '/Lorcana_Card_Back.png'}
+                        alt={card.name || 'Disney Lorcana Card'}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -2426,40 +2700,77 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* HOVER CARD INSPECTOR TOOLTIP PANEL (VIEWPORT FIXED - BOTTOM RIGHT MARKED AREA, ENLARGED) */}
+      {/* PINNED CARD INSPECTOR MODAL (LOCKED / SCROLLABLE WITH CLOSE 'X') */}
       <AnimatePresence>
-        {hoveredCard && (
+        {pinnedCard && (
           <motion.div
             initial={{ opacity: 0, y: 15, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 15, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            className="fixed bottom-6 right-6 md:right-10 z-[110] w-[420px] max-w-[calc(100vw-2rem)] bg-[#141a26]/95 backdrop-blur-md border border-[#30363d] rounded-2xl p-5 text-[#F1F5F9] flex flex-col gap-3.5 pointer-events-none shadow-[0_16px_50px_rgba(0,0,0,0.9)]"
+            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+            className="fixed bottom-4 right-4 md:right-6 z-[130] w-[380px] max-w-[calc(100vw-2rem)] bg-[#141a26]/98 backdrop-blur-xl border-2 border-[#F59E0B]/80 rounded-2xl p-4 text-[#F1F5F9] flex flex-col gap-3 pointer-events-auto shadow-[0_20px_60px_rgba(0,0,0,0.9)] ring-1 ring-[#F59E0B]/30"
           >
-            <div className="flex gap-3.5 items-center border-b border-[#30363d] pb-3">
+            {/* Header Bar */}
+            <div className="flex items-center justify-between border-b border-[#30363d] pb-2">
+              <div className="flex items-center gap-1.5 text-xs font-cinzel font-bold text-[#F59E0B]">
+                <Pin className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
+                <span>{language === 'th' ? 'รายละเอียดการ์ด' : 'PINNED CARD INSPECTOR'}</span>
+              </div>
+              <button
+                onClick={() => setPinnedCard(null)}
+                aria-label="Close pinned card details"
+                className="p-1 rounded-lg bg-[#0B0F19] hover:bg-rose-950/50 text-[#94A3B8] hover:text-rose-400 border border-[#30363d] hover:border-rose-500/50 transition-colors cursor-pointer"
+                title={language === 'th' ? 'ปิดหน้าต่าง' : 'Close (Esc)'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Card Main Info */}
+            <div className="flex gap-3 items-center">
               <img
-                src={hoveredCard.imageUrl || hoveredCard.img}
-                alt={hoveredCard.name}
+                src={pinnedCard.imageUrl || pinnedCard.img}
+                alt={pinnedCard.name}
                 referrerPolicy="no-referrer"
-                className="w-24 h-34 object-cover rounded-xl border border-[#30363d] shrink-0 shadow-lg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/Lorcana_Card_Back.png';
+                }}
+                className="w-18 h-26 object-cover rounded-lg border border-[#30363d] shrink-0 shadow-lg"
               />
               <div className="flex flex-col min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  {hoveredCard.ink && <InkSymbol ink={hoveredCard.ink} size={18} />}
-                  <span className="font-cinzel font-bold text-lg text-[#F59E0B] leading-tight truncate">{hoveredCard.name}</span>
+                <div className="flex items-center gap-1.5">
+                  {pinnedCard.ink && <InkSymbol ink={pinnedCard.ink} size={18} />}
+                  <span className="font-cinzel font-bold text-base text-[#F59E0B] leading-tight truncate">{pinnedCard.name}</span>
                 </div>
-                <span className="text-[13px] font-mono text-[#94A3B8] mt-0.5">{hoveredCard.title}</span>
-                <div className="flex items-center gap-3 mt-1.5 text-xs font-mono font-bold">
-                  <span className="text-[#F59E0B] bg-[#0B0F19] px-2 py-0.5 rounded border border-[#30363d]">{t.cost}: {hoveredCard.cost} Ink</span>
-                  {isCardInkable(hoveredCard) ? (
+                {pinnedCard.title && (
+                  <span className="text-xs font-mono text-[#94A3B8] truncate leading-tight mt-0.5">{pinnedCard.title}</span>
+                )}
+                
+                {/* Type & Ink badges */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px] font-mono">
+                  {pinnedCard.type && (
+                    <span className="bg-[#1e2638] text-amber-200 px-2 py-0.5 rounded border border-[#30363d]">
+                      {language === 'th' ? translateCardType(pinnedCard.type, 'th') : pinnedCard.type}
+                    </span>
+                  )}
+                  {pinnedCard.ink && (
+                    <span className="bg-[#0B0F19] text-[#94A3B8] px-2 py-0.5 rounded border border-[#30363d]">
+                      {language === 'th' ? translateInkColor(pinnedCard.ink, 'th') : pinnedCard.ink}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 mt-2 text-[11px] font-mono font-bold">
+                  <span className="text-[#F59E0B] bg-[#0B0F19] px-2 py-0.5 rounded border border-[#30363d]">{t.cost}: {pinnedCard.cost}</span>
+                  {isCardInkable(pinnedCard) ? (
                     <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
-                      <Droplets className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                      <Droplets className="w-3 h-3 fill-emerald-400 text-emerald-400" />
                       {t.inkable}
                     </span>
                   ) : (
                     <span className="text-rose-400 font-bold flex items-center gap-1 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-500/30">
-                      <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                      {language === 'th' ? 'ไม่สามารถใส่ Inkwell ได้' : 'Non-Inkable'}
+                      <XCircle className="w-3 h-3 text-rose-400" />
+                      {language === 'th' ? 'Non-Ink' : 'Non-Inkable'}
                     </span>
                   )}
                 </div>
@@ -2467,41 +2778,158 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-2 bg-[#0B0F19] p-2.5 rounded-xl border border-[#30363d] text-center font-mono text-sm">
-              <div>
-                <span className="text-[10px] text-[#94A3B8] block font-bold">{t.strength}</span>
-                <span className="text-[#F59E0B] font-bold text-base flex items-center justify-center gap-1 mt-0.5">
-                  <Sword className="w-4 h-4 text-[#F59E0B]" />
-                  {hoveredCard.strength ?? '-'}
-                </span>
+            <div className="grid grid-cols-3 gap-2 bg-[#0B0F19] p-2 rounded-lg border border-[#30363d] text-center font-mono">
+              <div className="flex items-center justify-center gap-1.5">
+                <Sword className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+                <span className="text-[#94A3B8] text-[10px] font-bold">{t.strength.slice(0, 3)}:</span>
+                <span className="text-[#F59E0B] font-bold text-sm">{pinnedCard.strength ?? '-'}</span>
               </div>
-              <div>
-                <span className="text-[10px] text-[#94A3B8] block font-bold">{t.willpower}</span>
-                <span className="text-[#F59E0B] font-bold text-base flex items-center justify-center gap-1 mt-0.5">
-                  <Shield className="w-4 h-4 text-[#F59E0B]" />
-                  {hoveredCard.willpower ?? '-'}
-                </span>
+              <div className="flex items-center justify-center gap-1.5 border-x border-[#30363d]">
+                <Shield className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+                <span className="text-[#94A3B8] text-[10px] font-bold">{t.willpower.slice(0, 4)}:</span>
+                <span className="text-[#F59E0B] font-bold text-sm">{pinnedCard.willpower ?? '-'}</span>
               </div>
-              <div>
-                <span className="text-[10px] text-[#94A3B8] block font-bold">{t.lore}</span>
-                <span className="text-[#F59E0B] font-bold text-base flex items-center justify-center gap-1 mt-0.5">
-                  <Sparkles className="w-4 h-4 text-[#F59E0B]" />
-                  {hoveredCard.lore ?? '-'}
-                </span>
+              <div className="flex items-center justify-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+                <span className="text-[#94A3B8] text-[10px] font-bold">{t.lore.slice(0, 4)}:</span>
+                <span className="text-[#F59E0B] font-bold text-sm">{pinnedCard.lore ?? '-'}</span>
               </div>
             </div>
 
-            {/* Abilities & Text Box */}
-            {hoveredCard.abilities && hoveredCard.abilities.length > 0 && (
-              <div className="space-y-2 text-[12px] font-mono bg-[#0B0F19] p-3 rounded-xl border border-[#30363d] max-h-40 overflow-y-auto">
-                <div className="text-[10px] font-cinzel text-[#F59E0B] font-bold uppercase tracking-wider mb-1">
-                  {t.specialAbilities}
+            {/* Abilities & Text Box (Fully Scrollable) */}
+            {pinnedCard.abilities && pinnedCard.abilities.length > 0 && (
+              <div className="space-y-2 bg-[#0B0F19] p-2.5 rounded-lg border border-[#30363d] max-h-48 overflow-y-auto select-text pr-1.5 custom-scrollbar">
+                <div className="text-[10px] font-cinzel text-[#F59E0B] font-bold uppercase tracking-wider flex items-center justify-between">
+                  <span>{t.specialAbilities}</span>
+                  <span className="text-[#94A3B8] font-mono text-[10px]">({pinnedCard.abilities.length})</span>
                 </div>
+                {pinnedCard.abilities.map((ab, idx) => (
+                  <div key={idx} className="leading-relaxed bg-[#141a26] p-2.5 rounded-lg border border-[#30363d]/60">
+                    <div className="font-bold text-xs text-[#F59E0B] mb-0.5">
+                      {language === 'th' ? translateAbilityName(ab.name, ab.text, 'th') : translateAbilityName(ab.name, ab.text, 'en')}
+                    </div>
+                    <div className="text-[#E2E8F0] text-xs font-mono">
+                      {language === 'th' ? translateCardAbilityText(ab.text, ab.name, 'th') : translateCardAbilityText(ab.text, ab.name, 'en')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {pinnedCard.flavorText && (
+              <div className="text-xs font-outfit text-[#94A3B8] italic border-t border-[#30363d]/60 pt-2 leading-relaxed max-h-24 overflow-y-auto select-text">
+                "{pinnedCard.flavorText}"
+              </div>
+            )}
+
+            {/* Action Footer */}
+            <div className="flex gap-2 pt-1 border-t border-[#30363d]/50">
+              {handCards.some(c => c.id === pinnedCard.id) && (
+                <button
+                  onClick={() => {
+                    const c = handCards.find(card => card.id === pinnedCard.id);
+                    if (c) setSelectedHandCard(c);
+                    setPinnedCard(null);
+                  }}
+                  className="flex-1 py-2 px-3 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Play className="w-3.5 h-3.5 fill-black" />
+                  <span>{language === 'th' ? 'สั่งการการ์ดนี้' : 'Action Menu'}</span>
+                </button>
+              )}
+              <button
+                onClick={() => setPinnedCard(null)}
+                className="flex-1 py-2 px-3 bg-[#1e2638] hover:bg-[#283248] text-[#94A3B8] hover:text-white font-cinzel font-bold text-xs rounded-lg border border-[#30363d] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{language === 'th' ? 'ปิดหน้าต่าง' : 'Close'}</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HOVER CARD INSPECTOR TOOLTIP PANEL (QUICK GLANCE - ONLY WHEN NOT PINNED) */}
+      <AnimatePresence>
+        {hoveredCard && !pinnedCard && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            onClick={() => setPinnedCard(hoveredCard)}
+            className="fixed bottom-4 right-4 md:right-6 z-[110] w-[350px] max-w-[calc(100vw-2rem)] bg-[#141a26]/95 backdrop-blur-md border border-[#30363d] hover:border-[#F59E0B]/70 rounded-xl p-3.5 text-[#F1F5F9] flex flex-col gap-2.5 cursor-pointer shadow-[0_16px_48px_rgba(0,0,0,0.85)] group transition-colors"
+          >
+            {/* Quick Hint Header */}
+            <div className="flex items-center justify-between border-b border-[#30363d]/70 pb-1.5 text-[10px] font-mono text-slate-400">
+              <span className="text-[#F59E0B] font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-[#F59E0B]" />
+                {language === 'th' ? 'ดูรายละเอียดเร็ว' : 'Quick Glance'}
+              </span>
+              <span className="text-amber-300 font-bold group-hover:text-amber-200 transition-colors flex items-center gap-1">
+                <Pin className="w-2.5 h-2.5" /> {language === 'th' ? 'คลิกเพื่อตรึง' : 'Click to Pin'}
+              </span>
+            </div>
+
+            <div className="flex gap-2.5 items-center">
+              <img
+                src={hoveredCard.imageUrl || hoveredCard.img}
+                alt={hoveredCard.name}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/Lorcana_Card_Back.png';
+                }}
+                className="w-16 h-22 object-cover rounded-lg border border-[#30363d] shrink-0 shadow-md"
+              />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-cinzel font-bold text-sm text-[#F59E0B] leading-tight truncate">{hoveredCard.name}</span>
+                {hoveredCard.title && (
+                  <span className="text-[11px] font-mono text-[#94A3B8] truncate leading-tight mt-0.5">{hoveredCard.title}</span>
+                )}
+                
+                <div className="flex items-center gap-2 mt-2 text-[10px] font-mono font-bold">
+                  <span className="text-[#F59E0B] bg-[#0B0F19] px-2 py-0.5 rounded border border-[#30363d]">{t.cost}: {hoveredCard.cost}</span>
+                  {isCardInkable(hoveredCard) ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
+                      <Droplets className="w-2.5 h-2.5 fill-emerald-400 text-emerald-400" />
+                      {t.inkable}
+                    </span>
+                  ) : (
+                    <span className="text-rose-400 font-bold flex items-center gap-1 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-500/30">
+                      <XCircle className="w-2.5 h-2.5 text-rose-400" />
+                      {language === 'th' ? 'ใส่หมึกไม่ได้' : 'Non-Ink'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats Bar */}
+            <div className="grid grid-cols-3 gap-1.5 bg-[#0B0F19] p-1.5 rounded-lg border border-[#30363d] text-center font-mono text-xs">
+              <div className="flex items-center justify-center gap-1">
+                <Sword className="w-3 h-3 text-[#F59E0B] shrink-0" />
+                <span className="text-[#F59E0B] font-bold">{hoveredCard.strength ?? '-'}</span>
+              </div>
+              <div className="flex items-center justify-center gap-1 border-x border-[#30363d]">
+                <Shield className="w-3 h-3 text-[#F59E0B] shrink-0" />
+                <span className="text-[#F59E0B] font-bold">{hoveredCard.willpower ?? '-'}</span>
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                <Sparkles className="w-3 h-3 text-[#F59E0B] shrink-0" />
+                <span className="text-[#F59E0B] font-bold">{hoveredCard.lore ?? '-'}</span>
+              </div>
+            </div>
+
+            {/* Abilities Quick Box */}
+            {hoveredCard.abilities && hoveredCard.abilities.length > 0 && (
+              <div className="space-y-1 bg-[#0B0F19] p-2 rounded-lg border border-[#30363d] max-h-32 overflow-y-auto custom-scrollbar">
                 {hoveredCard.abilities.map((ab, idx) => (
-                  <div key={idx} className="leading-relaxed bg-[#141a26]/70 p-1.5 rounded border border-[#30363d]/50">
-                    <span className="font-bold text-xs text-[#F59E0B] tracking-wide">{ab.name}: </span>
-                    <span className="text-[#E2E8F0]">
-                      {language === 'th' ? translateCardAbilityText(ab.text) : ab.text}
+                  <div key={idx} className="text-[11px] leading-snug">
+                    <span className="font-bold text-[#F59E0B]">
+                      {language === 'th' ? translateAbilityName(ab.name, ab.text, 'th') : translateAbilityName(ab.name, ab.text, 'en')}:
+                    </span>{' '}
+                    <span className="text-[#E2E8F0] font-mono text-[10px]">
+                      {language === 'th' ? translateCardAbilityText(ab.text, ab.name, 'th') : translateCardAbilityText(ab.text, ab.name, 'en')}
                     </span>
                   </div>
                 ))}
@@ -2509,7 +2937,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             )}
 
             {hoveredCard.flavorText && (
-              <div className="text-[12px] font-outfit text-[#94A3B8] italic border-t border-[#30363d] pt-2 leading-relaxed">
+              <div className="text-[10px] font-outfit text-[#94A3B8] italic border-t border-[#30363d]/60 pt-1 line-clamp-2">
                 "{hoveredCard.flavorText}"
               </div>
             )}
@@ -2517,43 +2945,40 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         )}
       </AnimatePresence>
 
-      {/* DRAG CHOICE ACTION MODAL */}
+      {/* DRAG TO PLAY CONFIRMATION MODAL */}
       <AnimatePresence>
         {dragPendingCard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-[2px]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 15 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className="relative bg-[#141a26] border border-[#30363d] rounded-xl p-5 max-w-sm w-full mx-4 shadow-2xl flex flex-col items-center gap-3.5 text-center"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#141a26] border-2 border-[#F59E0B] rounded-2xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(245,158,11,0.3)] flex flex-col items-center gap-4"
             >
-              <button
-                onClick={() => setDragPendingCard(null)}
-                aria-label="Cancel action choice"
-                className="absolute top-4 right-4 p-1 bg-[#0B0F19] text-[#94A3B8] hover:text-white rounded border border-[#30363d] cursor-pointer transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center justify-between w-full border-b border-[#30363d] pb-2">
+                <span className="font-cinzel text-[#F59E0B] font-bold text-sm">{language === 'th' ? 'เลือกการกระทำ' : 'Choose Action'}</span>
+                <button
+                  onClick={() => setDragPendingCard(null)}
+                  className="text-slate-400 hover:text-white text-xs cursor-pointer p-1"
+                >
+                  ✕
+                </button>
+              </div>
 
-              <div className="w-28 h-42 rounded-xl overflow-hidden border border-[#30363d] relative bg-[#0B0F19]">
+              <div className="flex gap-3 items-center w-full">
                 <img
                   src={dragPendingCard.imageUrl || dragPendingCard.img}
                   alt={dragPendingCard.name}
                   referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                  }}
-                  className="w-full h-full object-cover relative z-10"
+                  className="w-14 h-20 object-cover rounded-lg border border-[#30363d] shrink-0"
                 />
+                <div className="min-w-0">
+                  <h4 className="font-cinzel font-bold text-white text-sm truncate">{dragPendingCard.name}</h4>
+                  <p className="text-xs text-amber-400 font-mono mt-0.5">{t.cost}: {dragPendingCard.cost} Ink</p>
+                </div>
               </div>
 
-              <div className="space-y-0.5">
-                <div className="font-cinzel text-sm font-bold text-[#F59E0B]">{dragPendingCard.name}</div>
-                <div className="text-[11px] font-mono text-[#94A3B8]">{dragPendingCard.title}</div>
-              </div>
-
-              <div className="w-full space-y-2 pt-1">
+              <div className="flex flex-col gap-2 w-full mt-2">
                 {(isCardInkable(dragPendingCard) || !handCards.some(c => isCardInkable(c))) && !hasInkedThisTurn && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -2567,7 +2992,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     className="w-full bg-[#141a26] hover:bg-[#1e2638] text-[#F59E0B] border border-[#F59E0B]/50 p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-                    <span>{language === 'th' ? 'ใส่เป็นหมึก (+1 Inkwell)' : 'Add to Inkwell (+1 Ink Capacity)'}</span>
+                    <span>{language === 'th' ? 'ใส่เป็นหมึก' : 'Add to Inkwell'}</span>
                   </motion.button>
                 )}
 
@@ -2669,7 +3094,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-40 text-white p-2.5 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   <Zap className="w-4 h-4 fill-white" />
-                  <span>{language === 'th' ? `ร้องเพลง (Exert Cost ${selectedHandCard.cost}+)` : `Sing (Exert cost ${selectedHandCard.cost}+)`}</span>
+                  <span>{language === 'th' ? `ร้องเพลง (ค่าร่าย ${selectedHandCard.cost}+)` : `Sing (Exert cost ${selectedHandCard.cost}+)`}</span>
                 </button>
               )}
               {(isCardInkable(selectedHandCard) || !handCards.some(c => isCardInkable(c))) && (
@@ -2681,8 +3106,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   <Droplets className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
                   <span>
                     {hasInkedThisTurn
-                      ? (language === 'th' ? 'ใส่ Ink ไปแล้วในเทิร์นนี้ (ขีดจำกัด 1/1)' : 'Inked this turn (1/1 Limit)')
-                      : (language === 'th' ? 'ใส่เป็นหมึก (+1 Inkwell)' : 'Add to Inkwell (+1 Ink Capacity)')}
+                      ? (language === 'th' ? 'ใส่หมึกไปแล้วในเทิร์นนี้ (ขีดจำกัด 1/1)' : 'Inked this turn (1/1 Limit)')
+                      : (language === 'th' ? 'ใส่เป็นหมึก' : 'Add to Inkwell (+1 Ink Capacity)')}
                   </span>
                 </button>
               )}
@@ -2695,9 +3120,20 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 <Play className="w-4 h-4 fill-black" />
                 <span>
                   {availableInk < selectedHandCard.cost
-                    ? (language === 'th' ? `ต้องการ ${selectedHandCard.cost} Ink (มี ${availableInk})` : `Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`)
-                    : (language === 'th' ? `ลงสู่สนาม (${selectedHandCard.cost} Ink)` : `Play to Field (${selectedHandCard.cost} Ink)`)}
+                    ? (language === 'th' ? `ต้องการ ${selectedHandCard.cost} หมึก (มี ${availableInk})` : `Requires ${selectedHandCard.cost} Ink (Have ${availableInk})`)
+                    : (language === 'th' ? `ลงสู่สนาม (${selectedHandCard.cost} หมึก)` : `Play to Field (${selectedHandCard.cost} Ink)`)}
                 </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPinnedCard(selectedHandCard);
+                  setSelectedHandCard(null);
+                }}
+                className="w-full bg-[#141a26] hover:bg-[#1e2638] text-[#94A3B8] hover:text-white border border-[#30363d] p-2 rounded-lg font-cinzel font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Eye className="w-4 h-4 text-[#F59E0B]" />
+                <span>{language === 'th' ? '🔍 ตรวจสอบรายละเอียดฉบับเต็ม' : '🔍 Inspect Full Details'}</span>
               </button>
             </div>
           </div>
@@ -2733,7 +3169,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             </div>
 
             <div className="text-[10px] font-mono text-[#94A3B8] text-center border-t border-[#30363d] pt-2">
-              AWS WebSockets Live Sync Active
+              Illuminary Realm Live Sync Active
             </div>
           </motion.aside>
         )}
@@ -2858,13 +3294,13 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   onClick={() => handleRespondUndoVote(false)}
                   className="flex-1 py-3 rounded-xl bg-[#0B0F19] hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500 text-rose-300 font-cinzel font-bold text-sm transition-all cursor-pointer"
                 >
-                  {language === 'th' ? '❌ ปฏิเสธ (Decline)' : '❌ Decline'}
+                  {language === 'th' ? '❌ ปฏิเสธ' : '❌ Decline'}
                 </button>
                 <button
                   onClick={() => handleRespondUndoVote(true)}
                   className="flex-1 py-3 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-sm transition-all shadow-md cursor-pointer"
                 >
-                  {language === 'th' ? '✅ ยินยอม (Accept)' : '✅ Accept'}
+                  {language === 'th' ? '✅ ยินยอม' : '✅ Accept'}
                 </button>
               </div>
             </motion.div>
@@ -2892,7 +3328,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 </h3>
                 <p className="text-sm text-slate-300 font-outfit max-w-md">
                   {language === 'th'
-                    ? 'สัญญาณเน็ตของคู่แข่งหลุดชั่วคราว ระบบกำลังรอการเชื่อมต่อใหม่ (Rejoin) ให้โอกาสกลับเข้าห้อง'
+                    ? 'สัญญาณเน็ตของคู่แข่งหลุดชั่วคราว ระบบกำลังรอการเชื่อมต่อใหม่เพื่อให้โอกาสกลับเข้าห้อง'
                     : 'Your opponent lost connection. The system is waiting for them to rejoin the match.'}
                 </p>
               </div>
@@ -2922,7 +3358,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                       onClick={onExitMatch}
                       className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-cinzel font-bold text-sm transition-all cursor-pointer shadow-lg"
                     >
-                      {language === 'th' ? 'ออกจากห้อง (Victory by Abandon)' : 'Exit Match'}
+                      {language === 'th' ? 'ออกจากห้อง' : 'Exit Match'}
                     </button>
                   )}
                 </div>
@@ -2931,6 +3367,20 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* GAME OVER / VICTORY / DEFEAT POPUP MODAL */}
+      <GameOverModal
+        isOpen={!!gameOverData?.isOpen}
+        isWinner={!!gameOverData?.isWinner}
+        winnerName={gameOverData?.winnerName || myUsername}
+        loserName={gameOverData?.loserName || opponentName}
+        winnerLore={gameOverData?.winnerLore ?? 20}
+        loserLore={gameOverData?.loserLore ?? 0}
+        turnNumber={gameOverData?.turnNumber || turnNumber}
+        roomId={roomId}
+        onPlayAgain={handlePlayAgain}
+        onExitMatch={onExitMatch}
+      />
 
       {/* PLAYMAT SKIN SELECTOR MODAL */}
       <PlaymatSelectorModal
