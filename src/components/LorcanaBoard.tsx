@@ -1882,7 +1882,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       </AnimatePresence>
 
       {/* LEFT SIDEBAR: DEDICATED INKWELL, DECK & DISCARD ZONES (NO SCROLL, H-FULL) */}
-      <aside className={`hidden md:block md:w-60 lg:w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 pb-1.5 grid grid-rows-[auto_1fr_auto] z-20 shrink-0 h-full overflow-hidden transition-colors ${
+      <aside className={`hidden md:grid md:w-60 lg:w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 pb-1.5 grid-rows-[auto_1fr_auto] z-20 shrink-0 h-full overflow-hidden transition-colors ${
         isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
