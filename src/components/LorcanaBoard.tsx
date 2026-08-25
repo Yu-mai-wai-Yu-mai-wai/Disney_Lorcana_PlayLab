@@ -33,6 +33,7 @@ import {
   Info,
   Pin,
   Eye,
+  Globe,
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
@@ -107,7 +108,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   onExitMatch,
 }) => {
   const { user } = useAuthStore();
-  const { t, language } = useLanguageStore();
+  const { t, language, toggleLanguage } = useLanguageStore();
   const { getCurrentPlaymat } = usePlaymatStore();
   const currentPlaymat = getCurrentPlaymat();
   const [isPlaymatModalOpen, setIsPlaymatModalOpen] = useState(false);
@@ -2146,6 +2147,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 Exit Match
               </button>
             )}
+
+            <button
+              onClick={toggleLanguage}
+              title={`Switch Language (Current: ${language.toUpperCase()})`}
+              className="bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-xs font-mono font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+            >
+              <Globe className="w-3.5 h-3.5 text-[#F59E0B]" />
+              <span className={language === 'th' ? 'text-[#F59E0B]' : 'text-[#94A3B8]'}>TH</span>
+              <span className="text-[#4B5563]">|</span>
+              <span className={language === 'en' ? 'text-[#F59E0B]' : 'text-[#94A3B8]'}>EN</span>
+            </button>
 
             <button
               onClick={() => setIsPlaymatModalOpen(true)}

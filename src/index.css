@@ -660,20 +660,11 @@
    PERFORMANCE LAYER — Chromium/Brave & Mobile/Tablet Optimization
    ============================================================ */
 
-/* Hardware acceleration & layout containment for key animated elements */
+/* Hardware acceleration only on active interactive elements */
 .hand-card,
-.card-spotlight,
-.card-foil-light,
-.card-foil,
-.exerted,
-.spotlight-card,
-.glass-panel,
-.glass-card,
-.glass-nav-header,
-.glass-modal {
+.exerted {
   transform: translateZ(0);
   backface-visibility: hidden;
-  will-change: transform;
 }
 
 /* Containment to isolate paints & reflows to specific subtrees */
@@ -681,6 +672,18 @@
 .glass-card,
 .glass-panel {
   contain: layout style;
+}
+
+/* Global optimization for backdrop-filter rendering on Chromium / Brave */
+@supports (backdrop-filter: blur(1px)) {
+  .glass-panel,
+  .glass-card,
+  .glass-nav-header,
+  .glass-modal,
+  .glass-panel-heavy {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
 }
 
 /* Performance swap on mobile/tablet or low-power screens */
@@ -712,7 +715,7 @@
   /* Static ambient auras: remove runtime blur filter */
   .ink-aura-amber, .ink-aura-amethyst, .ink-aura-emerald,
   .ink-aura-ruby, .ink-aura-sapphire, .ink-aura-steel {
-    filter: blur(8px);
+    filter: blur(6px);
   }
   /* Pause infinite shimmer sweeps on touch devices (saves constant compositing) */
   .shimmer-badge::after,
@@ -722,5 +725,6 @@
     animation-play-state: paused;
   }
 }
+
 
 
