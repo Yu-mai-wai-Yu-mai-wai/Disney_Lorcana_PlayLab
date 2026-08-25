@@ -189,9 +189,9 @@ export const DeckBuilder: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto flex flex-col md:flex-row gap-6 mt-4 font-outfit select-none bg-transparent">
-      {/* Left Column: Filter Bar & Card Grid (70%) */}
-      <div className="w-full md:w-[70%] flex flex-col gap-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 mt-2 sm:mt-4 font-outfit select-none bg-transparent">
+      {/* Left Column: Filter Bar & Card Grid */}
+      <div className="w-full lg:w-[68%] xl:w-[70%] flex flex-col gap-6">
         
         {/* Top Feature Banner & Filter Bar */}
         <div className="flex flex-col gap-4">
@@ -313,8 +313,8 @@ export const DeckBuilder: React.FC = () => {
           </div>
         </div>
 
-        {/* Card Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Card Grid - Responsive for mobile, iPad portrait/landscape, and desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {paginatedCards.map((card) => {
             const countInDeck = currentDeck.find((item) => item.card.id === card.id)?.count || 0;
 
@@ -349,16 +349,36 @@ export const DeckBuilder: React.FC = () => {
                 </div>
 
                 {/* Overlays */}
-                <div className="absolute top-2 left-2 w-7 h-7 bg-[#0B0F19] rounded-lg border border-[#30363d] flex items-center justify-center font-cinzel text-xs text-[#F59E0B] font-bold z-10 font-mono">
+                <div className="absolute top-2 left-2 w-7 h-7 bg-[#0B0F19] rounded-lg border border-[#30363d] flex items-center justify-center font-cinzel text-xs text-[#F59E0B] font-bold z-10 font-mono shadow-sm">
                   {card.cost}
                 </div>
 
+                {/* Card Count in Deck Badge (Always visible when in deck) */}
+                {countInDeck > 0 && (
+                  <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-md bg-[#F59E0B] text-black font-mono font-bold text-xs shadow-md border border-amber-300">
+                    x{countInDeck}
+                  </div>
+                )}
+
+                {/* Mobile / Tablet Quick Touch Add Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addCard(card);
+                  }}
+                  aria-label="Quick add card to deck"
+                  className={`absolute bottom-11 right-2 z-20 w-7 h-7 rounded-lg bg-[#F59E0B] hover:bg-[#D97706] text-black flex items-center justify-center font-bold shadow-lg transition-transform active:scale-90 cursor-pointer ${countInDeck > 0 ? 'sm:hidden' : 'xl:hidden'}`}
+                  title="Add to deck"
+                >
+                  <Plus className="w-4 h-4 text-black stroke-[3]" />
+                </button>
+
                 {card.inkwell && (
                   <div
-                    className="absolute top-2 right-2 w-5 h-5 rounded bg-[#0B0F19] border border-[#30363d] flex items-center justify-center z-10"
+                    className={`absolute top-2.5 ${countInDeck > 0 ? 'right-12' : 'right-2.5'} w-4 h-4 rounded bg-[#0B0F19]/90 border border-[#30363d] flex items-center justify-center z-10`}
                     title="Inkwell Card"
                   >
-                    <div className="w-2.5 h-2.5 bg-[#F59E0B] rounded-full" />
+                    <div className="w-2 h-2 bg-[#F59E0B] rounded-full" />
                   </div>
                 )}
 
@@ -441,8 +461,8 @@ export const DeckBuilder: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Column: Deck List Panel (30%) - Fixed/Sticky on Desktop */}
-      <div className="w-full md:w-[30%] flex flex-col gap-6 md:sticky md:top-20 md:self-start md:max-h-[calc(100vh-6rem)]">
+      {/* Right Column: Deck List Panel - Fixed/Sticky on Desktop */}
+      <div className="w-full lg:w-[32%] xl:w-[30%] flex flex-col gap-6 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)]">
         
         {userDecks.length > 0 && (
           <div className="bg-[#141a26] p-4 rounded-xl border border-[#30363d] flex flex-col gap-2.5 shadow-lg">

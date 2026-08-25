@@ -532,8 +532,42 @@ class WebSocketService {
     return this.isConnected;
   }
 
+  /**
+   * Explicit voluntary exit (Exit Match button).
+   * Sends LEAVE_ROOM so the backend hard-deletes the player record and
+   * notifies the opponent (OPPONENT_LEFT) — the slot frees up immediately,
+   * unlike a network drop which keeps a 60s rejoin grace period.
+   */
+  public leaveRoom(): void {
+    const roomId = this.currentRoomId;
+    if (!roomId) {
+      this.disconnect();
+      return;
+    }
+    const payload: any = {
+      action: 'LEAVE_ROOM',
+      gameAction: 'LEAVE_ROOM',
+      type: 'LEAVE_ROOM',
+      roomId,
+      username: this.currentUsername,
+    };
+    try {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        // Send synchronously, then close after a short flush window
+        this.socket.send(JSON.stringify(payload));
+        setTimeout(() => this.disconnect(), 250);
+        return;
+      }
+    } catch (e) {
+      console.error('[WebSocket] leaveRoom send failed', e);
+    }
+    this.disconnect();
+  }
+
   public disconnect(): void {
     if (this.socket) {
+      // Prevent auto-reconnect firing on a deliberate close
+      this.socket.onclose = null;
       this.socket.close();
       this.socket = null;
     }

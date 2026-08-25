@@ -297,9 +297,8 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   };
 
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
     e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
     e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
   };

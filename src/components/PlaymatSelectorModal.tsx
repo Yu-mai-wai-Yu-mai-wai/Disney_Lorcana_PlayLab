@@ -89,10 +89,10 @@ export const PlaymatSelectorModal: React.FC<PlaymatSelectorModalProps> = ({ isOp
         </div>
 
         {/* Content Body: Left Preview + Right Grid */}
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-0">
+        <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-0">
           
           {/* LEFT: Live Preview Panel */}
-          <div className="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-[#30363d] bg-[#0B0F19]/80 p-5 flex flex-col justify-between overflow-y-auto">
+          <div className="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-[#30363d] bg-[#0B0F19]/80 p-4 sm:p-5 flex flex-col justify-between shrink-0 lg:overflow-y-auto">
             <div>
               <div className="text-[10px] font-cinzel font-bold text-[#F59E0B] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />

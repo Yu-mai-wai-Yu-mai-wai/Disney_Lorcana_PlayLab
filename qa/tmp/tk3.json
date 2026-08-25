@@ -1,0 +1,1 @@
+{"httpMethod":"GET","path":"/decks","headers":{"Authorization":"Bearer invalid.token.here"},"body":null}

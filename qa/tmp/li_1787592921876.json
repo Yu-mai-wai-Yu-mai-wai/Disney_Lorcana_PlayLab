@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"sendAction","connectionId":"qa-25987405f708","domainName":"dummy","stage":"prod"},"body":"{\"gameAction\":\"LEAVE_ROOM\",\"roomId\":\"173663\",\"username\":\"qa-test-p2\"}"}

@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"CREATE_ROOM","connectionId":"qa-d4dc897e5e82","domainName":"dummy","stage":"prod"},"body":"{\"username\":\"qa-test-p1\",\"deckId\":\"starter\",\"deckName\":\"QA Deck A\"}"}

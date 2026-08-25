@@ -1,0 +1,13 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces ชุดไอคอนบริการคลาวด์ AWS ที่ใช้ในโครงงาน (AWS Architecture Icons -- Official)}}{6}{figure.caption.7}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces สถาปัตยกรรมระบบคลาวด์แบบ Serverless 4 เลเยอร์ (AWS Serverless Architecture)}}{6}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces กลยุทธ์การป้องกันความล้มเหลวของ API ภายนอกแบบ 4 ระดับ (4-Tier Multi-Layer Fallback)}}{7}{figure.caption.10}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces ผังการสื่อสารและซิงค์ข้อมูลกระดานเกมแบบเรียลไทม์ผ่าน AWS API Gateway WebSockets}}{8}{figure.caption.11}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces หน้าแรกของเว็บแอปพลิเคชันแบบเต็มหน้า (Landing Page Full View -- Disney Lorcana PlayLab)}}{12}{figure.caption.12}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces ภาพหน้าจอส่วนติดต่อผู้ใช้ระบบ Disney Lorcana PlayLab Cloud (ส่วนที่ 1)}}{13}{figure.caption.13}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces ภาพหน้าจอส่วนติดต่อผู้ใช้ระบบ Disney Lorcana PlayLab Cloud (ส่วนที่ 2)}}{14}{figure.caption.14}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces ภาพหน้าจอหน้าระบบคู่มือการเล่นและระบบวิเคราะห์สถิติเด็ค}}{14}{figure.caption.15}%
+\addvspace {10\p@ }

@@ -1,0 +1,1 @@
+{"httpMethod":"POST","path":"/auth/register","body":"{\"username\":\"qa-test-p1\",\"email\":\"qa-test-p1@test.kmitl.ac.th\",\"password\":\"TestPass123!\"}"}

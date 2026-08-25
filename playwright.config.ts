@@ -11,6 +11,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['./qa/qa-reporter.cjs'],
   ],
   use: {
     baseURL: 'http://127.0.0.1:5173',

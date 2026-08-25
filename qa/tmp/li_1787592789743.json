@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"REJOIN_ROOM","connectionId":"qa-67822b37d98d","domainName":"dummy","stage":"prod"},"body":"{\"roomId\":\"850639\",\"username\":\"qa-stranger-x\",\"role\":\"player1\"}"}

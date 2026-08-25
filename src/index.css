@@ -83,61 +83,61 @@
 
 /* Standard Editorial Glass Panel */
 .glass-panel, .ether-panel {
-  background: rgba(20, 26, 38, 0.78);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(20, 26, 38, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Deep / Heavy Glass Panel for Modals, Sidebars & Overlays */
 .glass-panel-heavy {
-  background: rgba(11, 15, 25, 0.88);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(11, 15, 25, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Glass Navigation Header with fine border & depth */
 .glass-nav-header {
-  background: rgba(11, 15, 25, 0.82);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(11, 15, 25, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 /* Interactive Modern Glass Card */
 .glass-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(20, 26, 38, 0.75) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(20, 26, 38, 0.82) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .glass-card:hover {
   border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 18px rgba(245, 158, 11, 0.12);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(245, 158, 11, 0.12);
 }
 
 /* Subtle Glass Surface for nested elements / inner pills */
 .glass-subtle {
-  background: rgba(20, 26, 38, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(20, 26, 38, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Modal Glass Surface with gold rim illumination */
 .glass-modal {
-  background: rgba(15, 21, 33, 0.92);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  background: rgba(15, 21, 33, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(245, 158, 11, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.85), 0 0 20px rgba(245, 158, 11, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
 }
 
 .gold-border {
@@ -156,12 +156,12 @@
 .spotlight-card {
   position: relative;
   overflow: hidden;
-  background: rgba(20, 26, 38, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(20, 26, 38, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(48, 54, 61, 0.8);
   border-radius: 12px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .spotlight-card::before {
@@ -535,20 +535,20 @@
    ============================================================ */
 
 /* Soft gold light rising from card art behind the hero.
-   Blur <= 60px, opacity <= 0.25, radial, non-interactive. */
+   Blur <= 20px, opacity <= 0.2, radial, non-interactive. */
 .magic-glow-gold {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
     radial-gradient(ellipse 70% 55% at 50% 100%,
-      rgba(245, 158, 11, 0.22) 0%,
-      rgba(245, 158, 11, 0.08) 40%,
+      rgba(245, 158, 11, 0.18) 0%,
+      rgba(245, 158, 11, 0.05) 40%,
       transparent 70%),
     radial-gradient(ellipse 40% 35% at 78% 18%,
-      rgba(245, 158, 11, 0.10) 0%,
+      rgba(245, 158, 11, 0.08) 0%,
       transparent 65%);
-  filter: blur(28px);
+  filter: blur(16px);
   z-index: 1;
 }
 
@@ -654,5 +654,65 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ============================================================
+   PERFORMANCE LAYER — Chromium/Brave & Mobile Optimization
+   backdrop-filter forces expensive re-blur of the backdrop on
+   every scroll/paint. On small screens and coarse pointers we
+   swap it for opaque backgrounds (visually near-identical).
+   ============================================================ */
+
+@media (max-width: 1024px), (pointer: coarse) {
+  .glass-panel,
+  .ether-panel {
+    background: rgba(20, 26, 38, 0.96);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .glass-panel-heavy,
+  .glass-modal {
+    background: rgba(11, 15, 25, 0.97);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .glass-nav-header {
+    background: rgba(11, 15, 25, 0.97);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .glass-card,
+  .glass-subtle,
+  .spotlight-card {
+    background: rgba(20, 26, 38, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* Static ambient auras: remove runtime blur filter (paint once, no re-filter) */
+  .ink-aura-amber, .ink-aura-amethyst, .ink-aura-emerald,
+  .ink-aura-ruby, .ink-aura-sapphire, .ink-aura-steel {
+    filter: blur(12px);
+  }
+  /* Pause infinite shimmer sweeps on touch devices (saves constant compositing) */
+  .shimmer-badge::after,
+  .badge-shimmer::after,
+  [class*="badge-shimmer-"]::after,
+  [class*="shimmer-badge-"]::after {
+    animation-play-state: paused;
+  }
+}
+
+/* Promote animated surfaces to their own GPU layer to avoid jank
+   during transform transitions in Chromium-based browsers (Brave/Edge/Chrome). */
+.hand-card,
+.card-spotlight,
+.card-foil-light,
+.card-foil,
+.exerted,
+.spotlight-card,
+.glass-panel,
+.glass-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 

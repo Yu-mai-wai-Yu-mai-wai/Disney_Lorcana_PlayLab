@@ -1,0 +1,10 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {2.1}{\ignorespaces แผนการดำเนินงานและการส่งมอบงานแต่ละ Sprint}}{6}{table.caption.7}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces ตารางสรุปรายละเอียด Use Cases ของระบบ (LC-01 ถึง LC-09)}}{8}{table.caption.9}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces โครงสร้างตารางข้อมูลบน Amazon DynamoDB}}{9}{table.caption.10}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces การประเมินค่าใช้จ่ายบนสถาปัตยกรรม AWS Serverless (ผู้ใช้งาน 10,000 คน/เดือน)}}{12}{table.caption.11}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces ผลการทดสอบคุณภาพระบบโดยรวม (Master QA Test Matrix)}}{15}{table.caption.13}%
+\addvspace {10\p@ }

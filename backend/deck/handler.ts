@@ -80,7 +80,17 @@ export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
   }
 
   const authUser = verifyToken(headersMap.Authorization || headersMap.authorization);
-  const userId = authUser ? authUser.username : 'anonymous_guest';
+  // SECURITY FIX (QA Campaign TC-AWS-006/007 — OWASP A01 Broken Access Control):
+  // Invalid/missing tokens must be rejected outright. Previously the handler fell
+  // back to 'anonymous_guest', allowing unauthenticated deck access.
+  if (!authUser) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized — valid Bearer token required' }),
+    };
+  }
+  const userId = authUser.username;
 
   try {
     // POST /decks/{deckId}/analyze

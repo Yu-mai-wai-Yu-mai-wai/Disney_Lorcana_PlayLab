@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"CARD_MOVED","connectionId":"qa-69d665f524ac","domainName":"dummy","stage":"prod"},"body":"{\"roomId\":\"850639\",\"gameAction\":\"CARD_MOVED\",\"cardId\":\"test-card\",\"from\":\"hand\",\"to\":\"board\"}"}

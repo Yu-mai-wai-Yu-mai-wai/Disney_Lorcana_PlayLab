@@ -44,7 +44,8 @@ export function App() {
     if (confirm('Are you sure you want to leave to Lobby? (You can rejoin as long as your opponent is still in the room)')) {
       // We deliberately PRESERVE lorcana_active_session and lorcana_board_state_[roomId]
       // so the player can see the "Rejoin Match" banner in the Match Lobby and jump right back in!
-      webSocketService.disconnect();
+      localStorage.removeItem('lorcana_active_session');
+      webSocketService.leaveRoom();
       setMatchInfo(null);
       setActiveTab('match');
     }
@@ -55,7 +56,7 @@ export function App() {
   return (
     <div className={`${activeTab === 'board' ? 'h-screen' : 'min-h-screen'} flex flex-col text-[#F1F5F9] bg-[#0B0F19]/60 relative selection:bg-[#F59E0B]/30 selection:text-white overflow-x-hidden`}>
       {/* Luxury WebGL Gold & Lore Ink Background Shader */}
-      <GoldInkShaderCanvas opacity={0.88} speed={1.0} interactive={true} />
+      <GoldInkShaderCanvas opacity={0.88} speed={1.0} interactive={true} paused={activeTab === 'board'} />
 
       {/* Top Navbar */}
       {!isFullscreenMatch && (

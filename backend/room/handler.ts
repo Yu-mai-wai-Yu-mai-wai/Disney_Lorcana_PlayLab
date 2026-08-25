@@ -8,6 +8,14 @@ const docClient = DynamoDBDocumentClient.from(client);
 const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomStateV2';
 const MATCHMAKING_TABLE = process.env.MATCHMAKING_TABLE || 'LorcanaMatchmaking';
 
+// DynamoDB TTL: auto-cleanup stale rooms/sessions after 2 hours (7200s)
+// Applied on every Put so records always carry an expiry timestamp.
+const TTL_SECONDS = 2 * 60 * 60;
+const withTtl = <T extends Record<string, any>>(item: T): T => ({
+  ...item,
+  ttl: Math.floor(Date.now() / 1000) + TTL_SECONDS,
+});
+
 export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<APIGatewayProxyResultV2> => {
   const routeKey = event.requestContext.routeKey;
   const connectionId = event.requestContext.connectionId;
@@ -45,11 +53,11 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
         await docClient.send(
           new PutCommand({
             TableName: ROOM_TABLE,
-            Item: {
+            Item: withTtl({
               ...userItem,
               status: 'disconnected',
               disconnectedAt: new Date().toISOString(),
-            },
+            }),
           })
         );
 
@@ -84,6 +92,42 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
   }
 
   const action = body.gameAction || body.realAction || body.type || body.action || routeKey;
+
+  // 2.5 LEAVE_ROOM — explicit voluntary exit: delete record & notify opponent
+  if (action === 'LEAVE_ROOM') {
+    const roomId = body.roomId;
+    try {
+      const roomMembers = await getRoomMembers(roomId);
+      const me = roomMembers.find((m: any) => m.connectionId === connectionId)
+        || roomMembers.find((m: any) => m.username === body.username);
+
+      if (me) {
+        // Hard-delete the leaver so the slot frees immediately (no grace period)
+        await docClient.send(new DeleteCommand({
+          TableName: ROOM_TABLE,
+          Key: { roomId, connectionId: me.connectionId },
+        }));
+
+        // Notify remaining members
+        for (const member of roomMembers) {
+          if (member.connectionId !== me.connectionId) {
+            await sendMessageToConnection(apigwManagementApi, member.connectionId, {
+              action: 'OPPONENT_LEFT',
+              gameAction: 'OPPONENT_LEFT',
+              type: 'OPPONENT_LEFT',
+              roomId,
+              username: me.username,
+              role: me.role,
+            });
+          }
+        }
+      }
+      return { statusCode: 200, body: JSON.stringify({ left: true }) };
+    } catch (err: any) {
+      console.error('[Leave Room Error]', err);
+      return { statusCode: 500, body: err.message };
+    }
+  }
 
   // 3. REJOIN_ROOM — Reconnect to active room after network disconnect
   if (action === 'REJOIN_ROOM') {
@@ -121,18 +165,15 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
       }
 
       // Insert updated connection record
-      const updatedUser: any = {
+      const updatedUser: any = withTtl({
         ...existingUser,
         connectionId,
         status: 'active',
         rejoinedAt: new Date().toISOString(),
-      };
+      });
 
       await docClient.send(
-        new PutCommand({
-          TableName: ROOM_TABLE,
-          Item: updatedUser,
-        })
+        new PutCommand({ TableName: ROOM_TABLE, Item: withTtl(updatedUser,) })
       );
 
       // Notify the rejoining player of success
@@ -259,7 +300,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     await docClient.send(
       new PutCommand({
         TableName: ROOM_TABLE,
-        Item: { roomId, connectionId, username, role: 'player1', deckId, deckName, joinedAt: new Date().toISOString() },
+        Item: withTtl({ roomId, connectionId, username, role: 'player1', deckId, deckName, joinedAt: new Date().toISOString() }),
       })
     );
 
@@ -279,7 +320,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
     const deckName = body.deckName || 'Untitled Deck';
 
     try {
-      const roomMembers = await getRoomMembers(roomId);
+      const roomMembers = await getOccupyingMembers(roomId);
       if (roomMembers.length === 0) {
         await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room not found. Please verify the 6-digit code.' });
         return { statusCode: 200, body: 'Room not found' };
@@ -301,7 +342,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
 
       const role = 'player2';
       const newItem = { roomId, connectionId, username, role, deckId, deckName, joinedAt: new Date().toISOString() };
-      await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: newItem }));
+      await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: withTtl(newItem) }));
 
       const updatedMembers = [...roomMembers, newItem];
 
@@ -383,8 +424,8 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
 
         const p1 = { roomId, connectionId: opponent.connectionId, username: opponent.username, role: 'player1', deckId: opponent.deckId, deckName: opponent.deckName, joinedAt: new Date().toISOString() };
         const p2 = { roomId, connectionId, username, role: 'player2', deckId, deckName, joinedAt: new Date().toISOString() };
-        await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: p1 }));
-        await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: p2 }));
+        await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: withTtl(p1)}));
+        await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: withTtl(p2)}));
 
         // MATCH_FOUND to both
         const players = [p1, p2].map((m) => ({ username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName }));
@@ -397,7 +438,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
       // No other opponent yet → upsert into queue
       await docClient.send(new PutCommand({
         TableName: MATCHMAKING_TABLE,
-        Item: { connectionId, username, deckId, deckName, status: 'waiting', queuedAt: new Date().toISOString() },
+        Item: withTtl({ connectionId, username, deckId, deckName, status: 'waiting', queuedAt: new Date().toISOString() }),
       }));
       await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'WAITING', message: 'Searching for opponent...' });
 
@@ -483,6 +524,32 @@ async function getRoomMembers(roomId: string) {
     })
   );
   return res.Items || [];
+}
+
+// Grace window (seconds): how long a 'disconnected' player may REJOIN before
+// being treated as gone by join/matchmaking logic.
+const GRACE_SECONDS = 60;
+
+function isWithinGrace(item: any): boolean {
+  if (item.status !== 'disconnected') return true;
+  const t = item.disconnectedAt ? Date.parse(item.disconnectedAt) : 0;
+  return (Date.now() - t) < GRACE_SECONDS * 1000;
+}
+
+// Members who are truly occupying the room (active, or within rejoin grace)
+async function getOccupyingMembers(roomId: string) {
+  const members = await getRoomMembers(roomId);
+  const active = members.filter(isWithinGrace);
+  // Hard-delete members whose grace window has expired so slots free up
+  for (const m of members) {
+    if (!isWithinGrace(m)) {
+      await docClient.send(new DeleteCommand({
+        TableName: ROOM_TABLE,
+        Key: { roomId, connectionId: m.connectionId },
+      })).catch(() => {});
+    }
+  }
+  return active;
 }
 
 // Helper: Send JSON to client via ApiGatewayManagementApi

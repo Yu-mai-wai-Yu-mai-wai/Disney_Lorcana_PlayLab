@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"sendAction","connectionId":"qa-1b6cc09ee692","domainName":"dummy","stage":"prod"},"body":"{\"invalid-json..."}

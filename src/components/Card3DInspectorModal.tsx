@@ -98,7 +98,7 @@ export const Card3DInspectorModal: React.FC<Card3DInspectorModalProps> = ({
 
   return (
     <Modal isOpen={!!card} onClose={onClose} ariaLabel="Card Inspector" overlayClassName="bg-[#0B0F19]/85 font-outfit select-none overflow-y-auto">
-      <div className="relative z-10 max-w-4xl w-full bg-[#141a26] border border-[#30363d] rounded-2xl p-5 sm:p-6 md:p-7 flex flex-col md:flex-row gap-6 md:gap-7 items-stretch max-h-[88vh] overflow-hidden mx-auto shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-200 my-auto">
+      <div className="relative z-10 max-w-4xl w-full bg-[#141a26] border border-[#30363d] rounded-2xl p-4 sm:p-6 md:p-7 flex flex-col md:flex-row gap-5 md:gap-7 items-stretch max-h-[88vh] overflow-y-auto md:overflow-hidden mx-auto shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-200 my-auto">
         {/* Close Button */}
         <button
           onClick={onClose}

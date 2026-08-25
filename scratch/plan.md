@@ -1,57 +1,52 @@
-# Plan: Real-Time Match Lobby (WebSocket Multiplayer) — Sprint 3 Completion
+# Plan: Responsive Design — LorcanaBoard (Real-time Match + Sandbox)
 
-> Spec ก่อนแก้โค้ด (Zero-Shot Ban) · สถานะ: **รออนุมัติ**
-> Backend พร้อมแล้ว: `lorcana-room` Lambda (JOIN_ROOM/CARD_MOVED/etc relay) + WS API + DynamoDB
+## Goal
+เล่นได้สมบูรณ์บนมือถือเล็ก (360–430px, portrait/landscape) และ iPad portrait (768px)
+โดยไม่ต้อง scroll แนวนอน ปุ่ม Quest/Challenge กดได้จริงด้วยนิ้ว
 
----
+## Root Causes (จากการสแกนโค้ด)
+1. การ์ด battlefield/hand ใช้ fixed size: `w-36 h-50`, `w-40 h-56`, `w-36 h-52`
+2. ระยะห่างการ์ด fixed: `gap-12` (48px) → บนจอ 360px ใส่การ์ดได้แค่ ~2 ใบ
+3. Battlefield ใช้ `flex justify-center` ไม่มี flex-wrap → การ์ดเยอะล้นขอบ
+4. Top status bar (Lore, Ink, Room input, ปุ่มต่างๆ) เรียงแถวเดียวไม่ wrap
+5. Log sidebar กว้าง fixed (~350px) กินพื้นที่จอมือถือ
 
-## 🎯 เป้าหมาย
-หน้า **Real-Time Match** (แยกจาก Playmat Sandbox) สำหรับแข่งกับเพื่อนแบบเรียลไทม์:
-1. **เลือกเด็ค** — menu แสดงเด็คที่เซฟไว้ + รายการการ์ดในเด็คนั้น
-2. **สร้างห้อง (Lobby)** — กดสร้าง → ได้ **code 6 หลัก** → แชร์ให้เพื่อน
-3. **Join ด้วย code** — ใส่ code ห้องเพื่อน → เข้าห้อง
-4. **Matchmaking (จับคู่)** — กด "หาคู่" → รอ lobby → ถ้ามีคนกดหาคู่ด้วย เจอกันอัตโนมัติ
-5. **เข้า Board ต่อสู้** — เมื่อครบ 2 คน → โหลดบอร์ด + ซิงก์เรียลไทม์ (มีอยู่แล้ว)
+## Changes (ไฟล์เดียว: src/components/LorcanaBoard.tsx)
 
----
+### C1. Responsive Card Scale (Tailwind breakpoints)
+- Opponent field cards: `w-36 h-50` → `w-20 h-28 sm:w-28 sm:h-40 md:w-32 md:h-44 xl:w-36 xl:h-50`
+- Player field cards: `w-40 h-56` → `w-24 h-32 sm:w-32 sm:h-44 md:w-36 md:h-52 xl:w-40 xl:h-56`
+- Hand cards: `w-36 h-52` → `w-24 h-36 sm:w-28 sm:h-40 md:w-36 md:h-52`
+- ปรับ font-size badge/damage ให้สเกลตาม (text-[9px]→text-[8px] บนจอเล็ก)
 
-## 🗂️ ไฟล์ที่จะสร้าง/แก้
+### C2. Flexible Battlefield Layout
+- `gap-12` → `gap-2 sm:gap-5 md:gap-8 xl:gap-12`
+- เพิ่ม `flex-wrap` + `overflow-y-auto` ให้ battlefield zone
+- `max-h-56 / max-h-64` → `max-h-32 sm:max-h-44 md:max-h-52 xl:max-h-64`
 
-| # | ไฟล์ | การแก้ |
-|---|------|--------|
-| 1 | `src/pages/MatchLobby.tsx` | **สร้าง** — หน้า lobby: deck select + create/join + matchmaking queue UI |
-| 2 | `src/components/MatchDeckSelect.tsx` | **สร้าง** — menu เลือกเด็ค (โหลด GET /decks) + แสดงการ์ดในเด็ค (grid/ชื่อ/จำนวน) |
-| 3 | `src/services/websocket.ts` | เพิ่ม actions: `CREATE_ROOM`, `MATCHMAKING_JOIN`, `MATCHMAKING_LEAVE`, `DECK_SELECTED`, `MATCH_FOUND`, `ROOM_CREATED` |
-| 4 | `backend/room/handler.ts` | เพิ่ม routes: `CREATE_ROOM` (สร้าง roomId 6 หลัก → DynamoDB), `MATCHMAKING_JOIN` (หาคู่ใน queue table หรือ room ที่รอ), `DECK_SELECTED` (บันทึก deck ลง room) |
-| 5 | `src/App.tsx` | เพิ่มแท็บ "Real-Time Match" (แยกจาก Playmat Sandbox) |
-| 6 | `src/types/lorcana.ts` | เพิ่ม WS action types ใหม่ |
+### C3. Hand Dock (Bottom Tray)
+- Tray padding `px-8 pb-6` → `px-3 sm:px-8 pb-4 sm:pb-6`
+- Card stack: `-space-x-3` → `-space-x-6 md:-space-x-3` (ซ้อนแน่นขึ้นบนมือถือ)
+- เพิ่ม `max-w-[100vw]` + drag constraints responsive (left/right ±300 → คำนวณจาก window.innerWidth)
 
----
+### C4. Top Status Bar Wrap
+- เพิ่ม `flex-wrap gap-y-1.5` ให้ header bar
+- Room join form: ซ่อน label "Room:" บน <sm, ย่อ input
+- Lore/Ink badges: `px-3 py-1.5` → `px-2 py-1 sm:px-3 sm:py-1.5`
 
-## 🔧 รายละเอียดระบบ
+### C5. Log Sidebar → Overlay บนจอเล็ก
+- <lg: sidebar เป็น absolute overlay (fixed right, z-index สูง, กว้าง min(85vw, 350px))
+- ≥lg: คง layout inline เดิม
 
-### Matchmaking Flow (จับคู่อัตโนมัติ)
-1. ผู้เล่นกด "Find Match" → WS send `MATCHMAKING_JOIN` {deckId}
-2. Lambda: ตรวจ DynamoDB table `MatchmakingQueue` (GSI บน status=waiting)
-   - ถ้ามีคนรออยู่ → จับคู่: สร้าง room, ตอบทั้งคู่ `MATCH_FOUND` {roomId, opponent}
-   - ไม่มี → เขียน record ตัวเอง + รอ (ตอบ `WAITING` + เริ่ม heartbeat)
-3. ผู้เล่นกด cancel → `MATCHMAKING_LEAVE` → ลบ record
+### C6. Touch Targets
+- ปุ่ม Quest ⚡ / Challenge ⚔️: `p-1.5` → `p-2` บน touch device (`min 36px hit area`)
+- Hover-only hand tab: คง click-to-toggle เดิม (รองร้อม touch อยู่แล้ว)
 
-### Lobby Flow (ห้อง + code)
-1. กด "Create Room" → `CREATE_ROOM` {deckId} → Lambda สร้าง roomId 6 หลัก (unique) → ตอบ `ROOM_CREATED` {roomId}
-2. เพื่อนใส่ code → `JOIN_ROOM` {roomId, deckId} → ครบ 2 → broadcast `GAME_START` → ทั้งคู่ไป Board
-3. แสดงสถานะ: รอผู้เล่น 1/2, opponent deck preview
+## Non-Goals (ไม่แตะ)
+- Game logic, WebSocket, state management ทั้งหมด
+- Modals (ผ่าน responsive check แล้ว มี p-4 + max-w ครบ)
 
-### Deck Select
-- โหลด `GET /decks` (มีอยู่) → การ์ดโชว์ชื่อ + cost + จำนวน (จาก cards[].count)
-- เลือก 1 เด็คก่อนเข้า lobby (บังคับ)
-
----
-
-## ✅ Verification
-- `npm run build` + `npx tsc --noEmit` ผ่าน
-- ทดสอบ WS: สร้างห้อง → ได้ code → join ด้วย code → GAME_START
-- ทดสอบ matchmaking: เปิด 2 session → กดหาคู่พร้อมกัน → MATCH_FOUND
-- ตรวจ DynamoDB: room ถูกสร้าง, queue ว่างหลังจับคู่
-
-**พิมพ์ "Proceed" เพื่อเริ่ม** 🚀
+## Verification
+1. `npm run build` ผ่าน
+2. Playwright responsive test 8 viewports (เพิ่ม mobile 360 landscape + iPad portrait บนหน้า board)
+3. ตรวจ hOverflow = 0px ทุก viewport ที่หน้า Board

@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"MATCHMAKING_JOIN","connectionId":"qa-53bd892a7c5d","domainName":"dummy","stage":"prod"},"body":"{\"username\":\"qa-mm-b\",\"deckId\":\"y\",\"deckName\":\"y\"}"}

@@ -1037,6 +1037,16 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }, 1000);
     });
 
+    // Opponent pressed Exit Match (voluntary leave) — no grace period, room slot freed
+    const unsubLeft = webSocketService.subscribe('OPPONENT_LEFT' as any, (data: any) => {
+      if (checkFromMe(data)) return;
+      showNotice(`${data.username || 'Opponent'} left the match.`, 'warning');
+      setIsOpponentDisconnected(false);
+      setDisconnectCountdown(0);
+      if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
+      setLogMessages(prev => [`${data.username || 'Opponent'} exited the match.`, ...prev]);
+    });
+
     const unsubReconnected = webSocketService.subscribe('PLAYER_RECONNECTED', (data: any) => {
       markOpponentActive(data.username);
       if (!data.isSelf) {
@@ -1292,6 +1302,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       unsubPassed();
       unsubChallenge();
       unsubDisconnect();
+      unsubLeft();
       unsubReconnected();
       unsubSyncRequest();
       unsubSyncResponse();
@@ -1871,7 +1882,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       </AnimatePresence>
 
       {/* LEFT SIDEBAR: DEDICATED INKWELL, DECK & DISCARD ZONES (NO SCROLL, H-FULL) */}
-      <aside className={`w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 pb-1.5 grid grid-rows-[auto_1fr_auto] z-20 shrink-0 h-full overflow-hidden transition-colors ${
+      <aside className={`hidden md:block md:w-60 lg:w-72 border-r border-[#30363d] bg-[#141a26] p-3.5 pb-1.5 grid grid-rows-[auto_1fr_auto] z-20 shrink-0 h-full overflow-hidden transition-colors ${
         isDraggingOverInkwell ? 'border-2 border-[#F59E0B] bg-[#1e2638]' : ''
       }`}>
         {/* Opponent Piles */}
@@ -1999,8 +2010,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 p-3 justify-between">
         
         {/* TOP STATUS HEADER BAR */}
-        <div className="flex justify-between items-center w-full z-20 pb-2 border-b border-[#30363d] shrink-0">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap justify-between items-center gap-y-1.5 w-full z-20 pb-2 border-b border-[#30363d] shrink-0">
+          {/* MOBILE COMPACT PILES BAR (visible < md, replaces hidden left sidebar) */}
+          <div className="md:hidden flex items-center gap-1.5 w-full order-first">
+            <div className="flex-1 flex items-center justify-between gap-1 px-2 py-1 rounded-lg bg-[#141a26] border border-[#30363d] text-[10px] font-mono font-bold">
+              <span className="text-sky-400">🌊 {inkwellCapacity}</span>
+              <span className="text-[#F1F5F9]">🂠 {deckCount}</span>
+              <span className="text-rose-400">💀 {discardCount}</span>
+              <span className="text-rose-300">OP Lore {opponentLore}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* OPPONENT LORE */}
             <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2.5 bg-[#141a26] shadow-sm transition-all duration-300 ${
               opponentLore >= 16
@@ -2102,7 +2122,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             {!matchMode && (
               <form onSubmit={handleJoinRoomSubmit} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#141a26]">
                 <Wifi className={`w-3.5 h-3.5 ${isWsConnected ? 'text-emerald-400' : 'text-[#F59E0B]'}`} />
-                <span className="text-[9px] font-bold text-[#94A3B8] uppercase">Room:</span>
+                <span className="hidden sm:inline text-[9px] font-bold text-[#94A3B8] uppercase">Room:</span>
                 <input
                   type="text"
                   value={inputRoomId}
@@ -2173,9 +2193,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                 </span>
               )}
             </div>
-            <div className="flex items-center justify-center gap-12 w-full h-full max-h-56">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-5 md:gap-8 xl:gap-12 w-full h-full max-h-36 sm:max-h-44 md:max-h-52 xl:max-h-56 overflow-y-auto no-scrollbar py-1">
               {opponentFieldCards.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center opacity-40 border-2 border-dashed border-[#30363d] rounded-xl w-full h-full min-h-[140px]">
+                <div className="flex flex-col items-center justify-center text-center opacity-40 border-2 border-dashed border-[#30363d] rounded-xl w-full min-h-[90px] sm:min-h-[140px]">
                   <Sword className="w-8 h-8 text-[#94A3B8] mb-2" />
                   <span className="text-[11px] font-mono text-[#94A3B8]">
                     {matchMode ? 'Opponent cards will appear here in real-time' : 'No opponent cards'}
@@ -2195,6 +2215,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
                       onMouseEnter={() => setHoveredCard(card)}
+                      onTouchStart={() => setHoveredCard(card)}
                       onMouseLeave={() => setHoveredCard(null)}
                       onContextMenu={(e) => {
                         e.preventDefault();
@@ -2207,7 +2228,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                           setPinnedCard(card);
                         }
                       }}
-                      className={`w-36 h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border cursor-pointer ${
+                      className={`w-20 h-28 sm:w-28 sm:h-40 md:w-32 md:h-44 xl:w-36 xl:h-50 bg-[#141a26] rounded-xl flex items-center justify-center relative overflow-hidden border cursor-pointer ${
                         selectedAttacker
                           ? isOpExerted
                             ? 'border-rose-500 hover:border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
@@ -2287,7 +2308,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               )}
             </AnimatePresence>
 
-            <div className="flex items-center justify-center gap-12 w-full h-full max-h-64">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-5 md:gap-8 xl:gap-12 w-full h-full max-h-40 sm:max-h-48 md:max-h-56 xl:max-h-64 overflow-y-auto no-scrollbar py-1">
               {fieldCards.map((card) => {
                 const isExerted = exertedCards[card.id] || false;
                 const isAttacking = selectedAttacker === card.id;
@@ -2319,6 +2340,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     role="button"
                     tabIndex={0}
                     onMouseEnter={() => setHoveredCard(card)}
+                      onTouchStart={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -2331,7 +2353,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                         handleCardInteraction();
                       }
                     }}
-                    className={`w-40 h-56 rounded-xl relative cursor-pointer transition-colors group card-foil-light ${
+                    className={`w-24 h-32 sm:w-32 sm:h-44 md:w-36 md:h-52 xl:w-40 xl:h-56 rounded-xl relative cursor-pointer transition-colors group card-foil-light ${
                       isAttacking
                         ? 'border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.6)]'
                         : isExerted
@@ -2379,7 +2401,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                           }}
                           disabled={isExerted}
                           aria-label="Quest"
-                          className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center shadow-md"
+                          className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-2 sm:p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center shadow-md"
                           title={isExerted ? "Already exerted (exhausted)" : `Quest for +${card.lore || 1} Lore (Auto-exerts)`}
                         >
                           <Zap className="w-3.5 h-3.5 fill-black" />
@@ -2553,6 +2575,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                   <motion.div
                     key={card.id}
                     onMouseEnter={() => setHoveredCard(card)}
+                      onTouchStart={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -2632,14 +2655,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 240, opacity: 0, transition: { duration: 0.2, delay: 0.15 } }}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-              className="bg-[#0d1420]/95 backdrop-blur-md border-t border-x border-[#30363d] rounded-t-2xl px-8 pt-2.5 pb-6 flex flex-col items-center max-w-6xl w-max shadow-2xl relative"
+              className="bg-[#0d1420]/95 backdrop-blur-md border-t border-x border-[#30363d] rounded-t-2xl px-3 sm:px-8 pt-2.5 pb-4 sm:pb-6 flex flex-col items-center w-full sm:w-max sm:min-w-[480px] max-w-[100vw] shadow-2xl relative"
             >
               <div className="text-[10px] font-mono text-[#94A3B8] mb-1.5">
                 {language === 'th' ? 'ลากการ์ดขึ้นสู่สนาม หรือคลิกการ์ดเพื่อเปิดเมนูคำสั่ง' : 'Drag card up onto battlefield or click for action menu'}
               </div>
 
               {/* Hand Cards Stack with Spring & Layout Animation */}
-              <motion.div layout className="flex items-center justify-center -space-x-3 px-3 py-1 max-w-full overflow-visible">
+              <motion.div layout className="flex items-end justify-start sm:justify-center -space-x-6 md:-space-x-3 px-2 sm:px-3 py-1 w-full sm:w-auto overflow-x-auto no-scrollbar sm:overflow-visible">
                 {handCards.map((card) => (
                   <motion.div
                     key={card.id}
@@ -2650,10 +2673,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     dragMomentum={false}
                     dragTransition={{ power: 0.1, timeConstant: 200 }}
                     dragElastic={0.3}
-                    dragConstraints={{ left: -300, right: 300, top: -600, bottom: 300 }}
+                    dragConstraints={{ left: -(typeof window !== 'undefined' ? window.innerWidth : 800) / 2 + 60, right: (typeof window !== 'undefined' ? window.innerWidth : 800) / 2 - 60, top: -600, bottom: 300 }}
                     dragSnapToOrigin
                     onDragStart={() => setIsDraggingCard(true)}
                     onMouseEnter={() => setHoveredCard(card)}
+                      onTouchStart={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -2670,7 +2694,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     whileHover={{ y: -16, zIndex: 50 }}
                     whileDrag={{ scale: 1.1, zIndex: 100, cursor: 'grabbing' }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="w-36 h-52 rounded-xl relative cursor-grab active:cursor-grabbing border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light shrink-0 shadow-lg"
+                    className="w-24 h-36 sm:w-28 sm:h-40 md:w-36 md:h-52 rounded-xl relative cursor-grab active:cursor-grabbing border border-[#30363d] hover:border-[#F59E0B] bg-[#141a26] group card-foil-light shrink-0 shadow-lg"
                   >
                     <div className="relative w-full h-full rounded-xl overflow-hidden">
                       <div className="absolute inset-0 bg-[#141a26] flex flex-col items-center justify-center p-2 text-center pointer-events-none">
@@ -3148,7 +3172,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 300, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="w-72 border-l border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between z-30 shrink-0 shadow-xl h-full"
+            className="fixed inset-y-0 right-0 z-[140] w-72 max-w-[85vw] border-l border-[#30363d] bg-[#141a26] p-4 flex flex-col justify-between shadow-xl lg:relative lg:z-30 lg:shrink-0 lg:max-w-none h-full"
           >
             <div className="flex justify-between items-center border-b border-[#30363d] pb-3">
               <span className="font-cinzel font-bold text-[#F59E0B] text-xs">Match Action Log</span>

@@ -1,0 +1,1 @@
+{"requestContext":{"routeKey":"LORE_UPDATED","connectionId":"qa-7ecb54b86278","domainName":"dummy","stage":"prod"},"body":"{\"roomId\":\"541947\",\"gameAction\":\"LORE_UPDATED\",\"lore\":5,\"role\":\"player1\"}"}
