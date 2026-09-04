@@ -25,7 +25,8 @@ from docx.shared import Pt, Cm, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import parse_xml
-from docx.oxml.ns import nsdecls
+from docx.oxml.ns import nsdecls, qn
+from pythainlp.tokenize import word_tokenize
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -34,7 +35,70 @@ REPORTS_DIR = os.path.join(ROOT_DIR, 'docs', '01_Reports')
 TARGET_DOCX = os.path.join(REPORTS_DIR, 'G21_Disney_Lorcana_PlayLab_Cloud_Phase2_Report.docx')
 TARGET_THAI_DOCX = os.path.join(REPORTS_DIR, 'G21_รูปเล่มรายงาน_DISNEY_LORCANA_CLOUD.docx')
 
-def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+def insert_zwsp(text):
+    """
+    Tokenizes Thai text and inserts Zero-Width Space (\\u200b) at syllable/word boundaries.
+    Prevents Word from treating Thai text as unbreakable monolithic blocks.
+    Preserves English terms and standard punctuation without breaking awkwardly.
+    """
+    if not text:
+        return text
+    words = word_tokenize(text, engine='newmm')
+    res = []
+    no_break_before = {',', '.', ';', ':', '!', '?', ')', ']', '}', '%', '"', "'", '”', '’'}
+    no_break_after = {'(', '[', '{', '"', "'", '“', '‘', '$'}
+    for i, w in enumerate(words):
+        res.append(w)
+        if i < len(words) - 1:
+            next_w = words[i+1]
+            if w.isspace() or next_w.isspace() or w == '\u200b' or next_w == '\u200b':
+                continue
+            if next_w in no_break_before or w in no_break_after:
+                continue
+            if (w.isascii() and w.isalnum()) and (next_w.isascii() and next_w.isalnum()):
+                continue
+            res.append('\u200b')
+    return ''.join(res)
+
+def set_run_font(run, size=16, bold=False, italic=False, color_rgb=None):
+    """
+    Applies font properties including OpenXML complex scripts (w:cs) and Thai language tags.
+    Ensures Word activates its Uniscribe Thai text rendering engine.
+    """
+    run.font.name = 'TH Sarabun New'
+    run.font.size = Pt(size)
+    run.bold = bold
+    run.italic = italic
+    if color_rgb:
+        run.font.color.rgb = color_rgb
+    else:
+        run.font.color.rgb = RGBColor(0, 0, 0)
+    
+    rPr = run._r.get_or_add_rPr()
+    rFonts = rPr.find(qn('w:rFonts'))
+    if rFonts is None:
+        rFonts = parse_xml(r'<w:rFonts %s/>' % nsdecls('w'))
+        rPr.append(rFonts)
+    rFonts.set(qn('w:ascii'), 'TH Sarabun New')
+    rFonts.set(qn('w:hAnsi'), 'TH Sarabun New')
+    rFonts.set(qn('w:cs'), 'TH Sarabun New')
+    rFonts.set(qn('w:eastAsia'), 'TH Sarabun New')
+    
+    szCs = rPr.find(qn('w:szCs'))
+    if szCs is None:
+        szCs = parse_xml(r'<w:szCs %s/>' % nsdecls('w'))
+        rPr.append(szCs)
+    szCs.set(qn('w:val'), str(int(size * 2)))
+    
+    lang = rPr.find(qn('w:lang'))
+    if lang is None:
+        lang = parse_xml(r'<w:lang %s/>' % nsdecls('w'))
+        rPr.append(lang)
+    lang.set(qn('w:val'), 'en-US')
+    lang.set(qn('w:bidi'), 'th-TH')
+    lang.set(qn('w:eastAsia'), 'th-TH')
+
+def set_cell_margins(cell, top=80, bottom=80, left=100, right=100):
     tcPr = cell._tc.get_or_add_tcPr()
     tcMar = parse_xml(r'<w:tcMar %s><w:top w:w="%d" w:type="dxa"/><w:bottom w:w="%d" w:type="dxa"/><w:left w:w="%d" w:type="dxa"/><w:right w:w="%d" w:type="dxa"/></w:tcMar>' % (nsdecls('w'), top, bottom, left, right))
     tcPr.append(tcMar)
@@ -58,6 +122,19 @@ def set_table_borders(table, border_color="CCCCCC"):
     ''' % (nsdecls('w'), border_color, border_color, border_color))
     tblPr.append(borders)
 
+def format_cell(cell, text, bold=False, size=14, align=WD_ALIGN_PARAGRAPH.LEFT, shading_hex=None):
+    set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
+    if shading_hex:
+        set_cell_shading(cell, shading_hex)
+    p = cell.paragraphs[0]
+    p.text = ""
+    p.alignment = align
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.line_spacing = 1.15
+    run = p.add_run(insert_zwsp(text))
+    set_run_font(run, size=size, bold=bold)
+
 def build_docx():
     print(f"[BUILD] Starting rebuild of DOCX referencing G21_รูปเล่มรายงาน.pdf...")
     doc = docx.Document()
@@ -67,6 +144,21 @@ def build_docx():
     normal_style.font.name = 'TH Sarabun New'
     normal_style.font.size = Pt(16)
     normal_style.font.color.rgb = RGBColor(0, 0, 0)
+
+    # Configure document defaults in styles XML for Complex Script (Thai)
+    styles_element = doc.styles.element
+    docDefaults = styles_element.find(qn('w:docDefaults'))
+    if docDefaults is not None:
+        rPrDefault = docDefaults.find(qn('w:rPrDefault'))
+        if rPrDefault is not None:
+            rPr = rPrDefault.find(qn('w:rPr'))
+            if rPr is not None:
+                rFonts = parse_xml(r'<w:rFonts %s w:ascii="TH Sarabun New" w:hAnsi="TH Sarabun New" w:cs="TH Sarabun New" w:eastAsia="TH Sarabun New"/>' % nsdecls('w'))
+                rPr.append(rFonts)
+                lang = parse_xml(r'<w:lang %s w:val="en-US" w:bidi="th-TH" w:eastAsia="th-TH"/>' % nsdecls('w'))
+                rPr.append(lang)
+                szCs = parse_xml(r'<w:szCs %s w:val="32"/>' % nsdecls('w'))
+                rPr.append(szCs)
 
     # Margins (Standard Thai Academic Thesis: Top 3.5cm, Left 3.5cm, Right 2.5cm, Bottom 2.5cm)
     for section in doc.sections:
@@ -81,9 +173,7 @@ def build_docx():
         f_p = footer.paragraphs[0]
         f_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         f_run = f_p.add_run()
-        f_run.font.name = 'TH Sarabun New'
-        f_run.font.size = Pt(14)
-        f_run.font.color.rgb = RGBColor(100, 100, 100)
+        set_run_font(f_run, size=14, bold=False, color_rgb=RGBColor(100, 100, 100))
         
         fld1 = parse_xml(r'<w:fldChar %s w:fldCharType="begin"/>' % nsdecls('w'))
         instr = parse_xml(r'<w:instrText %s xml:space="preserve"> PAGE </w:instrText>' % nsdecls('w'))
@@ -92,7 +182,7 @@ def build_docx():
         f_run._r.extend([fld1, instr, fld2, fld3])
 
     # Helper Functions for Paragraph Formatting
-    def add_p(text="", align=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=16, space_before=0, space_after=6, indent_cm=0):
+    def add_p(text="", align=WD_ALIGN_PARAGRAPH.LEFT, bold=False, italic=False, size=16, space_before=0, space_after=6, indent_cm=0, apply_zwsp=True):
         p = doc.add_paragraph()
         p.alignment = align
         p.paragraph_format.space_before = Pt(space_before)
@@ -101,43 +191,41 @@ def build_docx():
         if indent_cm > 0:
             p.paragraph_format.first_line_indent = Cm(indent_cm)
         if text:
-            run = p.add_run(text)
-            run.font.name = 'TH Sarabun New'
-            run.font.size = Pt(size)
-            run.font.bold = bold
-            run.font.color.rgb = RGBColor(0, 0, 0)
+            processed = insert_zwsp(text) if apply_zwsp else text
+            run = p.add_run(processed)
+            set_run_font(run, size=size, bold=bold, italic=italic)
         return p
 
     def add_body_p(text):
-        # Strict user instruction: "จัดไฟล์เนื้อหาใน paragraph ธรรมดาให้ชิดซ้าย" (Left-aligned)
-        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=16, space_before=0, space_after=6, indent_cm=1.25)
+        # Thai Distribute: Fills line to right margin, zero gaps, first-line indent 1.25 cm
+        return add_p(text, align=WD_ALIGN_PARAGRAPH.THAI_JUSTIFY, bold=False, size=16, space_before=0, space_after=6, indent_cm=1.25, apply_zwsp=True)
 
     def add_bullet_p(text, prefix="• "):
         p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.alignment = WD_ALIGN_PARAGRAPH.THAI_JUSTIFY
         p.paragraph_format.left_indent = Cm(1.25)
         p.paragraph_format.first_line_indent = Cm(-0.63)
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
         p.paragraph_format.line_spacing = 1.15
-        run = p.add_run(prefix + text)
-        run.font.name = 'TH Sarabun New'
-        run.font.size = Pt(16)
-        run.font.color.rgb = RGBColor(0, 0, 0)
+        run1 = p.add_run(prefix)
+        set_run_font(run1, size=16, bold=False)
+        run2 = p.add_run(insert_zwsp(text))
+        set_run_font(run2, size=16, bold=False)
         return p
 
     def add_number_p(num_str, text):
         p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.alignment = WD_ALIGN_PARAGRAPH.THAI_JUSTIFY
         p.paragraph_format.left_indent = Cm(1.25)
         p.paragraph_format.first_line_indent = Cm(-0.63)
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
         p.paragraph_format.line_spacing = 1.15
-        run = p.add_run(num_str + " " + text)
-        run.font.name = 'TH Sarabun New'
-        run.font.size = Pt(16)
-        run.font.color.rgb = RGBColor(0, 0, 0)
+        run1 = p.add_run(num_str + " ")
+        set_run_font(run1, size=16, bold=False)
+        run2 = p.add_run(insert_zwsp(text))
+        set_run_font(run2, size=16, bold=False)
         return p
 
     def add_toc_line(title, page_num, indent_cm=0, bold=False):
@@ -148,29 +236,23 @@ def build_docx():
         p.paragraph_format.line_spacing = 1.15
         if indent_cm > 0:
             p.paragraph_format.left_indent = Cm(indent_cm)
-        # Tab stop at 15.0 cm with dot leader
         p.paragraph_format.tab_stops.add_tab_stop(Cm(15.0), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
-        run1 = p.add_run(title)
-        run1.font.name = 'TH Sarabun New'
-        run1.font.size = Pt(16)
-        run1.font.bold = bold
+        run1 = p.add_run(insert_zwsp(title))
+        set_run_font(run1, size=16, bold=bold)
         run2 = p.add_run(f"\t{page_num}")
-        run2.font.name = 'TH Sarabun New'
-        run2.font.size = Pt(16)
-        run2.font.bold = bold
+        set_run_font(run2, size=16, bold=bold)
         return p
 
     def add_chapter_title(chap_num_str, chap_title_str):
-        # 2-line centered layout matching G21_รูปเล่มรายงาน.pdf
         doc.add_page_break()
-        add_p(chap_num_str, align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=20, space_before=12, space_after=4)
-        add_p(chap_title_str, align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=20, space_before=0, space_after=18)
+        add_p(chap_num_str, align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=20, space_before=12, space_after=4, apply_zwsp=False)
+        add_p(chap_title_str, align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=20, space_before=0, space_after=18, apply_zwsp=True)
 
     def add_h2(text):
-        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=18, space_before=12, space_after=6)
+        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=18, space_before=12, space_after=6, apply_zwsp=True)
 
     def add_h3(text):
-        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=16, space_before=8, space_after=4)
+        return add_p(text, align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, size=16, space_before=8, space_after=4, apply_zwsp=True)
 
     def add_image_box(image_rel_path, caption_str, width_in=5.5):
         full_path = os.path.join(ROOT_DIR, image_rel_path)
@@ -181,9 +263,9 @@ def build_docx():
             p.paragraph_format.space_after = Pt(4)
             run = p.add_run()
             run.add_picture(full_path, width=Inches(width_in))
-            add_p(caption_str, align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=16, space_before=2, space_after=12)
+            add_p(caption_str, align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=16, space_before=2, space_after=12, apply_zwsp=True)
         else:
-            add_p(f"[{caption_str} - Image file not found: {image_rel_path}]", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+            add_p(f"[{caption_str} - Image file not found: {image_rel_path}]", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, apply_zwsp=False)
 
     def add_code_block(code_text):
         p = doc.add_paragraph()
@@ -194,7 +276,6 @@ def build_docx():
         p.paragraph_format.space_after = Pt(8)
         p.paragraph_format.line_spacing = 1.0
         
-        # Add thin light background
         pPr = p._p.get_or_add_pPr()
         shd = parse_xml(r'<w:shd %s w:fill="F5F6F8"/>' % nsdecls('w'))
         pPr.append(shd)
@@ -239,14 +320,7 @@ def build_docx():
     for r_idx, row in enumerate(table_students.rows):
         for c_idx, cell in enumerate(row.cells):
             cell.width = col_widths[c_idx]
-            cell.text = students_data[r_idx][c_idx]
-            p = cell.paragraphs[0]
-            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            p.paragraph_format.space_before = Pt(1)
-            p.paragraph_format.space_after = Pt(1)
-            for r in p.runs:
-                r.font.name = 'TH Sarabun New'
-                r.font.size = Pt(15)
+            format_cell(cell, students_data[r_idx][c_idx], bold=False, size=15, align=WD_ALIGN_PARAGRAPH.LEFT)
 
     add_p("เสนอ", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=18, space_before=14, space_after=4)
     add_p("ดร. ธนานพ ทองถาวร", align=WD_ALIGN_PARAGRAPH.CENTER, bold=False, size=16, space_before=0, space_after=2)
@@ -470,24 +544,12 @@ def build_docx():
     ]
     for r_idx, row in enumerate(tbl21.rows):
         for c_idx, cell in enumerate(row.cells):
-            cell.text = t21_data[r_idx][c_idx]
-            set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            text = t21_data[r_idx][c_idx]
             if r_idx == 0:
-                set_cell_shading(cell, "F2F4F8")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
-                    r.font.bold = True
+                format_cell(cell, text, bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER, shading_hex="F2F4F8")
             else:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [0, 1, 3] else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [0, 1, 3] else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=False, size=14, align=align)
 
     add_h2("2.2 สรุปผลความก้าวหน้า Sprint 1 ถึง Sprint 3")
     add_body_p("ความก้าวหน้าของโครงการ ณ วันที่ 4 กันยายน 2569 บรรลุตามเป้าหมายของ Stage 2 ครบถ้วน ทีมงานได้พัฒนาและทดสอบส่วนประกอบสำคัญของระบบครบทุกมิติ:")
@@ -515,24 +577,12 @@ def build_docx():
     ]
     for r_idx, row in enumerate(tbl22.rows):
         for c_idx, cell in enumerate(row.cells):
-            cell.text = t22_data[r_idx][c_idx]
-            set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            text = t22_data[r_idx][c_idx]
             if r_idx == 0:
-                set_cell_shading(cell, "F2F4F8")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
-                    r.font.bold = True
+                format_cell(cell, text, bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER, shading_hex="F2F4F8")
             else:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx != 1 else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx != 1 else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=False, size=14, align=align)
 
     add_h2("2.4 เทคโนโลยีที่ใช้ในการพัฒนา")
     add_body_p("ระบบ Disney Lorcana PlayLab Cloud เลือกใช้ชุดเครื่องมือมาตรฐานระดับ Production:")
@@ -620,24 +670,12 @@ def build_docx():
     ]
     for r_idx, row in enumerate(tbl31.rows):
         for c_idx, cell in enumerate(row.cells):
-            cell.text = t31_data[r_idx][c_idx]
-            set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            text = t31_data[r_idx][c_idx]
             if r_idx == 0:
-                set_cell_shading(cell, "F2F4F8")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
-                    r.font.bold = True
+                format_cell(cell, text, bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER, shading_hex="F2F4F8")
             else:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [1, 2] else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [1, 2] else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=False, size=14, align=align)
 
     add_h2("3.6 วงจรการสื่อสารแบบเรียลไทม์ (Match Lifecycle)")
     add_number_p("1.", "การสร้างและเข้าร่วมห้อง (JOIN_ROOM): ผู้เล่นส่งรหัสห้อง 6 หลัก เซิร์ฟเวอร์บันทึก Connection ลง Memory และ DynamoDB พร้อมกำหนดบทบาท Player 1 หรือ Player 2")
@@ -678,24 +716,12 @@ def build_docx():
     ]
     for r_idx, row in enumerate(tbl32.rows):
         for c_idx, cell in enumerate(row.cells):
-            cell.text = t32_data[r_idx][c_idx]
-            set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            text = t32_data[r_idx][c_idx]
             if r_idx == 0:
-                set_cell_shading(cell, "F2F4F8")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
-                    r.font.bold = True
+                format_cell(cell, text, bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER, shading_hex="F2F4F8")
             else:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx == 0 else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=False, size=14, align=align)
 
     # ==========================================
     # 12. บทที่ 4: การพัฒนาระบบและผลการดำเนินงาน
@@ -749,24 +775,12 @@ def build_docx():
     ]
     for r_idx, row in enumerate(tbl41.rows):
         for c_idx, cell in enumerate(row.cells):
-            cell.text = t41_data[r_idx][c_idx]
-            set_cell_margins(cell, top=70, bottom=70, left=80, right=80)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            text = t41_data[r_idx][c_idx]
             if r_idx == 0:
-                set_cell_shading(cell, "F2F4F8")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(13)
-                    r.font.bold = True
+                format_cell(cell, text, bold=True, size=13, align=WD_ALIGN_PARAGRAPH.CENTER, shading_hex="F2F4F8")
             else:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [0, 4] else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(13)
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [0, 4] else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=False, size=13, align=align)
 
     add_body_p("สรุปผลสัมฤทธิ์การทดสอบคุณภาพเชิงประจักษ์:")
     add_bullet_p("Unit & Store Integration Tests บน Vitest 4.x: ผ่านครบ 33 / 33 การทดสอบ (100% Success Rate)")
@@ -797,31 +811,15 @@ def build_docx():
     ]
     for r_idx, row in enumerate(tbl51.rows):
         for c_idx, cell in enumerate(row.cells):
-            cell.text = t51_data[r_idx][c_idx]
-            set_cell_margins(cell, top=80, bottom=80, left=100, right=100)
-            p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            text = t51_data[r_idx][c_idx]
             if r_idx == 0:
-                set_cell_shading(cell, "F2F4F8")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
-                    r.font.bold = True
+                format_cell(cell, text, bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER, shading_hex="F2F4F8")
             elif r_idx == 6:
-                set_cell_shading(cell, "EBF3FB")
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx != 4 else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
-                    r.font.bold = True
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx != 4 else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=True, size=14, align=align, shading_hex="EBF3FB")
             else:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [2, 3] else WD_ALIGN_PARAGRAPH.LEFT
-                for r in p.runs:
-                    r.font.name = 'TH Sarabun New'
-                    r.font.size = Pt(14)
+                align = WD_ALIGN_PARAGRAPH.CENTER if c_idx in [2, 3] else WD_ALIGN_PARAGRAPH.LEFT
+                format_cell(cell, text, bold=False, size=14, align=align)
 
     add_h2("5.2 แผนการพัฒนาสำหรับ Stage 3")
     add_number_p("1.", "Sprint 4 (5–25 ก.ย.): Async Deck Analyzer via Amazon SQS นำ Amazon SQS มารับงานวิเคราะห์ความสมดุลเด็คแบบ Asynchronous พร้อมพัฒนาอัลกอริทึมแนะนำการ์ดที่เข้าขากันตามประเภทหมึกและเคิร์ฟค่าร่าย")
@@ -861,9 +859,8 @@ def build_docx():
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
         p.paragraph_format.line_spacing = 1.15
-        run = p.add_run(r)
-        run.font.name = 'TH Sarabun New'
-        run.font.size = Pt(15)
+        run = p.add_run(insert_zwsp(r))
+        set_run_font(run, size=15)
 
     # ==========================================
     # 15. ภาคผนวก
