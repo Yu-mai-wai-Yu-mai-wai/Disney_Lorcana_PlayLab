@@ -140,9 +140,13 @@ DISNEY_LORCANA_PLAYLAB_CLOUD/
 │   └── tsconfig.json          # TypeScript build config
 ├── 📁 src/                    # React 19 SPA frontend
 ├── 📁 public/dataset/         # Official card dataset (lorcana_set1_set2.json)
-├── 📁 docs/                   # Reports (PDF/DOCX/LaTeX), architecture docs, QA plan
-│   ├── STAGE2_ARCHITECTURE_EVIDENCE.md  # Cloud Stage 2 verification & metrics
-│   └── AWS_LearnerLab_Setup.md          # Setup & budget guardrail guide
+├── 📁 docs/                   # Reports (Stage 2), Slides, QA Test Plans, References & Archive
+│   ├── README.md              # Master Documentation Index & architecture guide
+│   ├── 01_Reports/            # Stage 2 comprehensive report (Markdown), progress summary & evidence
+│   ├── 02_Slides/             # Presentation slide decks (HTML interactive decks)
+│   ├── 03_QA_Testing/         # QA Test Plans, reports & agent plans
+│   ├── 04_References/         # Course guidelines, manuals & assets
+│   └── _ARCHIVE/              # Historical drafts & legacy Serverless reports (Aug 20 & 24)
 └── 📁 scripts/                # Deployment, lifecycle & load-testing utilities
     ├── deploy_ec2_vpc_asg.ps1 # 1-Click IaaS Deployer (VPC, ALB, LT, ASG)
     ├── lab_start.ps1          # Scale to 1 (Start Lab Demo)

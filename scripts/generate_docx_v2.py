@@ -14,9 +14,10 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 BASE = r"D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\DISNEY_LORCANA_PLAYLAB_CLOUD"
-TEX = os.path.join(BASE, "docs", "DocUpdate24_08_2026", "G21_Disney_Lorcana_PlayLab_Cloud_Phase2_Report.tex")
-OUT = os.path.join(BASE, "docs", "DocUpdate24_08_2026", "G21_Disney_Lorcana_PlayLab_Cloud_Phase2_Report.docx")
-IMG_DIR = os.path.join(BASE, "docs", "DocUpdate24_08_2026")
+TEX = os.path.join(BASE, "docs", "_ARCHIVE", "2026-08-24_Serverless_Report", "G21_Disney_Lorcana_PlayLab_Cloud_Phase2_Report.tex")
+OUT = os.path.join(BASE, "docs", "_ARCHIVE", "2026-08-24_Serverless_Report", "G21_Disney_Lorcana_PlayLab_Cloud_Phase2_Report.docx")
+IMG_DIR = os.path.join(BASE, "docs", "_ARCHIVE", "2026-08-24_Serverless_Report")
+
 
 FONT = "TH Sarabun New"
 
