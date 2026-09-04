@@ -32,7 +32,8 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
         depth: false,
         stencil: false,
         preserveDrawingBuffer: false,
-        powerPreference: 'default',
+        powerPreference: 'high-performance',
+        desynchronized: true,
       }) ||
       (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
 
@@ -42,15 +43,17 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
     }
 
     // High performance DPR & Internal Resolution Scaling:
-    // Scale the internal canvas buffer to ~0.35x - 0.45x (max 640px width).
-    // Hardware bilinear upscale gives a silky smooth liquid look while saving >85% GPU cycles!
+    // Scale the internal canvas buffer to ~0.25x-0.30x (max 380px width).
+    // Hardware bilinear upscale gives a silky smooth liquid look while saving >95% GPU cycles!
     function syncSize() {
       if (!canvas) return;
       const clientW = window.innerWidth || canvas.clientWidth || 1280;
       const clientH = window.innerHeight || canvas.clientHeight || 720;
-      const scale = Math.min(0.42, 640 / Math.max(1, clientW));
-      const displayWidth = Math.max(320, Math.floor(clientW * scale));
-      const displayHeight = Math.max(180, Math.floor(clientH * scale));
+      const isMobileOrTablet = clientW < 1024;
+      const maxW = isMobileOrTablet ? 300 : 380;
+      const scale = Math.min(isMobileOrTablet ? 0.22 : 0.28, maxW / Math.max(1, clientW));
+      const displayWidth = Math.max(180, Math.floor(clientW * scale));
+      const displayHeight = Math.max(100, Math.floor(clientH * scale));
 
       if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
         canvas.width = displayWidth;
@@ -61,7 +64,7 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
     let resizeTimer: any = null;
     const handleResize = () => {
       if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(syncSize, 100);
+      resizeTimer = setTimeout(syncSize, 150);
     };
 
     window.addEventListener('resize', handleResize, { passive: true });
@@ -77,7 +80,7 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
       }
     `;
 
-    // Fragment Shader: Ultra-Optimized Disney Lorcana Magic & Gold Ink Fluid
+    // Fragment Shader: Ultra-High-Performance Disney Lorcana Magic & Gold Ink Fluid
     const fsSource = `
       precision mediump float;
       uniform float u_time;
@@ -86,38 +89,28 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
       uniform float u_opacity;
       varying vec2 v_uv;
 
-      // 2D Simplex Noise
-      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-      vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-      vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
-
-      float snoise(vec2 v) {
-        const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
-        vec2 i  = floor(v + dot(v, C.yy));
-        vec2 x0 = v - i + dot(i, C.xx);
-        vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-        vec4 x12 = x0.xyxy + C.xxzz;
-        x12.xy -= i1;
-        i = mod289(i);
-        vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
-        vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
-        m = m * m;
-        m = m * m;
-        vec3 x = 2.0 * fract(p * C.www) - 1.0;
-        vec3 h = abs(x) - 0.5;
-        vec3 ox = floor(x + 0.5);
-        vec3 a0 = x - ox;
-        m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
-        vec3 g;
-        g.x  = a0.x * x0.x + h.x * x0.y;
-        g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-        return 130.0 * dot(m, g);
+      // Fast Sinusoidal / Polynomial Pseudo-Noise (Zero Texture, Zero Complex Loops)
+      float hash(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
       }
 
-      // Fast 2-Octave Fractal Noise (Cut arithmetic operations by 60%)
-      float fbm2(vec2 p) {
-        float v = 0.5 * snoise(p);
-        v += 0.25 * snoise(p * 2.02 + vec2(15.2, 4.3));
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      // Fast 2-octave fluid wave function
+      float fbm(vec2 p) {
+        float v = 0.6 * noise(p);
+        v += 0.4 * noise(p * 2.1 + vec2(3.2, 1.5));
         return v;
       }
 
@@ -128,22 +121,17 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
         // Smooth Mouse Ripple
         vec2 m = (u_mouse * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
         float dMouse = length(p - m);
-        p += (p - m) * exp(-dMouse * 2.5) * 0.18;
+        p += (p - m) * exp(-dMouse * 3.0) * 0.15;
 
-        float t = u_time * 0.06;
+        float t = u_time * 0.05;
 
-        // Lightweight 2-pass domain warping
+        // Single-pass lightweight domain warp
         vec2 q = vec2(
-          fbm2(p * 1.1 + vec2(0.0, t * 0.5)),
-          fbm2(p * 1.1 + vec2(5.2, 1.3 - t * 0.35))
+          fbm(p * 1.2 + vec2(0.0, t * 0.4)),
+          fbm(p * 1.2 + vec2(4.1, 1.1 - t * 0.3))
         );
 
-        vec2 r = vec2(
-          fbm2(p * 1.5 + 3.0 * q + vec2(1.7 - t * 0.2, 9.2)),
-          fbm2(p * 1.5 + 3.0 * q + vec2(8.3, 2.8 + t * 0.3))
-        );
-
-        float f = fbm2(p * 0.8 + 2.5 * r);
+        float f = fbm(p * 0.9 + 2.0 * q);
 
         // Disney Lorcana Illuminary Ink Palette
         vec3 colDeepVoid       = vec3(0.035, 0.047, 0.082); // #090C15 Void
@@ -154,21 +142,20 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
 
         // Composite Fluid Currents
         vec3 color = mix(colDeepVoid, colSapphireOcean, clamp(length(q), 0.0, 1.0));
-        color = mix(color, colAmethystNebula, clamp(length(r.x) * 0.75, 0.0, 1.0));
+        color = mix(color, colAmethystNebula, clamp(q.x * 0.8, 0.0, 1.0));
 
         // Gold Ink River Swirls
-        float goldMask = smoothstep(0.15, 0.78, f * f * 1.5 + 0.25 * length(q));
-        color = mix(color, colGoldAmber, goldMask * 0.48);
+        float goldMask = smoothstep(0.2, 0.75, f * f * 1.4 + 0.2 * length(q));
+        color = mix(color, colGoldAmber, goldMask * 0.45);
 
         // Edge Sheen
-        float edgeShine = pow(clamp(1.0 - abs(f - 0.5) * 2.0, 0.0, 1.0), 3.0);
-        color += colFoilShimmer * edgeShine * 0.18;
+        float edgeShine = pow(clamp(1.0 - abs(f - 0.5) * 2.0, 0.0, 1.0), 2.5);
+        color += colFoilShimmer * edgeShine * 0.15;
 
         // Cinematic Vignette
         vec2 uvVig = uv * (1.0 - uv.yx);
         float vig = clamp(pow(uvVig.x * uvVig.y * 15.0, 0.32), 0.0, 1.0);
         color *= vig;
-        color = clamp(color * 0.94, 0.0, 1.0);
 
         gl_FragColor = vec4(color, u_opacity);
       }
@@ -230,6 +217,7 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
     // Zero-reflow mouse tracking: No getBoundingClientRect calls on mousemove!
     const handleMouseMove = (e: MouseEvent) => {
       if (!interactive) return;
+      lastMouseMoveTime = performance.now();
       const w = window.innerWidth || 1280;
       const h = window.innerHeight || 720;
       const nx = e.clientX / w;
@@ -245,7 +233,7 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
     let animationFrameId: number;
     let isRunning = true;
     let lastTimestamp = 0;
-    const FRAME_INTERVAL = 33; // Cap background canvas to a solid 30fps to free 100% GPU for UI
+    let lastMouseMoveTime = performance.now();
 
     // Respect prefers-reduced-motion: render a single static frame, no loop
     const reducedMotion =
@@ -289,8 +277,13 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
     function render(timestamp: number) {
       if (!isRunning || !canvas || !gl || paused) return;
 
+      const isMobile = (window.innerWidth || 1280) < 1024;
+      const isIdle = timestamp - lastMouseMoveTime > 2500;
+      // Target 24fps on mobile/idle, 30fps when active desktop — ultra light GPU budget!
+      const targetInterval = isIdle || isMobile ? 42 : 33;
+
       const delta = timestamp - lastTimestamp;
-      if (delta < FRAME_INTERVAL) {
+      if (delta < targetInterval) {
         animationFrameId = requestAnimationFrame(render);
         return;
       }
@@ -298,8 +291,8 @@ export const GoldInkShaderCanvas: React.FC<GoldInkShaderCanvasProps> = ({
       lastTimestamp = timestamp;
 
       // Smooth mouse lerp
-      currentMouse.x += (targetMouse.x - currentMouse.x) * 0.08;
-      currentMouse.y += (targetMouse.y - currentMouse.y) * 0.08;
+      currentMouse.x += (targetMouse.x - currentMouse.x) * 0.06;
+      currentMouse.y += (targetMouse.y - currentMouse.y) * 0.06;
 
       gl.viewport(0, 0, canvas.width, canvas.height);
 

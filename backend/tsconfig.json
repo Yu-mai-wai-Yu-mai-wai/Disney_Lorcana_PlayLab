@@ -13,6 +13,6 @@
     "sourceMap": false,
     "types": ["node"]
   },
-  "include": ["auth/**/*.ts", "deck/**/*.ts", "room/**/*.ts", "analyzer/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "__tests__"]
 }

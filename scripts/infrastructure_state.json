@@ -1,0 +1,14 @@
+{
+  "Region": "us-east-1",
+  "AccountId": "953899323223",
+  "VpcId": "vpc-089cc6c7945e53883",
+  "Subnet1Id": "subnet-05caaccf7623ffd93",
+  "Subnet2Id": "subnet-0f00c8cb6eb3f6a35",
+  "AlbSecurityGroupId": "sg-0993ea07e7ab72cfc",
+  "Ec2SecurityGroupId": "sg-081e009be39338c2c",
+  "AlbDnsName": "lorcana-alb-687861613.us-east-1.elb.amazonaws.com",
+  "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:953899323223:targetgroup/lorcana-tg/02e90878a5bfb972",
+  "LaunchTemplateName": "lorcana-lt",
+  "AutoScalingGroupName": "lorcana-asg",
+  "DeployedAt": "2026-08-31 11:14:45"
+}

@@ -86,51 +86,54 @@ gantt
     section Stage 1
     Proposal & Setup Stage 1         :done, s1, 2026-07-22, 2026-07-31
     section Stage 2 (Goal: Sep 10 / Sep 22)
-    Sprint 1: Scaffold & Board UI UI   :active, sp1, 2026-08-01, 2026-08-15
-    Sprint 2: Auth & Deck Manager      :sp2, 2026-08-16, 2026-09-10
-    Sprint 3: WebSockets Match Sync    :sp3, 2026-09-11, 2026-09-26
+    Sprint 1: Scaffold & Board UI    :done, sp1, 2026-08-01, 2026-08-15
+    Sprint 2: Auth & Deck Manager    :done, sp2, 2026-08-16, 2026-08-25
+    Sprint 3: WebSockets & IaaS ASG  :done, sp3, 2026-08-26, 2026-08-31
     section Stage 3 (Goal: Oct 10 / Oct 20)
-    Sprint 4: Async Analyzer & Metrics :sp4, 2026-09-27, 2026-10-10
+    Sprint 4: Async Analyzer & Metrics :active, sp4, 2026-09-01, 2026-10-10
     Sprint 5: Final Defense & Polish  :sp5, 2026-10-11, 2026-10-25
 ```
 
-### 🔹 Sprint 1: Scaffold & Play Area UI (1 สิงหาคม – 15 สิงหาคม 2569)
+### 🔹 Sprint 1: Scaffold & Play Area UI (1 สิงหาคม – 15 สิงหาคม 2569) — ✅ เสร็จสิ้น
 *   **เป้าหมาย:** สร้างโครงร่างโครงการ Frontend (React + Vite) และวางเลเอาต์กระดานซ้อมเล่น Lorcana Board
 *   **รายละเอียดงาน:**
-    *   [ ] ตั้งค่าโครงสร้างโครงการ `src/` ด้วย React + Vite และ Tailwind CSS
-    *   [ ] ออกแบบเลเอาต์กระดานซ้อมเล่นตามผัง Lorcana Play Area (Play Area, Inkwell, Lore Tracker, Deck, Discard)
-    *   [ ] นำเข้าไฟล์ JSON การ์ด 408 ใบ (Set 1 & Set 2) ไว้ใน `public/dataset/lorcana_set1_set2.json`
-    *   [ ] พัฒนาระบบ Drag & Drop พื้นฐานด้วย HTML5 Drag and Drop API บนหน้าบ้าน
+    *   [x] ตั้งค่าโครงสร้างโครงการ `src/` ด้วย React 19 + Vite 6 และ Tailwind CSS v4
+    *   [x] ออกแบบเลเอาต์กระดานซ้อมเล่นตามผัง Lorcana Play Area (Play Area, Inkwell, Lore Tracker, Deck, Discard)
+    *   [x] นำเข้าไฟล์ JSON การ์ด 3,242 ใบ (Set 1 & Set 2) ไว้ใน `public/dataset/lorcana_set1_set2.json`
+    *   [x] พัฒนาระบบ Drag & Drop พื้นฐานพร้อมแอนิเมชัน 3D Card Hover & Tilt
 
-### 🔹 Sprint 2: Authentication & Deck Builder — *เป้าหมายส่งงาน Stage 2 (16 สิงหาคม – 10 กันยายน 2569)*
-*   **เป้าหมาย:** ระบบลงทะเบียน เข้าสู่ระบบ และระบบสร้าง/จัดเก็บเด็คการ์ด (*ส่งรายงานความก้าวหน้า Stage 2 วันที่ 10 ก.ย. 2569*)
+### 🔹 Sprint 2: Authentication & Deck Builder (16 สิงหาคม – 25 สิงหาคม 2569) — ✅ เสร็จสิ้น
+*   **เป้าหมาย:** ระบบลงทะเบียน เข้าสู่ระบบ และระบบสร้าง/จัดเก็บเด็คการ์ด
 *   **รายละเอียดงาน:**
-    *   [ ] พัฒนา AWS Lambda Function สแกนและลงทะเบียนผู้ใช้ด้วย `bcrypt` รหัสผ่าน
-    *   [ ] พัฒนา AWS Lambda Function สำหรับ Login ตรวจสอบรหัสผ่านและสร้าง `JWT Token`
-    *   [ ] ตั้งค่าตาราง **Amazon DynamoDB (`UsersTable` & `DecksTable`)**
-    *   [ ] พัฒนา REST API (Lambda + API Gateway) สำหรับระบบจัดการเด็ค (Create, Read, Update, Delete Decks)
-    *   [ ] สร้างหน้า UI Deck Builder ค้นหาการ์ด 408 ใบ จัดกองการ์ดหลัก 60 ใบ และเซฟลง DynamoDB
+    *   [x] พัฒนาฟังก์ชันลงทะเบียนและยืนยันตัวตนด้วย `bcrypt` (10 rounds) + `JWT Token`
+    *   [x] ตั้งค่าตาราง **Amazon DynamoDB (`UsersTable` & `DecksTable`)**
+    *   [x] พัฒนา REST API สำหรับระบบจัดการเด็ค (Create, Read, Update, Delete Decks)
+    *   [x] สร้างหน้า UI Deck Builder ค้นหาการ์ด จัดกองการ์ดหลัก 60 ใบ และเซฟลง DynamoDB
+    *   [x] พัฒนาระบบ 3D Booster Pack Simulator (`BoosterPackModal.tsx`) และ Holographic Foil Inspector
 
-### 🔹 Sprint 3: WebSockets Real-time Room Sync — *เป้าหมายนำเสนอ Stage 2 (11 กันยายน – 26 กันยายน 2569)*
-*   **เป้าหมาย:** บอร์ดจำลองห้องเล่นซิงค์พิกัดการ์ดเรียลไทม์ระหว่าง 2 ผู้เล่น (*นำเสนอ Stage 2 วันที่ 22-26 ก.ย. 2569*)
+### 🔹 Sprint 3: WebSockets Match Sync & IaaS Auto Scaling Architecture (26 สิงหาคม – 31 สิงหาคม 2569) — ✅ เสร็จสิ้น
+*   **เป้าหมาย:** บอร์ดจำลองห้องเล่นซิงค์พิกัดการ์ดเรียลไทม์ และย้ายสถาปัตยกรรมสู่ **Lean Multi-AZ VPC + EC2 Auto Scaling** (เตรียมส่ง Stage 2 วันที่ 10 ก.ย. และนำเสนอ 22-26 ก.ย. 2569)
 *   **รายละเอียดงาน:**
-    *   [ ] ตั้งค่า **AWS API Gateway WebSockets** (`$connect`, `$disconnect`, `sendmessage`)
-    *   [ ] พัฒนา Lambda Function **Room Router** ซิงค์สถานะห้องใน DynamoDB
-    *   [ ] ซิงค์พิกัดการลากวางการ์ด, การหมุนเอียง Ready/Exert, การคว่ำการ์ดลง Inkwell และ Lore Counter ให้คู่เล่นฝั่งตรงข้ามเห็นทันที (<100ms)
-    *   [ ] พัฒนาระบบ Auto-Reconnect ภายใน 30 วินาทีเมื่อสัญญาณเน็ตหลุด
+    *   [x] พัฒนาระบบ **WebSocket Room Engine** ซิงค์สถานะห้องใน DynamoDB (`LorcanaRoomStateV2`) แบบ Sub-50ms
+    *   [x] พัฒนาระบบ Exit Match (`LEAVE_ROOM`), Rejoin Grace Period 60s, และ Opponent Left Notifications
+    *   [x] ออกแบบ **Lean Multi-AZ VPC (`10.0.0.0/16`)** 2 Subnets บน `us-east-1a`/`us-east-1b` (Zero NAT Gateway = ฟรี $0.00)
+    *   [x] สร้าง **Application Load Balancer (ALB)**, Target Group (`/health`), และ Chained Security Groups
+    *   [x] สร้าง **Launch Template** (Amazon Linux 2023 `t3.micro` + IMDSv2 `LabInstanceProfile`) และ **Auto Scaling Group** (Min 1, Max 3, Target Tracking CPU > 60%)
+    *   [x] รวมระบบเป็น Unified Node.js Server (Port 3001) + Nginx Web Server / Reverse Proxy (Port 80) เสิร์ฟแทน S3 Static
+    *   [x] พัฒนาสคริปต์ 1-Click Cost Lifecycle (`lab_start.ps1`, `lab_stop.ps1` Scale-to-Zero, `retire_s3.ps1`) คุมงบ $50
 
-### 🔹 Sprint 4: Asynchronous Deck Analyzer & CloudWatch — *เป้าหมายส่งงาน Stage 3 (27 กันยายน – 10 ตุลาคม 2569)*
+### 🔹 Sprint 4: Asynchronous Deck Analyzer & CloudWatch — *เป้าหมายส่งงาน Stage 3 (1 กันยายน – 10 ตุลาคม 2569)*
 *   **เป้าหมาย:** ระบบวิเคราะห์สถิติเด็คการ์ดเบื้องหลังและแดชบอร์ดติดตามคลาวด์ (*ส่งรายงาน Stage 3 วันที่ 10 ต.ค. 2569*)
 *   **รายละเอียดงาน:**
-    *   [ ] ตั้งค่า Amazon S3 Event Trigger ➔ **Amazon SQS Queue**
-    *   [ ] พัฒนา Lambda Function **Deck Synergy Analyzer** ดึงคิวข้อความไปคำนวณ Ink Distribution และ Cost Curve
-    *   [ ] พัฒนาการส่งผลลัพธ์ผ่าน WebSocket กลับไปวาดแผนภูมิกราฟสถิติจุดร่ายบนเบราว์เซอร์ด้วย Chart.js
-    *   [ ] ตั้งค่า **AWS CloudWatch Metrics & Billing Alarms** ติดตาม Latency และสรุปบิล $0.00
+    *   [ ] เชื่อมต่อ Amazon SQS Queue สำหรับ Asynchronous Deck Synergy & Ink Curve Analyzer
+    *   [ ] พัฒนาฟังก์ชันคำนวณ Ink Distribution และ Cost Curve ส่งกลับผลลัพธ์ผ่าน WebSocket
+    *   [ ] จัดทำรายงานสรุปผลการทดลองการขยายตัว (Scale-Out Evidence) จาก Stress Testing
+    *   [ ] สรุปรายงานค่าใช้จ่าย AWS Billing รายงานงบ $50 (ไม่เกิน $1–$3 ตลอดเทอม)
 
 ### 🔹 Sprint 5: Final Polish, Report & Defense — *เป้าหมายวันสอบไฟนอล (11 ตุลาคม – 25 ตุลาคม 2569)*
 *   **เป้าหมาย:** ทดสอบระบบฉบับสมบูรณ์ รวบรวมเอกสารอ้างอิง Intext/Reference และเตรียมสไลด์นำเสนอสอบไฟนอล (*นำเสนอไฟนอล วันที่ 20-25 ต.ค. 2569*)
 *   **รายละเอียดงาน:**
-    *   [ ] ทำ End-to-End System Testing และประสานไฟล์เอกสารรายงานฉบับสมบูรณ์
+    *   [ ] ทำ End-to-End System Testing (Playwright + Vitest 33/33 Tests) และประสานไฟล์เอกสารรายงานฉบับสมบูรณ์
     *   [ ] ตรวจสอบความถูกต้องของการอ้างอิงเอกสาร (Intext Reference & Reference List) ตามคู่มือการเขียนโครงงาน
     *   [ ] จัดเตรียมสไลด์นำเสนอฉบับสอบไฟนอลและอัดวิดีโอตัวอย่างการใช้งานระบบ (Demo Video)
 
@@ -139,6 +142,7 @@ gantt
 ## 🎯 5. กฎเหล็กสำหรับการทำงานร่วมกับ AI Agent (Agent Rules of Engagement)
 
 1.  **อ่านไฟล์ตาม List 2.1 - 2.3 ให้ครบก่อนเริ่มเขียนโค้ด:** ห้าม AI Agent มโนโครงสร้าง API หรือชื่อ Table เอาเองเด็ดขาด
-2.  **ปฏิบัติตามหลัก 100% AWS Free Tier ($0.00):** ห้ามสร้าง Resource ใน AWS ที่มีค่าใช้จ่าย (เช่น EC2, RDS, NAT Gateway) ให้ใช้เฉพาะ Serverless เท่านั้น
+2.  **ปฏิบัติตามหลัก Lean VPC & Cost Protection ($50 Budget):** ห้ามเปิด NAT Gateway หรือสร้าง Resource สิ้นเปลืองโดยไม่มีสคริปต์ควบคุม ให้ใช้ Lean Multi-AZ VPC และรัน `lab_stop.ps1` (Scale-to-Zero) เสมอหลังเลิกใช้งาน
 3.  **รักษาความปลอดภัยด้วย Lambda Auth + JWT:** ห้ามถอยกลับไปใช้ Cognito หรือ Plaintext Password โดยเด็ดขาด
 4.  **ห้ามลบหรือทำลายไฟล์เดิม:** ปฏิบัติตามกฎความปลอดภัย TAWAN-OS อย่างเคร่งครัด
+

@@ -111,8 +111,8 @@ export const ArtworkCarousel: React.FC = () => {
                   else setFullscreenImage(artwork);
                 }
               }}
-              className="absolute w-[85vw] max-w-[820px] h-[340px] sm:h-[410px] md:h-[460px] rounded-xl overflow-hidden cursor-pointer preserve-3d border border-[#30363d] bg-[#141a26] group"
-              style={{ transformStyle: 'preserve-3d' }}
+              className="absolute w-[85vw] max-w-[820px] h-[340px] sm:h-[410px] md:h-[460px] rounded-xl overflow-hidden cursor-pointer border border-[#30363d] bg-[#141a26] group shadow-2xl"
+              style={{ transformStyle: 'preserve-3d', willChange: 'transform, opacity', transform: 'translateZ(0)' }}
             >
               {/* Full-Frame Art Image */}
               <div className="relative w-full h-full">

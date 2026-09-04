@@ -53,44 +53,72 @@ Disney Lorcana PlayLab Cloud is a high-performance web application engineered fo
 
 ---
 
-## ☁️ Architecture (AWS Serverless — 4 Layers)
+## ☁️ Cloud Architecture & Infrastructure Modes
+
+Disney Lorcana PlayLab Cloud supports **two production infrastructure modes** designed specifically to meet academic criteria (Stage 2 & Stage 3) while strictly guarding the **$50 AWS Academy Learner Lab budget**:
+
+### 1. 🏆 Primary IaaS Mode: Lean Multi-AZ VPC + EC2 Auto Scaling (Full Score Stack)
 
 ```
-React 19 SPA (S3 Website Hosting)
-        │ HTTPS / WSS
-┌───────▼─────────────────────────────────────────┐
-│  API Gateway                                    │
-│  • HTTP API  (iorxmxsoll) — auth/decks REST     │
-│  • WebSocket (a86238wqo4) — real-time play      │
-│    Throttling: Burst 100 / Rate 50 req-s        │
-└───────┬─────────────────────────────────────────┘
-        │
-┌───────▼─────────────────────────────────────────┐
-│  AWS Lambda (Node.js 20.x, LabRole)             │
-│  lorcana-auth-login/register · lorcana-deck     │
-│  lorcana-room (WS) · lorcana-analyzer           │
-└───────┬──────────────────┬──────────────────────┘
-        │                  │
-┌───────▼───────┐   ┌──────▼──────┐   ┌───────────┐
-│ DynamoDB      │   │ Amazon SQS  │   │ CloudWatch│
-│ Users/Decks/  │   │ deck-       │   │ alarms $5 │
-│ RoomState/MM  │   │ analyzer    │   │ & $20     │
-│ (TTL 2h)      │   └─────────────┘   └───────────┘
-└───────────────┘
+                       Internet (User Browser / Evaluator)
+                                      │
+                                      ▼ HTTP:80
+                     ┌─────────────────────────────────┐
+                     │ Application Load Balancer (ALB) │
+                     │ Public Multi-AZ: us-east-1a/1b  │
+                     └────────────────┬────────────────┘
+                                      │ Health Check /health (Port 80)
+               ┌──────────────────────┴──────────────────────┐
+               │                                             │
+               ▼                                             ▼
+  ┌─────────────────────────┐                   ┌─────────────────────────┐
+  │ EC2 Instance 1 (AZ 1a)  │                   │ EC2 Instance 2 (AZ 1b)  │
+  │ Amazon Linux 2023       │                   │ (Auto Scaled CPU > 60%) │
+  │ ┌─────────────────────┐ │                   │ ┌─────────────────────┐ │
+  │ │ Nginx (Port 80)     │ │                   │ │ Nginx (Port 80)     │ │
+  │ │ React 19 SPA Build  │ │                   │ │ React 19 SPA Build  │ │
+  │ └──────────┬──────────┘ │                   │ └──────────┬──────────┘ │
+  │            │ Proxy :3001│                   │            │ Proxy :3001│
+  │ ┌──────────▼──────────┐ │                   │ ┌──────────▼──────────┐ │
+  │ │ Node.js Express+WS  │ │                   │ │ Node.js Express+WS  │ │
+  │ │ REST API & Engine   │ │                   │ │ REST API & Engine   │ │
+  │ └──────────┬──────────┘ │                   │ └──────────┬──────────┘ │
+  └────────────┼────────────┘                   └────────────┼────────────┘
+               │                                             │
+               └──────────────────────┬──────────────────────┘
+                                      │ IAM LabInstanceProfile (IMDSv2)
+                    ┌─────────────────┴─────────────────┐
+                    │                                   │
+                    ▼                                   ▼
+         ┌─────────────────────┐             ┌─────────────────────┐
+         │   Amazon DynamoDB   │             │     Amazon SQS      │
+         │  Users, Decks, Room │             │   Deck-Analyzer     │
+         └─────────────────────┘             └─────────────────────┘
 ```
 
-**Security:** bcrypt (10 rounds) password hashing · signed JWT tokens · TLS enforced · least-privilege `LabRole` · API throttling · TTL-based session cleanup.
+* **Zero NAT Gateway Cost ($0.00 Network):** Uses Public Multi-AZ subnets with tightly controlled Security Groups (ALB accepts Port 80, EC2 instances accept traffic strictly from ALB SG). Saves **$32.40/month** compared to enterprise NAT Gateways.
+* **Auto Scaling Group (ASG):** Configured with Min 1, Max 3, Desired 1, and Target Tracking Scaling Policy (`CPUUtilization > 60%`).
+* **S3 Decommissioning:** Frontend is served directly via high-performance Nginx Reverse Proxy on EC2 (replacing S3 Static Hosting).
+
+---
+
+### 2. ⚡ Legacy Serverless Mode ($0.00 24/7 Idle Cost)
+
+For 24/7 zero-maintenance live play without VM instance costs:
+* **Frontend:** S3 Static Website Hosting
+* **API / WS:** API Gateway HTTP + WebSocket APIs
+* **Compute:** AWS Lambda functions with IAM `LabRole`
 
 ---
 
 ## ⚡ Tech Stack
 
 * **Frontend:** TypeScript 5.x, React 19+, Vite 6, Tailwind CSS v4, Framer Motion, Zustand
-* **Backend:** AWS Lambda (Node.js 20.x), API Gateway HTTP + WebSocket APIs
-* **Data:** Amazon DynamoDB (on-demand, TTL enabled), Amazon S3
-* **Async:** Amazon SQS + event-source-mapped analyzer Lambda
-* **Auth:** Custom serverless auth (bcrypt + JWT)
-* **QA:** Playwright E2E + custom real-time test dashboard (`qa/`) — 49/50 pass rate
+* **Compute & IaaS:** Amazon EC2 (`t3.micro`), Amazon Linux 2023, Nginx Reverse Proxy, Node.js 20.x, Docker & Docker Compose
+* **Network & Scaling:** Custom Multi-AZ VPC (`10.0.0.0/16`), Application Load Balancer (ALB), Target Groups, Auto Scaling Groups (ASG), CloudWatch Metrics
+* **Data & Storage:** Amazon DynamoDB (on-demand, TTL enabled), Amazon SQS (Async Analyzer)
+* **Auth & Security:** Custom bcrypt (10 rounds) + JWT Auth, IAM `LabInstanceProfile`, IMDSv2 Token Security
+* **QA & Load Testing:** Playwright E2E (49/50 pass rate), Vitest Unit Suite (33/33 pass rate), Apache Benchmark / Custom Load Stress Scripts
 
 ---
 
@@ -98,56 +126,66 @@ React 19 SPA (S3 Website Hosting)
 
 ```
 DISNEY_LORCANA_PLAYLAB_CLOUD/
-├── 📄 README.md               # This file
+├── 📄 README.md               # Master technical documentation & runbooks
 ├── 📄 LICENSE                 # MIT License (source code only — game assets excluded)
-├── 📄 CASE_STUDY.md           # Case study, architecture decisions & lessons learned
+├── 📄 CASE_STUDY.md           # Architecture decisions & engineering case study
 ├── 📄 PLAN_PROJECT.md         # Master execution plan & stage deadlines
 ├── 📄 TEAM_WORKFLOW.md        # Team roles (6 members) & git workflow
-├── 📁 qa/                     # Full QA campaign: master sheet, dashboard, runners
-│   ├── master-sheet.json      #   50 test cases (single source of truth)
-│   ├── dashboard-server.cjs   #   Real-time QA log dashboard (:9200)
-│   ├── qa-reporter.cjs        #   Custom Playwright reporter → live sheet
-│   └── backend-aws-runner.cjs #   35 Backend/AWS checks (Lambda invoke จริง)
-├── 📁 e2e/                    # Playwright E2E suites (@TC-XX-NNN tagged)
-├── 📁 src/                    # React SPA frontend
-├── 📁 backend/                # AWS Lambda functions + deploy scripts
+├── 📄 Dockerfile              # Multi-stage Dockerfile (<100MB Alpine build)
+├── 📄 docker-compose.yml      # Orchestrates Nginx + Node.js containers
+├── 📄 nginx.conf              # Nginx Web Server + Reverse Proxy + /health endpoint
+├── 📁 backend/                # Unified Express + WebSocket Server & Lambda Handlers
+│   ├── server.ts              # Unified Server (Node.js Port 3001)
+│   ├── package.json           # Express, ws, cors, dotenv
+│   └── tsconfig.json          # TypeScript build config
+├── 📁 src/                    # React 19 SPA frontend
 ├── 📁 public/dataset/         # Official card dataset (lorcana_set1_set2.json)
 ├── 📁 docs/                   # Reports (PDF/DOCX/LaTeX), architecture docs, QA plan
-└── 📁 scripts/                # Deployment & doc-generation utilities
+│   ├── STAGE2_ARCHITECTURE_EVIDENCE.md  # Cloud Stage 2 verification & metrics
+│   └── AWS_LearnerLab_Setup.md          # Setup & budget guardrail guide
+└── 📁 scripts/                # Deployment, lifecycle & load-testing utilities
+    ├── deploy_ec2_vpc_asg.ps1 # 1-Click IaaS Deployer (VPC, ALB, LT, ASG)
+    ├── lab_start.ps1          # Scale to 1 (Start Lab Demo)
+    ├── lab_stop.ps1           # Scale to 0 ($0.00 Cost Protection)
+    ├── stress_test.ps1        # Auto Scaling Load Generator & Verification
+    ├── retire_s3.ps1          # Safe S3 Bucket Retirement
+    └── lab_destroy.py         # Complete infrastructure teardown
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start & Deployment Guide
 
+### Local Development
 ```bash
 git clone https://github.com/Yu-mai-wai-Yu-mai-wai/disney-lorcana-playlab-cloud.git
 cd disney-lorcana-playlab-cloud
 npm install
-npm run dev          # dev server at :3000
-npm run build        # production build → dist/
+npm run dev          # Vite dev server at :3000
+npm test             # Run 33 Vitest unit tests
 ```
 
-### Deploy Backend (AWS Learner Lab)
-
-```bash
-cd backend
-npx tsc --outDir dist_bundle
-# zip each function (handler.js + node_modules) and:
-aws lambda update-function-code --function-name <fn> --zip-file fileb://<fn>.zip --region us-east-1
+### 1-Click AWS Lean VPC & Auto Scaling Deployment (IaaS)
+```powershell
+cd scripts
+# Deploy Lean Multi-AZ VPC + ALB + Launch Template + Auto Scaling Group
+.\deploy_ec2_vpc_asg.ps1 -Region us-east-1 -InstanceType t3.micro
 ```
 
-See `scripts/deploy_manual.sh` and `scripts/deploy_ws.sh` for full infrastructure setup (API Gateway routes, DynamoDB tables + TTL, SQS mapping).
+### $50 Budget Lifecycle Controls (Cost Guardrails)
+```powershell
+# Start / Scale Up for Demo (Desired Capacity = 1)
+.\lab_start.ps1
 
-### Run Full QA Campaign
+# Scale to Zero when done (Desired Capacity = 0 -> $0.00 Compute Cost)
+.\lab_stop.ps1
 
-```bash
-node qa/dashboard-server.cjs                        # QA sheet dashboard → :9200
-npx playwright test e2e/qa-campaign-uxui.spec.ts    # UX/UI suite (live updates)
-node qa/backend-aws-runner.cjs                      # 35 Backend+AWS checks
+# Run Load Stress Test to trigger CPU Scaling (>60%) for Stage 2/3 Evidence
+.\stress_test.ps1 -TotalRequests 2000 -Concurrency 20
+
+# Safe S3 Retirement (Delete old Static Website Bucket)
+.\retire_s3.ps1
 ```
-
-Full details: [`docs/QA_TEST_PLAN.md`](docs/QA_TEST_PLAN.md)
 
 ---
 
@@ -167,7 +205,7 @@ Full details: [`docs/QA_TEST_PLAN.md`](docs/QA_TEST_PLAN.md)
 
 ---
 
-## 👥 Team (Group G21 — KMITL IT)
+## 👥 Team (Disney Lorcana Cloud Team — KMITL IT)
 
 | Name | Student ID |
 |---|---|

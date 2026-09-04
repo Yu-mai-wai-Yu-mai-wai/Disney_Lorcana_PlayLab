@@ -1,99 +1,105 @@
-# 🎓 AWS Academy Learner Lab — ขั้นตอนเตรียมการ (Sprint 2 & 3)
+# 🎓 AWS Academy Learner Lab — คู่มือสถาปัตยกรรม & การควบคุมงบ $50
 
-> คู่มือทีละขั้นสำหรับเตรียม AWS Learner Lab ให้รัน Lorcana PlayLab ได้ (Free Tier $0)
-> ใช้กับ: Sprint 2 (Auth + Deck REST) และ Sprint 3 (WebSockets Room Sync)
+> **Disney Lorcana PlayLab Cloud** — คู่มือการ Deploy, การตั้งค่า Lean Multi-AZ VPC, EC2 Auto Scaling Group, และการควบคุมค่าใช้จ่ายให้ปลอดภัยตลอดเทอม
+> รองรับ: **Stage 2 (Cloud Architecture & IaC)** และ **Stage 3 (High Availability & Scalability)**
 
 ---
 
-## Step 1 — เปิด Learner Lab & เอา Credentials
+## 🔑 Step 1 — เริ่มต้น Lab & รับ Session Credentials
 
-1. เข้า **AWS Academy** (learn.aWsacademy.com) → คอร์ส Cloud 69 → **Learner Lab**
-2. กด **Start Lab** (สีเขียว) → รอ ~2-3 นาทีให้ environment ขึ้น (เหลือเวลาประมาณ 4 ชม.)
-3. กด **AWS Details** (ซ้ายบน) → **Show** → copy 3 ค่านี้ไว้:
+1. เข้าสู่ **AWS Academy** (learn.awsacademy.com) → คอร์ส Cloud Computing → **Learner Lab**
+2. กดปุ่ม **Start Lab** (สีเขียว) → รอสถานะเป็นวงกลมสีเขียว (Session ใช้งานได้ ~4 ชั่วโมง)
+3. กดที่เมนู **AWS Details** (มุมบนซ้าย) → กด **Show** แล้วคัดลอกค่า 3 ตัวนี้:
    - `aws_access_key_id`
    - `aws_secret_access_key`
    - `aws_session_token`
-4. เปิด **Terminal** (บนเครื่องเรา) → ตั้งค่า AWS CLI:
-   ```bash
-   aws configure set aws_access_key_id <AKIA...>
-   aws configure set aws_secret_access_key <...>
-   aws configure set aws_session_token <...>
-   aws configure set region us-east-1
-   aws configure set output json
+4. เปิด **PowerShell / Terminal** บนเครื่อง แล้วรันคำสั่งตั้งค่า:
+   ```powershell
+   aws configure set aws_access_key_id "<คัดลอกมาวาง>"
+   aws configure set aws_secret_access_key "<คัดลอกมาวาง>"
+   aws configure set aws_session_token "<คัดลอกมาวาง>"
+   aws configure set region "us-east-1"
+   aws configure set output "json"
    ```
-   > ⚠️ Learner Lab ใช้ **session token** (หมดอายุ ~4 ชม. พร้อม lab) — ถ้า deploy นานเกิน lab ต้อง Start Lab ใหม่ + ตั้งค่าซ้ำ
-
-## Step 2 — ติดตั้งเครื่องมือ (ครั้งเดียว)
-
-```bash
-# 1. AWS CLI (เช็คว่ามีแล้ว)
-aws --version
-
-# 2. SAM CLI (สำหรับ deploy template.yaml)
-sam --version
-# ถ้าไม่มี: ใช้วิธี pip install aws-sam-cli หรือติดตั้งจาก sam build ตาม OS
-
-# 3. Node 20+ (มีแล้วจากโปรเจกต์)
-node --version
-```
-
-## Step 3 — ตรวจสอบสิทธิ์ใน Learner Lab
-
-```bash
-aws sts get-caller-identity        # ควรเห็น AccountId + Arn
-aws dynamodb list-tables           # ควรตอบ (อาจว่าง)
-```
-> ถ้า `AccessDenied` → กลับไป Step 1 ตั้งค่าใหม่ (token หมดอายุ)
-
-## Step 4 — Deploy (Sprint 2: Auth + Deck)
-
-```bash
-cd D:/Tawanagent/TAWAN-OS/02_STUDY/2026-Semester/Cloud_Computing/Cloud_Project/DISNEY_LORCANA_PLAYLAB_CLOUD
-npm install
-# build backend
-cd backend && npm install && npx tsc --outDir dist && cd ..
-# deploy
-sam build
-sam deploy --guided   # ครั้งแรก: ตั้ง stack name, region us-east-1, confirm IAM = Y
-```
-> จำ **stack name** ไว้ (เช่น `lorcana-playlab`) — deploy ครั้งต่อไปใช้ `sam deploy --no-confirm-changeset`
-
-## Step 5 — Deploy (Sprint 3: WebSockets) — อัตโนมัติ
-
-```bash
-cd scripts
-bash deploy_ws.sh
-```
-> สคริปต์จะ build + deploy + เขียน `.env.production` ให้อัตโนมัติ
-
-## Step 6 — ตรวจผล
-
-```bash
-# ดู endpoints
-aws cloudformation describe-stacks --stack-name lorcana-playlab \
-  --query "Stacks[0].Outputs" --output table
-
-# ดู Lambda logs
-sam logs --stack-name lorcana-playlab --tail
-```
-
-## Step 7 — ใช้กับ Frontend
-
-1. Build frontend ด้วย `.env.production` (มี WS + API URL แล้ว)
-   ```bash
-   npm run build
+5. ตรวจสอบการเชื่อมต่อ:
+   ```powershell
+   aws sts get-caller-identity
    ```
-2. Deploy หน้าเว็บ: upload `dist/` ขึ้น S3 + CloudFront (หรือ GitHub Pages — ฟรี)
-3. เปิด 2 แท็บ → เข้า Playmat → Join ห้องเดียวกัน → ทดสอบซิงก์
+   > ⚠️ **ข้อควรระวัง:** หากเจอ Error `voc-cancel-cred` หรือ `AccessDenied` แสดงว่า Session 4 ชม. หมดอายุ หรือกด End Lab ไปแล้ว ให้กลับไปกด **Start Lab** ในเว็บ แล้วนำ Credentials ชุดใหม่มาวางซ้ำ
 
 ---
 
-## 🚨 ข้อควรระวัง
+## 🚀 Step 2 — Deploy สถาปัตยกรรม IaaS (Lean VPC + ALB + ASG)
 
-| เรื่อง | รายละเอียด |
-|---|---|
-| **Lab หมดอายุ** | ทุก ~4 ชม. ต้อง Start Lab ใหม่ + ตั้ง AWS CLI ใหม่ (session token) |
-| **เรียนจบ lab ปิด** | **Resources จะถูกลบอัตโนมัติ** — อย่าใช้เก็บข้อมูลสำคัญ |
-| **อย่าแตะ S3 รูปการ์ด** | ใช้ Hotlink จาก lorcana-api.com เท่านั้น (README ย้ำ) |
-| **Free Tier ขีดจำกัด** | Lambda 1M req/เดือน, API GW WS 1M msg/เดือน, DynamoDB 25GB — โปรเจกต์เราไกลเกินไม่ถึง |
-| **ประหยัด token** | ถ้า deploy บ่อย → ใช้ `sam deploy --no-confirm-changeset` |
+รันสคริปต์อัตโนมัติสร้าง Infrastructure ทั้งหมดในคำสั่งเดียว:
+
+```powershell
+cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\DISNEY_LORCANA_PLAYLAB_CLOUD\scripts
+
+# รัน Deployer
+.\deploy_ec2_vpc_asg.ps1 -Region us-east-1 -InstanceType t3.micro
+```
+
+### สถาปัตยกรรมที่สคริปต์จะสร้างขึ้นอัตโนมัติ:
+1. **Lean Multi-AZ VPC (`10.0.0.0/16`):** 2 Public Subnets บน `us-east-1a` และ `us-east-1b` + Internet Gateway (**ไม่มี NAT Gateway = ค่าบริการ $0.00**)
+2. **Security Groups:**
+   - `ALB SG`: เปิดรับ HTTP Port 80 จากทั่วโลก (`0.0.0.0/0`)
+   - `EC2 SG`: เปิดรับ Port 80 และ 3001 **เฉพาะจาก ALB SG เท่านั้น**
+3. **Application Load Balancer (ALB):** รับทราฟฟิกและส่งต่อเข้า Target Group พร้อมตั้ง Health Check ที่ `/health`
+4. **Launch Template:** ระบบ Amazon Linux 2023 (`t3.micro`) แนบ IAM `LabInstanceProfile` พร้อม User Data Script ติดตั้ง Nginx, Node.js และดึงโค้ดมารันอัตโนมัติ
+5. **Auto Scaling Group (ASG):** Min 1, Max 3, Desired 1 พร้อม **CPU Target Tracking Policy (Scale-out เมื่อ CPU > 60%)**
+
+---
+
+## 🛡️ Step 3 — วงจรการควบคุมงบประมาณ $50 (1-Click Cost Lifecycle)
+
+เพื่อให้งบ $50 ใน Learner Lab ปลอดภัยและเหลือใช้ตลอดทั้งภาคการศึกษา:
+
+### 1. เมื่อต้องการทำแล็บ หรือเปิดเดโมให้อาจารย์ดู
+```powershell
+.\scripts\lab_start.ps1
+```
+* สั่งปรับ `Desired Capacity = 1`
+* EC2 Instance จะบูตขึ้นมาพร้อมรับทราฟฟิกภายใน 1–2 นาที
+
+### 2. เมื่อเลิกใช้งานประจำวัน (Scale-to-Zero)
+```powershell
+.\scripts\lab_stop.ps1
+```
+* สั่งปรับ `Desired Capacity = 0` และ `Min Size = 0`
+* EC2 Instances ทั้งหมดจะถูก Terminate ดับสนิท **ค่าใช้จ่าย Compute กลายเป็น $0.00/ชม. ทันที**
+
+### 3. เมื่อส่งโปรเจกต์เสร็จสิ้น / ไม่ได้ใช้งานยาวนาน (Complete Teardown)
+```powershell
+python .\scripts\lab_destroy.py
+```
+* ลบ ALB, Target Group, ASG, Launch Template, Security Groups และ VPC ทิ้งทั้งหมด
+* ค่าใช้จ่ายรายชั่วโมงจะกลายเป็น **$0.0000** 100%
+
+---
+
+## 📈 Step 4 — การทดสอบ Auto Scaling & เก็บหลักฐานส่งรายงาน Stage 2/3
+
+รันสคริปต์ Stress Test เพื่อจำลองโหลดผู้เล่นจำนวนมาก:
+
+```powershell
+.\scripts\stress_test.ps1 -TotalRequests 2000 -Concurrency 20
+```
+
+### สิ่งที่ต้องแคปภาพหน้าจอใน AWS Console สำหรับทำรายงาน:
+1. **VPC Console:** ภาพ Resource Map ของ VPC แสดง 2 Subnets Multi-AZ และ Route Table
+2. **EC2 Console -> Load Balancers:** ภาพ Target Group แสดงสถานะ **Healthy 200 OK**
+3. **EC2 Console -> Auto Scaling Groups -> Activity:** ภาพแสดงประวัติการสปอว์นเครื่อง EC2 เครื่องที่ 2 เมื่อ CPU พุ่งสูง
+4. **CloudWatch Console -> Alarms:** ภาพกราฟ Target Tracking Alarm เปลี่ยนสถานะเป็น `In alarm` ระหว่างการยิงโหลด
+
+---
+
+## 🚨 ตารางสรุปการคุมงบประมาณ ($50 Budget Optimization)
+
+| ชิ้นส่วนระบบ | สเปก / รูปแบบ | ค่าใช้จ่าย | วิธีการคุมงบ |
+|---|---|---|---|
+| **VPC & Subnets** | Lean Multi-AZ (No NAT) | **$0.00** | ไม่เปิด NAT Gateway (ประหยัด $32.40/เดือน) |
+| **EC2 Instance** | `t3.micro` (1 vCPU, 1GB RAM) | $0.0104 / ชม. | รัน `lab_stop.ps1` เมื่อเลิกเรียน (Scale-to-0) |
+| **Load Balancer (ALB)** | 1x Application Load Balancer | $0.0225 / ชม. | สั่ง `lab_destroy.py` หากไม่ได้ใช้นานเกิน 1 สัปดาห์ |
+| **DynamoDB & SQS** | On-Demand Free Tier | **$0.00** | อยู่ในเกณฑ์ Free Tier ตลอดไป |
+| **S3 Static Website** | Decommissioned | **$0.00** | รัน `retire_s3.ps1` ย้ายไปอยู่บน Nginx ทั้งหมด |

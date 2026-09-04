@@ -1,4 +1,4 @@
-﻿# รายงานความก้าวหน้าโครงการ Stage 2 (Phase 2)
+# รายงานความก้าวหน้าโครงการ Stage 2 (Phase 2)
 ## กลุ่ม G21: DISNEY LORCANA PLAYLAB CLOUD
 **วิชา:** 05506013 Cloud Computing (ปีการศึกษา 2569)  
 **คณะเทคโนโลยีสารสนเทศ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง (KMITL)**
@@ -40,4 +40,12 @@
 3. **ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์**
 
 ---
-*บันทึกและรวบรวมเมื่อ: 24 สิงหาคม 2569*
+
+### ⚠️ หมายเหตุการปรับปรุงสถาปัตยกรรม (Architecture Evolution Update - ก.ย. 2569)
+เอกสารในแพ็กเกจนี้เป็นเวอร์ชันเริ่มต้นรอบ 24 ส.ค. 2569 (Serverless เดิม) สำหรับข้อมูลสถาปัตยกรรมระดับ Production ล่าสุดที่ผ่านการ Deploy จริงบน AWS Learner Lab ได้รับการอัปเกรดเป็น **Lean Multi-AZ VPC, ALB, Auto Scaling Group, และ Docker Compose**:
+- **เอกสารสรุปหลักฐานสถาปัตยกรรม IaaS:** [`../STAGE2_ARCHITECTURE_EVIDENCE.md`](../STAGE2_ARCHITECTURE_EVIDENCE.md)
+- **รูปเล่มรายงานฉบับอัปเดตสถาปัตยกรรมล่าสุด (Markdown):** [`../G21_รูปเล่มรายงาน_DISNEY_LORCANA_CLOUD.md`](../G21_รูปเล่มรายงาน_DISNEY_LORCANA_CLOUD.md)
+- **สไลด์นำเสนอ Stage 2 (Canva Prototype):** [`../stage2_presentation_slides.html`](../stage2_presentation_slides.html)
+- **คู่มือควบคุมงบประมาณ AWS $50:** [`../AWS_LearnerLab_Setup.md`](../AWS_LearnerLab_Setup.md)
+
+*บันทึกและปรับปรุงล่าสุดเมื่อ: 4 กันยายน 2569*

@@ -786,6 +786,39 @@ export const DeckBuilder: React.FC = () => {
         </div>
       )}
 
+      {/* MOBILE & TABLET STICKY FLOATING DECK SUMMARY BAR */}
+      <div className="lg:hidden fixed bottom-3 inset-x-3 sm:inset-x-6 z-30 bg-[#141a26]/95 border border-[#F59E0B]/50 rounded-2xl p-3 shadow-[0_4px_25px_rgba(0,0,0,0.8)] backdrop-blur-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${totalCards === 60 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : totalCards > 60 ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-[#0B0F19] text-[#F59E0B] border border-[#30363d]'}`}>
+            {totalCards}/60
+          </div>
+          <div className="min-w-0">
+            <p className="font-cinzel text-xs font-bold text-[#F1F5F9] truncate">{deckName || 'My Deck'}</p>
+            <p className="text-[10px] text-[#94A3B8] font-mono">{currentDeck.length} types</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsDeckViewerOpen(true)}
+            disabled={currentDeck.length === 0}
+            className="px-3 py-2 rounded-xl bg-[#0B0F19] border border-[#30363d] text-[#F59E0B] text-xs font-bold font-cinzel flex items-center gap-1.5 disabled:opacity-40"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{language === 'th' ? 'ดูเด็ค' : 'View'}</span>
+          </button>
+
+          <button
+            onClick={handleSaveDeck}
+            disabled={isSaving}
+            className="px-4 py-2 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black text-xs font-bold font-cinzel flex items-center gap-1.5 shadow-md"
+          >
+            <Save className="w-3.5 h-3.5 text-black" />
+            <span>{isSaving ? '...' : t.saveDeck}</span>
+          </button>
+        </div>
+      </div>
+
       {/* FULL DECK VIEWER POP-UP MODAL */}
       <DeckViewerModal
         isOpen={isDeckViewerOpen}

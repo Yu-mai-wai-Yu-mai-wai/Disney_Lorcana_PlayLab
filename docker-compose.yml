@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: lorcana-backend
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PORT=3001
+      - AWS_REGION=us-east-1
+      - USERS_TABLE=UsersTable
+      - DECKS_TABLE=DecksTable
+      - ROOM_TABLE=LorcanaRoomStateV2
+      - MATCHMAKING_TABLE=LorcanaMatchmaking
+      - JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: lorcana-frontend
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - backend

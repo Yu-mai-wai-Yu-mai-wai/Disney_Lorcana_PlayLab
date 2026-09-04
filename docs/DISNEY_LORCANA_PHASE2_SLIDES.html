@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disney Lorcana PlayLab Cloud — Phase 2 Progress Presentation (Canva Prototype)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080b18;
+      --card-bg: rgba(18, 24, 48, 0.85);
+      --border-color: rgba(99, 102, 241, 0.25);
+      --accent-gold: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Kanit', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8, 11, 24, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .top-bar .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: var(--accent-gold);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #050505;
+      font-weight: 700;
+      border: none;
+    }
+    .btn-gold:hover {
+      opacity: 0.9;
+    }
+
+    /* Layout Container */
+    .container {
+      max-width: 1400px;
+      margin: 24px auto;
+      padding: 0 20px;
+    }
+
+    /* Slide Navigation Tabs */
+    .slide-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 14px;
+      margin-bottom: 24px;
+      scrollbar-width: thin;
+    }
+
+    .slide-tab {
+      padding: 8px 16px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .slide-tab:hover {
+      color: #fff;
+      background: rgba(51, 65, 85, 0.8);
+    }
+
+    .slide-tab.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(168, 85, 247, 0.4));
+      color: #fbbf24;
+      border-color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    /* Slide Frame 16:9 */
+    .slide-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: radial-gradient(circle at 10% 20%, #171c3b 0%, #0c1022 50%, #070a16 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15);
+      padding: 48px 56px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Decorative Glow Effects */
+    .slide-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(6, 182, 212, 0.08) 40%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .slide-wrapper::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 65%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      position: relative;
+      z-index: 2;
+    }
+
+    .slide-subtitle-tag {
+      display: inline-block;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent-gold);
+      margin-bottom: 8px;
+    }
+
+    .slide-title {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Slide Body */
+    .slide-body {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    /* Slide Footer */
+    .slide-footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .slide-footer .team-tag {
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    /* Grid Layouts inside Slide */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* Glass Card */
+    .glass-card {
+      background: rgba(25, 33, 62, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.2s ease;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .glass-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+    }
+
+    .glass-card h4 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .glass-card p, .glass-card ul {
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .glass-card ul {
+      padding-left: 20px;
+      margin-top: 8px;
+    }
+
+    .glass-card li {
+      margin-bottom: 6px;
+    }
+
+    /* Metric Card */
+    .metric-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(30, 41, 75, 0.5);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
+      padding: 16px 12px;
+    }
+
+    .metric-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent-gold);
+    }
+
+    .metric-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* Canva Copy Box Section */
+    .canva-copy-section {
+      margin-top: 32px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .canva-copy-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 12px;
+    }
+
+    .canva-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #00c4cc;
+      color: #032b30;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .copy-textarea {
+      width: 100%;
+      height: 220px;
+      background: #020617;
+      color: #e2e8f0;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Kanit', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+    }
+
+    .copy-textarea:focus {
+      border-color: #00c4cc;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: none;
+      z-index: 1000;
+    }
+
+    /* Slide specific styles */
+    .hero-title {
+      font-size: 46px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 30%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 22px;
+      font-weight: 500;
+      color: #93c5fd;
+      margin-bottom: 24px;
+    }
+
+    .tag-pill {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .tag-gold {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .tag-cyan {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: rgba(6, 182, 212, 0.3);
+      color: #38bdf8;
+    }
+
+    .tag-emerald {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    /* Comparison Table inside Slide */
+    .slide-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .slide-table th {
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--accent-gold);
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 2px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .slide-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+    }
+
+    .slide-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <div class="top-bar">
+    <div class="brand">
+      <span class="brand-badge">G21 CLOUD</span>
+      <span class="brand-title">Disney Lorcana PlayLab Cloud — Phase 2 Presentation</span>
+    </div>
+    <div class="nav-controls">
+      <button class="btn" id="prevBtn" onclick="changeSlide(-1)">◀ สไลด์ก่อนหน้า</button>
+      <span id="slideIndicator" style="font-size: 14px; font-weight: 700; color: #f59e0b; min-width: 70px; text-align: center;">1 / 10</span>
+      <button class="btn" id="nextBtn" onclick="changeSlide(1)">สไลด์ถัดไป ▶</button>
+      <button class="btn btn-gold" onclick="copyCurrentSlideText()">📋 ก๊อปปี้ข้อความสไลด์นี้ลง Canva</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Slide Tabs -->
+    <div class="slide-tabs" id="slideTabs">
+      <!-- Tabs generated via JavaScript -->
+    </div>
+
+    <!-- Active Slide Frame -->
+    <div class="slide-wrapper" id="slideFrame">
+      <!-- Slide Content Injected Dynamically -->
+    </div>
+
+    <!-- Canva Raw Text Copy Area -->
+    <div class="canva-copy-section">
+      <div class="canva-copy-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="canva-badge">CANVA CONTENT TEMPLATE</span>
+          <h3 style="font-size: 16px; font-weight: 600; color: #fff;">กล่องข้อความต้นแบบสำหรับคัดลอกลง Canva Slide นี้</h3>
+        </div>
+        <button class="btn btn-primary" onclick="copyCurrentSlideText()">คัดลอกข้อความ (Copy to Clipboard)</button>
+      </div>
+      <textarea id="canvaTextArea" class="copy-textarea" readonly></textarea>
+      <p style="font-size: 12px; color: #64748b; margin-top: 8px;">
+        💡 <strong>คำแนะนำการใช้งานใน Canva:</strong> เปิดเทมเพลต 16:9 ใน Canva &rarr; เลือก Layout ที่ต้องการ &rarr; กดปุ่ม <em>"คัดลอกข้อความ"</em> &rarr; วาง (Paste) ข้อความลงในกล่องข้อความของ Canva ได้ทันที
+      </p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">คัดลอกข้อความสำหรับ Canva เรียบร้อยแล้ว! 📋</div>
+
+  <script>
+    const slides = [
+      {
+        id: 1,
+        tabName: "1. หน้าปกโครงงาน",
+        badge: "STAGE 2 PROGRESS REPORT",
+        title: "DISNEY LORCANA PLAYLAB CLOUD",
+        desc: "ระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนคลาวด์ Serverless & Multi-AZ IaaS",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">05506013 CLOUD COMPUTING (1/2569) • IT KMITL</span>
+            <h1 class="hero-title">DISNEY LORCANA<br>PLAYLAB CLOUD</h1>
+            <p class="hero-subtitle">Real-Time Serverless Card Game Simulator & Elastic Analytics Engine</p>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <span class="tag-pill tag-gold">AWS Serverless</span>
+              <span class="tag-pill tag-cyan">Lean Multi-AZ IaaS</span>
+              <span class="tag-pill tag-emerald">React 19 + WebSockets</span>
+              <span class="tag-pill">AWS Learner Lab ($0.00 Cost)</span>
+            </div>
+          </div>
+          <div class="slide-body">
+            <div class="grid-2">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">👥</div>
+                  <h4>กลุ่ม G21 คณะผู้จัดทำ</h4>
+                </div>
+                <ul style="list-style: none; padding-left: 0; line-height: 1.8;">
+                  <li>1. นายชยุต บุญวัฒน์ (67070032)</li>
+                  <li>2. นายธนัทภัทร พรหมทอง (67070069)</li>
+                  <li>3. นายภูริ ประชาสุขสิน (67070137)</li>
+                  <li>4. นางสาววรรณณิศา อมรวงศ์ไพบูลย์ (67070155)</li>
+                  <li>5. นายอสิธารา พุ่มดอกไม้ (67070199)</li>
+                  <li>6. นายวรธิษณ์ คงทอง (67070275)</li>
+                </ul>
+              </div>
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🎓</div>
+                  <h4>อาจารย์ประจำรายวิชา</h4>
+                </div>
+                <ul style="list-style: none; padding-left: 0; line-height: 2.2; margin-top: 12px;">
+                  <li><strong>ดร. ธนานพ ทองถาวร</strong></li>
+                  <li><strong>ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส</strong></li>
+                  <li><strong>ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์</strong></li>
+                </ul>
+                <div style="margin-top: 24px; padding: 10px 14px; background: rgba(99,102,241,0.1); border-radius: 8px; border: 1px dashed rgba(99,102,241,0.3); font-size: 13px; color: #a5b4fc;">
+                  📍 คณะเทคโนโลยีสารสนเทศ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 1: หน้าปก]
+หัวข้อ: DISNEY LORCANA PLAYLAB CLOUD
+หัวข้อย่อย: ระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนคลาวด์ (รายงานความก้าวหน้า Stage 2)
+รายวิชา: 05506013 Cloud Computing (ภาคเรียนที่ 1 ปีการศึกษา 2569) คณะเทคโนโลยีสารสนเทศ สจล.
+
+สมาชิกกลุ่ม G21:
+1. นายชยุต บุญวัฒน์ (67070032)
+2. นายธนัทภัทร พรหมทอง (67070069)
+3. นายภูริ ประชาสุขสิน (67070137)
+4. นางสาววรรณณิศา อมรวงศ์ไพบูลย์ (67070155)
+5. นายอสิธารา พุ่มดอกไม้ (67070199)
+6. นายวรธิษณ์ คงทอง (67070275)
+
+อาจารย์ประจำวิชา:
+1. ดร. ธนานพ ทองถาวร
+2. ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส
+3. ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์`
+      },
+      {
+        id: 2,
+        tabName: "2. สรุปความก้าวหน้า Sprint 1-3",
+        badge: "MILESTONES & ACHIEVEMENTS",
+        title: "สรุปผลงานความก้าวหน้า Sprint 1 ถึง 3",
+        desc: "ส่งมอบงานลุล่วงตามแผนงาน Agile Scrum 100% พร้อมขึ้นทดสอบจริงบน AWS Learner Lab",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">AGILE SCRUM EXECUTION</span>
+            <h2 class="slide-title">ความสำเร็จตามแผนงาน Sprint 1 ถึง 3 (100% On-Track)</h2>
+            <p class="slide-desc">บรรลุเป้าหมายการส่งมอบครบทั้ง 3 แกนหลัก: Frontend Simulator, Backend Microservices, และ Cloud Deployment</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-3">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box" style="background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #34d399;">✅</div>
+                  <div>
+                    <h4>Sprint 1: UI & Board</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">1–15 ส.ค. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>กระดานเล่นการ์ดเสมือนจริง <code>LorcanaBoard.tsx</code></li>
+                  <li>ระบบ Drag & Drop ย้ายการ์ดอิสระ</li>
+                  <li>ฟิสิกส์ 3D Card Hover, Tilt & Foil Effect</li>
+                  <li>รองรับชุดข้อมูลการ์ด 3,242 รายการ</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box" style="background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); color: #60a5fa;">✅</div>
+                  <div>
+                    <h4>Sprint 2: Auth & Decks</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">16–25 ส.ค. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>ยืนยันตัวตนด้วย <strong>bcrypt</strong> (10 rounds) + <strong>JWT</strong></li>
+                  <li>ฐานข้อมูล <strong>DynamoDB</strong> (Users & Decks Table)</li>
+                  <li>ระบบ Deck Builder กรองสี Ink ทั้ง 6 สี</li>
+                  <li>3D Booster Pack Gacha Simulator (12 ใบ)</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box" style="background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); color: #fbbf24;">✅</div>
+                  <div>
+                    <h4>Sprint 3: WebSockets & IaaS</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">26–31 ส.ค. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>ซิงค์ห้องแข่งขันผ่าน <strong>WebSockets</strong> (&lt;100ms)</li>
+                  <li>Graceful Reconnect Window 60 วินาที</li>
+                  <li>อัปเกรดสู่ <strong>Multi-AZ VPC + ALB + EC2 ASG</strong></li>
+                  <li>ระบบควบคุมงบ 1-Click Scale-to-Zero</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="margin-top: 18px;" class="grid-4">
+              <div class="metric-badge">
+                <span class="metric-value">3,242</span>
+                <span class="metric-label">Card Dataset Records</span>
+              </div>
+              <div class="metric-badge">
+                <span class="metric-value">52-82 ms</span>
+                <span class="metric-label">WebSocket Sync Latency</span>
+              </div>
+              <div class="metric-badge">
+                <span class="metric-value">56 / 56</span>
+                <span class="metric-label">QA Tests Passed (100%)</span>
+              </div>
+              <div class="metric-badge">
+                <span class="metric-value">$0.00</span>
+                <span class="metric-label">Free Tier Infrastructure</span>
+              </div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 2: สรุปความก้าวหน้า Sprint 1-3]
+หัวข้อ: สรุปผลงานความก้าวหน้า Sprint 1 ถึง 3 (100% On-Track)
+คำโปรย: ส่งมอบงานลุล่วงตามแผนงาน Agile Scrum ครบถ้วน พร้อมทดสอบใช้งานจริงบน AWS Learner Lab
+
+รายละเอียดราย Sprint:
+1. Sprint 1: Gameplay UI & Lorcana Board
+   - ออกแบบกระดานเล่นการ์ดเสมือนจริง (Play Area, Inkwell, Lore Counter 0-20, Ready/Exert)
+   - พัฒนาระบบ Drag & Drop พร้อมแอนิเมชัน 3D Tilt และเอฟเฟกต์ฟอยล์
+   - โหลดชุดข้อมูลการ์ดทางการ 3,242 รายการ (Set 1 & Set 2)
+
+2. Sprint 2: Authentication & Deck Builder Microservices
+   - ระบบลงทะเบียนและเข้าสู่ระบบ เข้ารหัสผ่านด้วย bcrypt (10 rounds) และเซ็นด้วย JWT Token
+   - เชื่อมต่อฐานข้อมูล NoSQL Amazon DynamoDB (UsersTable & DecksTable)
+   - หน้า Deck Builder กรองสี Ink ทั้ง 6 สี และตรวจสอบกฎกติกา (60 ใบ, ไม่เกิน 2 สี)
+   - ระบบสุ่มเปิดซอง 3D Booster Pack (12 ใบตามเรตทางการ)
+
+3. Sprint 3: Real-Time WebSockets & Multi-AZ IaaS Architecture
+   - ระบบจำลองห้องเล่นซิงค์พิกัดการ์ดแบบสองทิศทาง ความหน่วงต่ำกว่า 100ms
+   - ระบบ Auto-Reconnect กู้คืนสถานะการเล่นเมื่อเน็ตหลุดภายใน 60 วินาที
+   - ยกระดับสู่ Lean Multi-AZ VPC + Application Load Balancer + EC2 Auto Scaling
+   - พัฒนาสคริปต์ควบคุมงบประมาณ 1-Click Scale-to-Zero คุมงบ $50 ได้จริง
+
+สถิติความสำเร็จ:
+- ชุดข้อมูลการ์ด: 3,242 ใบ
+- ความหน่วงซิงค์กระดาน: 52-82 มิลลิวินาที
+- ผลการทดสอบคุณภาพ: ผ่าน 56 จาก 56 กรณีทดสอบ (100%)
+- ค่าใช้จ่ายคลาวด์: $0.00 (AWS Free Tier)`
+      },
+      {
+        id: 3,
+        tabName: "3. สถาปัตยกรรมระบบ Dual-Mode",
+        badge: "CLOUD ARCHITECTURE EVOLUTION",
+        title: "สถาปัตยกรรมคลาวด์แบบ Dual-Mode (Serverless + Multi-AZ IaaS)",
+        desc: "ออกแบบให้รองรับทั้งความประหยัดแบบ Serverless ($0.00) และการพิสูจน์ทักษะ Infrastructure IaaS ระดับวิศวกรรม",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">DUAL-MODE CLOUD ARCHITECTURE</span>
+            <h2 class="slide-title">สถาปัตยกรรมคลาวด์แบบ Dual-Mode (Serverless & Multi-AZ IaaS)</h2>
+            <p class="slide-desc">ผสมผสานจุดเด่นของ Serverless สำหรับความคุ้มทุน และ Multi-AZ IaaS สำหรับการพิสูจน์ทักษะ Elasticity & Networking</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-2">
+              <div class="glass-card" style="border-color: rgba(139,92,246,0.4);">
+                <div class="glass-card-header">
+                  <div class="icon-box" style="background: rgba(139,92,246,0.2); color: #c084fc;">⚡</div>
+                  <h4>Mode 1: 100% AWS Serverless</h4>
+                </div>
+                <p style="color: #94a3b8; font-size: 13px; margin-bottom: 8px;">(ตามที่บันทึกในรายงานเล่ม Stage 2 ฉบับหลัก)</p>
+                <ul>
+                  <li><strong>Compute:</strong> AWS Lambda 4 ฟังก์ชัน (Auth, Deck, Room, Analyzer)</li>
+                  <li><strong>Gateway:</strong> HTTP API Gateway (REST) + WebSocket API Gateway (WSS)</li>
+                  <li><strong>Storage:</strong> Amazon DynamoDB (On-Demand Pay-per-request)</li>
+                  <li><strong>Messaging:</strong> Amazon SQS สำหรับคำนวณสถิติเด็คแบบ Asynchronous</li>
+                  <li><strong>ข้อดี:</strong> ต้นทุน $0.00 บริหารจัดการแบบ Zero-Server</li>
+                </ul>
+              </div>
+
+              <div class="glass-card" style="border-color: rgba(245,158,11,0.4);">
+                <div class="glass-card-header">
+                  <div class="icon-box" style="background: rgba(245,158,11,0.2); color: #fbbf24;">🏢</div>
+                  <h4>Mode 2: Lean Multi-AZ IaaS (ASG)</h4>
+                </div>
+                <p style="color: #94a3b8; font-size: 13px; margin-bottom: 8px;">(ตามที่บันทึกใน STAGE2_ARCHITECTURE_EVIDENCE.md)</p>
+                <ul>
+                  <li><strong>VPC:</strong> Custom CIDR <code>10.0.0.0/16</code> ข้าม 2 AZs (us-east-1a, us-east-1b)</li>
+                  <li><strong>Load Balancer:</strong> Application Load Balancer (ALB) พร้อม Health Check <code>/health</code></li>
+                  <li><strong>Compute:</strong> EC2 Auto Scaling Group (t3.micro, Min 1, Max 3, CPU > 60%)</li>
+                  <li><strong>Container:</strong> Multi-stage Docker (Nginx Reverse Proxy + Node.js Express)</li>
+                  <li><strong>Cost Guardrail:</strong> Zero NAT Gateway + 1-Click Scale-to-Zero</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; background: rgba(30,41,59,0.5); padding: 12px 18px; border-radius: 8px; border-left: 4px solid var(--accent-gold); font-size: 13px;">
+              💡 <strong>ข้อชี้แจงสำหรับกรรมการ:</strong> ระบบถูกสร้างขึ้นแบบ Dual-Mode โดยในรายงานเล่มหลักมุ่งเน้นสถาปัตยกรรม Serverless ตามสเปกเริ่มต้น และมีเอกสารหลักฐาน IaaS Auto Scaling รองรับการขยายตัวด้วย Container ในภาคผนวก
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 3: สถาปัตยกรรมระบบ Dual-Mode]
+หัวข้อ: สถาปัตยกรรมคลาวด์แบบ Dual-Mode (Serverless & Multi-AZ IaaS)
+คำโปรย: สถาปัตยกรรมที่ออกแบบมาเพื่อตอบโจทย์ทั้งความประหยัดงบประมาณ ($0.00) และการแสดงทักษะวิศวกรรมโครงสร้างพื้นฐานระดับสูง
+
+1. โหมดที่ 1: 100% AWS Serverless Architecture (แกนหลักในเล่มรายงาน)
+- AWS Lambda: ประมวลผล Microservices 4 ชุด (Auth, Deck, Room Handler, SQS Analyzer)
+- Amazon API Gateway: ให้บริการทั้ง HTTP API (REST) และ WebSocket API (Real-time WSS)
+- Amazon DynamoDB: ฐานข้อมูล NoSQL แบบ On-Demand โหมด Pay-per-request
+- Amazon SQS: คิวงานประมวลผลวิเคราะห์เด็คการ์ดแบบ Asynchronous
+- จุดเด่น: ไม่ต้องดูแลเซิร์ฟเวอร์ และอยู่ในโควตา Free Tier $0.00 ตลอดโครงการ
+
+2. โหมดที่ 2: Lean Multi-AZ IaaS Architecture (การทดลองขยายตัว & Auto Scaling)
+- Custom Lean VPC: กำหนด Subnets ข้าม 2 Availability Zones (us-east-1a และ us-east-1b)
+- Application Load Balancer (ALB): กระจายโหลด HTTP/WSS พร้อม Health Check ทุก 15 วินาที
+- EC2 Auto Scaling Group: ขยายขนาดอัตโนมัติ (Min 1, Max 3) เมื่อ CPU Utilization > 60%
+- Multi-Stage Docker: Nginx Web Server (Port 80) + Node.js 20 Express (Port 3001)
+- มาตรการคุมงบ $50: Zero NAT Gateway ($0.00 Network) ร่วมกับสคริปต์ 1-Click Scale-to-Zero`
+      },
+      {
+        id: 4,
+        tabName: "4. การออกแบบกระดานและ Frontend",
+        badge: "FRONTEND ENGINEERING & UX",
+        title: "Frontend Engineering & Lorcana Board Simulation",
+        desc: "สถาปัตยกรรมฝั่งผู้ใช้ด้วย React 19, TypeScript 5, Tailwind v4, Zustand และ CSS 3D Matrix",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">HIGH-FIDELITY SIMULATION</span>
+            <h2 class="slide-title">ส่วนติดต่อผู้ใช้และระบบจำลองกระดาน Lorcana</h2>
+            <p class="slide-desc">สร้างสรรค์ประสบการณ์จำลองการเล่นระดับพรีเมียม (Luxury Physical TCG) บนเทคโนโลยีเว็บยุคใหม่</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-2">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🎴</div>
+                  <h4>องค์ประกอบของ Lorcana Playmat</h4>
+                </div>
+                <ul>
+                  <li><strong>Play Area (Battlefield):</strong> ลงการ์ดตัวละคร ไอเทม สถานที่ รองรับการ Drag & Drop อิสระ</li>
+                  <li><strong>Inkwell Tray:</strong> โซนคว่ำการ์ดเป็นหมึก พร้อมนับจำนวน Ready / Total Ink</li>
+                  <li><strong>Lore Counter:</strong> มาตรวัดแต้ม 0–20 คะแนน พร้อมปุ่มปรับแต้มและแอนิเมชัน</li>
+                  <li><strong>Card State Rotator:</strong> หมุนการ์ดแนวตั้ง (Ready) และแนวนอน 90° (Exerted)</li>
+                  <li><strong>Gacha Booster Pack:</strong> เปิดซองการ์ด 12 ใบตามเรตความหายากทางการ 9 ระดับ</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">✨</div>
+                  <h4>ฟีเจอร์พรีเมียมที่พัฒนาต่อยอดเพิ่มเติม</h4>
+                </div>
+                <ul>
+                  <li><strong>Dice Duel Modal:</strong> ระบบทอยลูกเต๋า 3D เพื่อตัดสินสิทธิ์การเล่นเป็นคนแรก</li>
+                  <li><strong>Ability Notification Banner:</strong> แถบแจ้งเตือน Trigger Effect และชื่อความสามารถของการ์ด</li>
+                  <li><strong>Gold Ink Shader Canvas:</strong> แบ็กกราวด์เอฟเฟกต์หมึกเวทมนตร์ด้วย WebGL Shader</li>
+                  <li><strong>Playmat Customization:</strong> สลับลายพื้นหลังกระดาน (เช่น ลาย Stitch Rock Star)</li>
+                  <li><strong>Interactive Rules Guide:</strong> คู่มือสอนเล่นและคำศัพท์ในเกมแบบแท็บสลับ</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; padding: 12px 18px; display: flex; justify-content: space-around; align-items: center;">
+              <div>⚡ <strong>React 19 Concurrent:</strong> ตอบสนองทันที</div>
+              <div>🛡️ <strong>TypeScript 5 Strict:</strong> Type Safe 100%</div>
+              <div>📦 <strong>Zustand State:</strong> Zero Redux Boilerplate</div>
+              <div>🎨 <strong>Tailwind v4:</strong> Dark Editorial Styling</div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 4: ส่วนติดต่อผู้ใช้และกระดานเล่นการ์ด]
+หัวข้อ: ส่วนติดต่อผู้ใช้และระบบจำลองกระดานเล่นการ์ด (Lorcana Board Simulation)
+คำโปรย: มอบประสบการณ์เล่นการ์ดเสมือนจริงระดับพรีเมียม (Luxury Physical TCG Experience) บนเบราว์เซอร์
+
+1. องค์ประกอบกระดานจำลอง Lorcana Playmat:
+- Play Area (สนามแข่งขัน): พื้นที่วางการ์ดตัวละคร (Characters), ไอเทม (Items) และสถานที่ (Locations)
+- Inkwell Tray: ช่องคว่ำการ์ดเพื่อแปลงเป็นหมึกค่าร่าย พร้อมมิเตอร์นับหมึกที่ใช้งานได้
+- Lore Counter: ตัวนับคะแนน 0-20 แต้ม พร้อมเอฟเฟกต์แอนิเมชันเมื่อใกล้ถึงเงื่อนไขชัยชนะ
+- Card State Rotator: ระบบหมุนการ์ดแนวตั้ง (Ready) และแนวนอน 90 องศา (Exerted)
+- 3D Card Inspector: ซูมและหมุนการ์ดสามมิติ ตรวจสอบเอฟเฟกต์สะท้อนแสงฟอยล์อย่างสมจริง
+
+2. ฟีเจอร์ที่พัฒนาต่อยอดเพิ่มเติมใน Codebase:
+- Dice Duel Modal: ระบบทอยเต๋า 3 มิติเพื่อตัดสินว่าผู้เล่นคนใดจะได้เริ่มเล่นก่อน
+- Ability Notification Banner: แถบแบนเนอร์แจ้งเตือนเอฟเฟกต์การ์ดที่ถูกกระตุ้นบนกระดาน
+- WebGL Gold Ink Shader: กราฟิกหมึกทองเวทมนตร์เคลื่อนไหวบนหน้า Game Hub
+- Playmat Selector: สลับลวดลายแผ่นรองเล่นตามสกินตัวละครที่ชื่นชอบ
+- Rules Guide & Lorebook: ระบบสารานุกรมกติกาและคำศัพท์แบบ Interactive
+
+เทคโนโลยีฝั่งผู้ใช้:
+React 19 + TypeScript 5.x + Tailwind CSS v4 + Zustand Global Store + Framer Motion`
+      },
+      {
+        id: 5,
+        tabName: "5. การซิงค์ WebSockets เรียลไทม์",
+        badge: "LOW-LATENCY MULTIPLAYER",
+        title: "ระบบซิงค์ห้องแข่งขันแบบเรียลไทม์ (WebSockets Match Sync)",
+        desc: "กลไกการส่งถ่ายข้อมูลกระดานความหน่วงต่ำ (<100ms) ร่วมกับระบบ Auto-Reconnect",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">SUB-100MS SYNCHRONIZATION</span>
+            <h2 class="slide-title">ระบบสื่อสารสองทิศทางและซิงค์สถานะกระดาน</h2>
+            <p class="slide-desc">ออกแบบให้ผู้เล่น 2 ฝั่งเห็นการเคลื่อนไหวของการ์ดและการปรับคะแนนแบบเสี้ยววินาที</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-2">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🔄</div>
+                  <h4>ลำดับขั้นตอนการทำงาน (Sequence Flow)</h4>
+                </div>
+                <ul>
+                  <li><strong>1. Match Creation:</strong> ผู้เล่นคนแรกสร้างห้อง 6 หลัก บันทึกลงใน DynamoDB</li>
+                  <li><strong>2. Match Pairing:</strong> ผู้เล่นคนที่สองกรอกรหัสห้อง &rarr; จับคู่เป็น Player 1 vs Player 2</li>
+                  <li><strong>3. Optimistic UI Updates:</strong> ผู้เล่นขยับการ์ด &rarr; หน้าจอของตนเองอัปเดตทันทีใน 0ms</li>
+                  <li><strong>4. Action Dispatch:</strong> ส่ง Payload ขนาดเล็ก (~120B) ผ่าน WebSockets</li>
+                  <li><strong>5. AWS Relay:</strong> Lambda ใช้ <code>PostToConnection</code> ส่งต่อให้คู่แข่ง (&lt;80ms)</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🛡️</div>
+                  <h4>ระบบ Fault Tolerance & Auto-Reconnect</h4>
+                </div>
+                <ul>
+                  <li><strong>Grace Window 60 วินาที:</strong> หากเน็ตหลุด ไม่ปรับแพ้ทันที แต่คงสถานะห้องไว้</li>
+                  <li><strong>State Recovery:</strong> เมื่อเชื่อมต่อใหม่ ดึง Snapshot สถานะกระดานล่าสุดจาก DynamoDB</li>
+                  <li><strong>Opponent Notification:</strong> ส่งแจ้งเตือนฝั่งคู่แข่งเมื่อผู้เล่นอีกคนหลุดหรือกลับเข้าห้อง</li>
+                  <li><strong>Auto-Cleanup TTL:</strong> ห้องที่เล่นจบแล้วจะถูกลบโดยอัตโนมัติด้วย DynamoDB TTL (2 ชม.)</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="margin-top: 18px;" class="grid-3">
+              <div class="metric-badge">
+                <span class="metric-value">64 ms</span>
+                <span class="metric-label">Card Move Latency</span>
+              </div>
+              <div class="metric-badge">
+                <span class="metric-value">58 ms</span>
+                <span class="metric-label">Card Exert Latency</span>
+              </div>
+              <div class="metric-badge">
+                <span class="metric-value">52 ms</span>
+                <span class="metric-label">Lore Update Latency</span>
+              </div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 5: การซิงค์ห้องแข่งขันด้วย WebSockets]
+หัวข้อ: ระบบซิงค์ห้องแข่งขันแบบเรียลไทม์ (WebSockets Match Sync)
+คำโปรย: ช่องทางการสื่อสารแบบสองทิศทางความหน่วงต่ำกว่า 100 มิลลิวินาที พร้อมระบบกู้คืนสถานะห้องเล่นอัตโนมัติ
+
+1. ขั้นตอนการทำงานของการซิงค์ข้อมูล (Sequence Flow):
+- สร้างและจับคู่ห้อง: ผู้เล่นสร้างห้องด้วยรหัส 6 หลัก และเชื่อมต่อผ่านช่องทาง WSS
+- Optimistic UI Rendering: เมื่อผู้เล่นลากการ์ด หน้าจอของผู้เล่นจะอัปเดตทันทีใน 0ms
+- Action Payload Dispatch: เบราว์เซอร์ส่งข้อความ Action สั้นๆ (~120 bytes) เช่น CARD_MOVED, CARD_EXERTED
+- AWS API Gateway Relay: AWS Lambda Room Router ดึง connectionId ของคู่แข่ง และ Push ข้อมูลไปยังหน้าจอคู่แข่งทันที
+- เวลาในการซิงค์จริง: วัดผลได้เฉลี่ย 52 ถึง 82 มิลลิวินาที (ผ่านเกณฑ์มาตรฐาน Sub-100ms)
+
+2. ระบบความทนทานต่อข้อผิดพลาด (Fault Tolerance):
+- Auto-Reconnect Grace Period: ให้เวลาผู้เล่น 60 วินาทีในการต่อเน็ตใหม่โดยไม่ถูกปรับแพ้
+- Match State Recovery: โหลดสถานะกระดานล่าสุดจาก Amazon DynamoDB กลับคืนมาทันที
+- Connection Auto-Cleanup: ตั้งค่า DynamoDB TTL ให้ลบข้อมูลห้องที่จบแล้วทิ้งอัตโนมัติหลัง 2 ชั่วโมง`
+      },
+      {
+        id: 6,
+        tabName: "6. Well-Architected Framework",
+        badge: "BEST PRACTICES & PILLARS",
+        title: "การออกแบบตามหลัก AWS Well-Architected Framework",
+        desc: "ตรวจสอบความสอดคล้องตามเสาหลัก 5 ประการของ AWS และความปลอดภัยระดับ OWASP Top 10",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">AWS BEST PRACTICES</span>
+            <h2 class="slide-title">เสาหลัก 5 ประการของ AWS Well-Architected Framework</h2>
+            <p class="slide-desc">ออกแบบให้เป็นระบบคลาวด์มาตรฐาน พร้อมใช้งาน ขยายขนาดได้ ปลอดภัย และควบคุมต้นทุนได้จริง</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-3">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🛡️</div>
+                  <h4>1. Security</h4>
+                </div>
+                <ul>
+                  <li>แฮชรหัสผ่านด้วย <strong>bcrypt</strong> (10 Salt Rounds)</li>
+                  <li>ยืนยันตัวตนด้วย <strong>JWT HS256</strong> มีวันหมดอายุ</li>
+                  <li>In-memory Rate Limiting ป้องกัน Brute Force</li>
+                  <li>Chained Security Groups กั้น ALB สู่ EC2</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">⚡</div>
+                  <h4>2. Reliability</h4>
+                </div>
+                <ul>
+                  <li>กระจาย Subnets ข้าม 2 AZs (us-east-1a, 1b)</li>
+                  <li>Target Group Health Checks ทุก 15 วินาที</li>
+                  <li>Zero Single Point of Failure (SPOF)</li>
+                  <li>4-Tier Fallback เมื่อ API การ์ดภายนอกล่ม</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">📈</div>
+                  <h4>3. Scalability</h4>
+                </div>
+                <ul>
+                  <li>Target Tracking Auto Scaling เมื่อ CPU &gt; 60%</li>
+                  <li>DynamoDB Partition Key Dispersion</li>
+                  <li>Multi-stage Docker Image ขนาด &lt;100MB</li>
+                  <li>Optimistic Rendering ลดภาระ Network</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px;" class="grid-2">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">💰</div>
+                  <h4>4. Cost Optimization ($0.00 - $50)</h4>
+                </div>
+                <p style="font-size: 13px;">ใช้ Lean VPC (Zero NAT Gateway = $0.00) ร่วมกับ DynamoDB On-Demand และสคริปต์ Scale-to-Zero คุมงบได้ 100%</p>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">⚙️</div>
+                  <h4>5. Operational Excellence</h4>
+                </div>
+                <p style="font-size: 13px;">มีสคริปต์อัตโนมัติ <code>deploy_manual.sh</code>, <code>lab_start.ps1</code>, <code>lab_stop.ps1</code> และ <code>stress_test.ps1</code> ให้ทำซ้ำได้ทันที</p>
+              </div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 6: AWS Well-Architected Framework]
+หัวข้อ: การออกแบบตามหลัก AWS Well-Architected Framework
+คำโปรย: วางโครงสร้างระบบคลาวด์ตามหลักปฏิบัติที่ดีที่สุด 5 ประการของ AWS
+
+1. ความมั่นคงปลอดภัย (Security - OWASP Compliant):
+- Password Hashing: แฮชรหัสผ่านด้วย bcrypt 10 salt rounds
+- Stateless Authentication: ยืนยันสิทธิ์ด้วย JWT HS256 Token
+- Chained Security Groups: เปิดพอร์ตรับทราฟฟิกเข้า EC2 เฉพาะจาก ALB เท่านั้น
+- IAM Least Privilege: ใช้ LabRole ผ่าน IMDSv2 ปราศจากการ Hardcode Access Key
+
+2. ความเชื่อถือได้และความพร้อมใช้งาน (Reliability & Availability):
+- Multi-AZ Deployment: กระจาย Subnets ข้ามโซน us-east-1a และ us-east-1b
+- Self-Healing Infrastructure: Target Group ตรวจสอบ Health Check /health และซ่อมแซมตัวเอง
+- 4-Tier Fallback: ป้องกันระบบล่มเมื่อ API การ์ดภายนอกไม่พร้อมให้บริการ
+
+3. ความสามารถในการขยายขนาด (Scalability & Elasticity):
+- Auto Scaling Group: ขยายขนาดอัตโนมัติจาก 1 ถึง 3 Instances เมื่อ CPU เฉลี่ย > 60%
+- Container Efficiency: Multi-stage Docker Alpine ใช้ RAM น้อยกว่า 150MB บน t3.micro
+
+4. การบริหารจัดการต้นทุน (Cost Optimization):
+- Lean VPC สถาปัตยกรรมตัด NAT Gateway ทิ้ง ประหยัดค่าใช้จ่ายเครือข่ายลงเป็น $0.00
+- 1-Click Scale-to-Zero: สั่งปิดเครื่องเมื่อเลิกซ้อม รักษางบประมาณไม่เกิน $50 ตลอดเทอม`
+      },
+      {
+        id: 7,
+        tabName: "7. การแก้ปัญหาบน Learner Lab",
+        badge: "ENGINEERING CHALLENGES",
+        title: "การแก้ปัญหาข้อจำกัดบน AWS Academy Learner Lab",
+        desc: "เจาะลึกข้อจำกัดสิทธิ์ของ Sandbox เพื่อการศึกษาและกลยุทธ์ทางวิศวกรรมที่ใช้รับมือ",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">OVERCOMING CLOUD CONSTRAINTS</span>
+            <h2 class="slide-title">การแก้ปัญหาข้อจำกัดสิทธิ์บน AWS Learner Lab</h2>
+            <p class="slide-desc">แปลงข้อจำกัดของแซนด์บ็อกซ์เพื่อการศึกษาให้กลายเป็นโอกาสในการฝึกฝนทักษะการแก้ปัญหาเชิงวิศวกรรม</p>
+          </div>
+          <div class="slide-body">
+            <table class="slide-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">ข้อจำกัดของ Learner Lab</th>
+                  <th style="width: 35%;">ผลกระทบที่เกิดขึ้นกับระบบ</th>
+                  <th style="width: 40%;">แนวทางแก้ไขเชิงวิศวกรรมที่นำมาใช้</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>บล็อก <code>iam:CreateRole</code></strong></td>
+                  <td>คำสั่ง <code>sam deploy</code> อัตโนมัติล้มเหลว ไม่สามารถสร้าง Role ใหม่ได้</td>
+                  <td>ปรับไปใช้ <code>LabRole</code> ที่มีอยู่แล้ว และพัฒนาสคริปต์ <code>deploy_manual.sh</code> อัปเดตผ่าน AWS CLI</td>
+                </tr>
+                <tr>
+                  <td><strong>Session Token 4 ชั่วโมง</strong></td>
+                  <td>Credentials หมดอายุทุก 4 ชม. ทำให้การเชื่อมต่อ CLI หลุดกะทันหัน</td>
+                  <td>แยก Environment Configuration ชัดเจน และทำสคริปต์ช่วยอัปเดต Credentials อย่างรวดเร็ว</td>
+                </tr>
+                <tr>
+                  <td><strong>Payload Version 2.0 สลับ</strong></td>
+                  <td>HTTP API Gateway ตอบกลับด้วยข้อผิดพลาด <code>405 Method Not Allowed</code></td>
+                  <td>บังคับให้ Integration ใช้ <code>PayloadFormatVersion: 1.0</code> เพื่อให้ส่งต่อ HTTP Method ครบถ้วน</td>
+                </tr>
+                <tr>
+                  <td><strong>งบประมาณจำกัด $50</strong></td>
+                  <td>NAT Gateway แบบมาตรฐานมีค่าใช้จ่ายเดือนละ ~$32.40 เสี่ยงงบเกิน</td>
+                  <td>ออกแบบ <strong>Lean Multi-AZ VPC</strong> ($0.00) และใช้สคริปต์ Scale-to-Zero เมื่อไม่ได้ทดสอบ</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `,
+        canvaText: `[SLIDE 7: การแก้ปัญหาข้อจำกัดบน AWS Learner Lab]
+หัวข้อ: การแก้ปัญหาข้อจำกัดสิทธิ์บน AWS Academy Learner Lab
+คำโปรย: วิธีการทางวิศวกรรมซอฟต์แวร์ในการเอาชนะข้อจำกัดของสภาพแวดล้อมคลาวด์เพื่อการศึกษา
+
+1. ข้อจำกัด: บล็อกสิทธิ์สร้าง IAM Role (iam:CreateRole is Blocked)
+- ปัญหา: การใช้ AWS SAM อัตโนมัติล้มเหลวเพราะไม่สามารถสร้าง Role เฉพาะได้
+- การแก้ไข: ดึง Pre-provisioned LabRole มาใช้กับ Lambda และ EC2 พร้อมเขียนสคริปต์ deploy_manual.sh
+
+2. ข้อจำกัด: อายุของ Credentials จำกัดเพียง 4 ชั่วโมง (4-Hour Session Hard Limit)
+- ปัญหา: กุญแจการเชื่อมต่อบน CLI หมดอายุอย่างสม่ำเสมอระหว่างการพัฒนา
+- การแก้ไข: แยกสถาปัตยกรรม Local Mock ออกจาก Cloud และทำสคริปต์อัปเดต Token แบบกึ่งอัตโนมัติ
+
+3. ข้อจำกัด: ความไม่เข้ากันของ Payload Format Version บน HTTP API Gateway
+- ปัญหา: API Gateway v2.0 ส่งฟอร์แมต Event สลับกับรูปแบบ Proxy เดิม ส่งผลให้เกิด Error 405
+- การแก้ไข: แก้ไขการผูก Integration ให้เป็น Version 1.0 เพื่อให้ส่งต่อ HTTP Method ได้สมบูรณ์
+
+4. ข้อจำกัด: ควบคุมงบประมาณไม่ให้เกิน $50 ตลอดภาคเรียน
+- ปัญหา: ค่าใช้จ่ายของ NAT Gateway และ EC2 รันต่อเนื่อง 24 ชั่วโมงจะเกินงบประมาณทันที
+- การแก้ไข: ใช้ Lean VPC (Zero NAT Gateway) ประหยัดค่าเน็ต $32.40/เดือน และใช้สคริปต์ Scale-to-Zero`
+      },
+      {
+        id: 8,
+        tabName: "8. ผลการทดสอบคุณภาพ QA",
+        badge: "VERIFICATION & BENCHMARKS",
+        title: "ผลการทดสอบคุณภาพระบบและการวัดประสิทธิภาพ (QA Test Matrix)",
+        desc: "รายงานผลการทดสอบครบทุกระดับ: Unit Test, End-to-End Playwright และ Live Cloud Benchmarks",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">QA AUDIT & BENCHMARKS</span>
+            <h2 class="slide-title">ผลการทดสอบคุณภาพระบบ (Master QA Test Matrix)</h2>
+            <p class="slide-desc">ดำเนินการทดสอบแบบรอบด้าน ผ่านเกณฑ์ 100% ครบทุกกรณีทดสอบ ปราศจาก Critical Defect</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-3">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🧪</div>
+                  <h4>Unit & Stores (Vitest)</h4>
+                </div>
+                <div style="font-size: 24px; font-weight: 800; color: #34d399; margin-bottom: 8px;">33 / 33 ผ่าน (100%)</div>
+                <ul>
+                  <li>Store Isolation & State Resets</li>
+                  <li>กฎกติกาการ์ดซ้ำห้ามเกิน 4 ใบ</li>
+                  <li>คำนวณสัดส่วนสี Ink ไม่เกิน 2 สี</li>
+                  <li>ระบบสลับภาษาไทย/อังกฤษ</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🌐</div>
+                  <h4>E2E Browser (Playwright)</h4>
+                </div>
+                <div style="font-size: 24px; font-weight: 800; color: #34d399; margin-bottom: 8px;">17 / 17 ผ่าน (100%)</div>
+                <ul>
+                  <li>ทดสอบ Navigation & Modals</li>
+                  <li>Responsive Check (Mobile/Desktop)</li>
+                  <li>2-Player Concurrent Contexts</li>
+                  <li>Drag & Drop การ์ดลงบอร์ด</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">☁️</div>
+                  <h4>Live AWS Benchmarks</h4>
+                </div>
+                <div style="font-size: 24px; font-weight: 800; color: #34d399; margin-bottom: 8px;">6 / 6 ผ่าน (100%)</div>
+                <ul>
+                  <li>Auth Register & Login (JWT Valid)</li>
+                  <li>DynamoDB CRUD Decks (&lt;100ms)</li>
+                  <li>WebSocket WSS Handshake</li>
+                  <li>Sub-100ms Action Sync Passed</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="margin-top: 18px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 16px; font-weight: 700; color: #34d399;">🏆 รวมผลการทดสอบทั้งหมด (Master Summary):</span>
+                <span style="color: #e2e8f0; font-size: 14px; margin-left: 10px;">ผ่าน <strong>56 จาก 56 กรณีทดสอบ (100.00% Success Rate)</strong></span>
+              </div>
+              <div style="font-size: 13px; color: #94a3b8;">ทดสอบบน AWS Region: <code>us-east-1</code> (N. Virginia)</div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 8: ผลการทดสอบคุณภาพระบบ QA]
+หัวข้อ: ผลการทดสอบคุณภาพระบบและการวัดประสิทธิภาพ (QA Test Matrix)
+คำโปรย: ดำเนินการทดสอบตามกรอบ Testing Pyramid ครอบคลุม Unit, E2E และ Cloud Benchmarks
+
+สรุปผลการทดสอบรายหมวดหมู่:
+1. Unit & State Store Integration Tests (Vitest + JSDOM):
+- สถิติ: ผ่าน 33 / 33 Tests (100%)
+- รายการตรวจสอบ: ทดสอบความถูกต้องของ Zustand Stores, กฎเหล็กการ์ดซ้ำไม่เกิน 4 ใบ, กฎเด็คต้องมีขนาด 60 ใบ และไม่เกิน 2 สี
+
+2. End-to-End & Responsive Browser Tests (Playwright):
+- สถิติ: ผ่าน 17 / 17 Tests (100%)
+- รายการตรวจสอบ: การนำทางข้ามหน้าจอ, การเปิดปิด Modal, การลากวางการ์ด, และการทดสอบ Responsive Audit บน 4 ขนาดหน้าจอ (Desktop, Laptop, Tablet, Mobile) ปราศจาก Layout Overflow
+
+3. Live AWS Serverless Cloud Benchmarks (ยิงทดสอบจริงบน Region us-east-1):
+- สถิติ: ผ่าน 6 / 6 Scenarios (100%)
+- CORS Preflight: ตอบกลับ 204 Allow-Origin สมบูรณ์
+- Live Auth Register & Login: ลงทะเบียนและรับ JWT Token ภายใน ~2-3 วินาที
+- Live DynamoDB Save/Get Decks: บันทึกและดึงเด็คการ์ด 60 ใบสำเร็จใน 364ms
+- Live WebSocket Latency: ซิงค์สถานะกระดานสำเร็จด้วยความเร็ว 52-82ms (ผ่านเกณฑ์ <100ms)
+
+สรุปยอดรวม: ผ่าน 56 จาก 56 กรณีทดสอบ (100.00% Zero Critical Defects)`
+      },
+      {
+        id: 9,
+        tabName: "9. แผนงานระยะถัดไป Stage 3",
+        badge: "FUTURE ROADMAP",
+        title: "แผนการดำเนินงานระยะถัดไปสำหรับ Stage 3 (Sprint 4 ถึง 7)",
+        desc: "เป้าหมายการส่งมอบผลการทดลอง การคำนวณบิล และการสอบป้องกันโครงงานฉบับสมบูรณ์",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">NEXT STEPS FOR STAGE 3</span>
+            <h2 class="slide-title">แผนการพัฒนาสำหรับ Stage 3 (Sprint 4 ถึง 7)</h2>
+            <p class="slide-desc">มุ่งเน้นการต่อขยายระบบวิเคราะห์ขั้นสูง การติดตามระบบแบบรวมศูนย์ และการทดสอบโหลดขนาดใหญ่</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-2">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">📦</div>
+                  <div>
+                    <h4>Sprint 4: Async SQS Deck Analyzer</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">11–25 ก.ย. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>เชื่อมต่อ Amazon SQS Queue เข้ากับ Lambda Analyzer</li>
+                  <li>คำนวณการกระจายตัวของค่าร่าย (Ink Curve) และสัดส่วนตัวละคร</li>
+                  <li>ส่งผลการวิเคราะห์กลับให้ผู้ใช้งานแบบ Asynchronous</li>
+                  <li>บันทึกสถิติความสมดุลของเด็คการ์ดลงใน DynamoDB</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">📊</div>
+                  <div>
+                    <h4>Sprint 5: CloudWatch Observability</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">26 ก.ย. – 10 ต.ค. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>สร้าง CloudWatch Custom Metrics Dashboard แบบรวมศูนย์</li>
+                  <li>ตั้งค่า CloudWatch Alarms แจ้งเตือนเมื่อ Error Rate &gt; 1%</li>
+                  <li>ตั้งค่า Billing Alarms แจ้งเตือนค่าใช้จ่ายคลาวด์ ($5 และ $20)</li>
+                  <li>สรุปรายงานผลการทดลองและเอกสารบิล Stage 3 (10 ต.ค.)</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">⚡</div>
+                  <div>
+                    <h4>Sprint 6: High Concurrency Load Test</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">11–20 ต.ค. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>จำลองผู้เล่นพร้อมกัน 100–500 ผู้ใช้ด้วยเครื่องมือ Artillery</li>
+                  <li>ทดสอบขีดจำกัดการกระจายตัวของ WebSocket Connections</li>
+                  <li>พิสูจน์การขยายตัว (Scale-Out) ของ EC2 Auto Scaling Group</li>
+                </ul>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🎓</div>
+                  <div>
+                    <h4>Sprint 7: Final Defense & Polish</h4>
+                    <span style="font-size: 12px; color: #94a3b8;">21–25 ต.ค. 2569</span>
+                  </div>
+                </div>
+                <ul>
+                  <li>จัดทำรายงานโครงงานฉบับสมบูรณ์ พร้อมการอ้างอิง Intext / Ref</li>
+                  <li>บันทึกวิดีโอสาธิตการใช้งานระบบ (High-Definition Demo Video)</li>
+                  <li>นำเสนอและสอบป้องกันโครงงานฉบับสมบูรณ์ (20–25 ต.ค. 2569)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 9: แผนงานระยะถัดไป Stage 3]
+หัวข้อ: แผนการพัฒนาสำหรับ Stage 3 (Sprint 4 ถึง 7)
+คำโปรย: แผนงานส่งมอบผลการทดลอง การติดตามระบบ และการเตรียมตัวสอบป้องกันรอบสุดท้าย
+
+1. Sprint 4 (11–25 ก.ย. 2569): Asynchronous Deck Analyzer บน Amazon SQS
+- เชื่อมต่อคิวข้อความ Amazon SQS รับงานวิเคราะห์เด็คการ์ด 60 ใบ
+- รันฟังก์ชัน Lambda คำนวณกราฟค่าร่าย (Ink Curve) และสัดส่วนประเภทการ์ด
+- อัปเดตผลการวิเคราะห์กลับลงในตาราง DecksTable บน Amazon DynamoDB
+
+2. Sprint 5 (26 ก.ย. – 10 ต.ค. 2569): CloudWatch Dashboard & Billing Report
+- ออกแบบแดชบอร์ดติดตามทราฟฟิก Latency และ Error Logs แบบ Real-time
+- ตั้งค่า CloudWatch Billing Alarms แจ้งเตือนงบประมาณที่ระดับ $5 และ $20
+- จัดส่งรายงานความก้าวหน้า Stage 3 (ผลการทดลองและบิลค่าใช้จ่าย) ในวันที่ 10 ต.ค. 2569
+
+3. Sprint 6 (11–20 ต.ค. 2569): High Concurrency Load Testing
+- ยิงโหลดทดสอบด้วยเครื่องมือ Artillery จำลองผู้เล่น 100–500 คนพร้อมกัน
+- เก็บหลักฐานการ Scale-Out และ Scale-In ของ EC2 Auto Scaling Group
+
+4. Sprint 7 (21–25 ต.ค. 2569): Final Defense & Project Delivery
+- สรุปเล่มรายงานโครงงานฉบับสมบูรณ์ ตรวจสอบความถูกต้องของการอ้างอิง
+- จัดเตรียมสไลด์นำเสนอฉบับสอบไฟนอล และอัดวิดีโอสาธิตระบบ
+- นำเสนอโครงงานรอบสุดท้าย (20–25 ต.ค. 2569)`
+      },
+      {
+        id: 10,
+        tabName: "10. สรุปและถาม-ตอบ (Q&A)",
+        badge: "CONCLUSION & Q&A",
+        title: "สรุปผลงาน Stage 2 และช่วงตอบข้อซักถาม (Q&A)",
+        desc: "เปิดรับข้อเสนอแนะและคำแนะนำทางวิชาการจากคณาจารย์ประจำวิชา",
+        renderHTML: () => `
+          <div class="slide-header">
+            <span class="slide-subtitle-tag">THANK YOU & Q&A SESSION</span>
+            <h1 class="hero-title" style="font-size: 42px;">DISNEY LORCANA<br>PLAYLAB CLOUD</h1>
+            <p class="hero-subtitle">ขอบพระคุณคณาจารย์ประจำวิชา และพร้อมรับข้อซักถาม (Q&A)</p>
+          </div>
+          <div class="slide-body">
+            <div class="grid-3">
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🌟</div>
+                  <h4>Core Highlight 1</h4>
+                </div>
+                <p><strong>100% Serverless & Multi-AZ IaaS</strong> ผสานสถาปัตยกรรมคลาวด์สองรูปแบบเพื่อความยืดหยุ่นและการขยายตัว</p>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">⚡</div>
+                  <h4>Core Highlight 2</h4>
+                </div>
+                <p><strong>Sub-100ms Latency</strong> ซิงค์กระดานสองผู้เล่นเรียลไทม์ด้วย WebSockets ผ่านเกณฑ์การทดสอบ 100%</p>
+              </div>
+
+              <div class="glass-card">
+                <div class="glass-card-header">
+                  <div class="icon-box">🛡️</div>
+                  <h4>Core Highlight 3</h4>
+                </div>
+                <p><strong>$0.00 Cost Protection</strong> ออกแบบ Lean VPC และ 1-Click Scale-to-Zero คุมงบ $50 ได้อย่างไร้กังวล</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; text-align: center; background: rgba(30,41,59,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+              <div style="font-size: 16px; font-weight: 700; color: #f59e0b; margin-bottom: 6px;">DISNEY LORCANA PLAYLAB CLOUD • GROUP G21</div>
+              <div style="font-size: 13px; color: #94a3b8;">Faculty of Information Technology • King Mongkut's Institute of Technology Ladkrabang</div>
+            </div>
+          </div>
+        `,
+        canvaText: `[SLIDE 10: สรุปผลและช่วงถาม-ตอบ Q&A]
+หัวข้อ: DISNEY LORCANA PLAYLAB CLOUD (กลุ่ม G21)
+หัวข้อย่อย: สรุปผลการดำเนินงาน Stage 2 และพร้อมรับฟังข้อซักถาม / ข้อเสนอแนะ (Q&A)
+
+3 จุดเด่นสำคัญของโครงงานในระยะที่ 2:
+1. Dual-Mode Cloud Architecture:
+   - ออกแบบรองรับทั้งความคุ้มค่าแบบ 100% Serverless ($0.00) และการพิสูจน์ทักษะ Multi-AZ IaaS Container Auto Scaling
+
+2. Real-Time Low Latency Simulation:
+   - ซิงค์กระดานเล่นการ์ดระหว่าง 2 ผู้เล่นด้วย WebSockets มีความหน่วงต่ำเพียง 52–82ms ตอบโจทย์การเล่นจริง
+
+3. Budget Guardrails on Learner Lab:
+   - เอาชนะข้อจำกัดสิทธิ์บน AWS Learner Lab และใช้สถาปัตยกรรม Lean VPC เพื่อควบคุมค่าใช้จ่ายโครงสร้างพื้นฐาน
+
+ขอขอบพระคุณคณาจารย์ประจำรายวิชา:
+- ดร. ธนานพ ทองถาวร
+- ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส
+- ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์
+
+คณะเทคโนโลยีสารสนเทศ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง`
+      }
+    ];
+
+    let currentSlideIndex = 0;
+
+    function renderTabs() {
+      const tabsContainer = document.getElementById('slideTabs');
+      tabsContainer.innerHTML = '';
+      slides.forEach((slide, idx) => {
+        const tab = document.createElement('button');
+        tab.className = `slide-tab ${idx === currentSlideIndex ? 'active' : ''}`;
+        tab.innerText = slide.tabName;
+        tab.onclick = () => goToSlide(idx);
+        tabsContainer.appendChild(tab);
+      });
+    }
+
+    function renderSlide() {
+      const slide = slides[currentSlideIndex];
+      const frame = document.getElementById('slideFrame');
+      frame.innerHTML = `
+        ${slide.renderHTML()}
+        <div class="slide-footer">
+          <div class="team-tag">DISNEY LORCANA PLAYLAB CLOUD • GROUP G21 (STAGE 2)</div>
+          <div>สไลด์ที่ ${slide.id} / ${slides.length}</div>
+        </div>
+      `;
+
+      document.getElementById('slideIndicator').innerText = `${slide.id} / ${slides.length}`;
+      document.getElementById('canvaTextArea').value = slide.canvaText;
+
+      // Update Tabs active state
+      const tabs = document.querySelectorAll('.slide-tab');
+      tabs.forEach((tab, idx) => {
+        tab.classList.toggle('active', idx === currentSlideIndex);
+      });
+
+      // Scroll active tab into view
+      if (tabs[currentSlideIndex]) {
+        tabs[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+
+    function changeSlide(direction) {
+      currentSlideIndex += direction;
+      if (currentSlideIndex < 0) currentSlideIndex = 0;
+      if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1;
+      renderSlide();
+    }
+
+    function goToSlide(index) {
+      currentSlideIndex = index;
+      renderSlide();
+    }
+
+    function copyCurrentSlideText() {
+      const text = document.getElementById('canvaTextArea').value;
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 2500);
+      });
+    }
+
+    // Keyboard Arrow Navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        changeSlide(1);
+      } else if (e.key === 'ArrowLeft') {
+        changeSlide(-1);
+      }
+    });
+
+    // Initialize
+    renderTabs();
+    renderSlide();
+  </script>
+</body>
+</html>

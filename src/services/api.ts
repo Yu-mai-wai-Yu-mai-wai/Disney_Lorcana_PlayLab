@@ -1,6 +1,6 @@
 import { UserProfile } from '../types/lorcana';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_ENDPOINT || 'https://iorxmxsoll.execute-api.us-east-1.amazonaws.com/prod';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_ENDPOINT || '/api';
 
 
 export interface AuthResponse {

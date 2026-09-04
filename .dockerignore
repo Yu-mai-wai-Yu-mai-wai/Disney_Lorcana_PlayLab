@@ -1,0 +1,12 @@
+node_modules
+*/node_modules
+.git
+.gitignore
+dist
+*/dist
+.env*
+playwright-report
+test-results
+qa
+SymbolDisneylorcana
+*.zip

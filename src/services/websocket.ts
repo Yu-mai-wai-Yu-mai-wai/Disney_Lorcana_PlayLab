@@ -1,6 +1,18 @@
 import { WebSocketActionType, WebSocketMessagePayload, RoomStatePayload } from '../types/lorcana';
 
-const WS_ENDPOINT = import.meta.env.VITE_WS_ENDPOINT || 'wss://demo.execute-api.us-east-1.amazonaws.com/prod';
+function getWsEndpoint(): string {
+  const envEndpoint = import.meta.env.VITE_WS_ENDPOINT;
+  if (envEndpoint && envEndpoint.startsWith('ws')) {
+    return envEndpoint;
+  }
+  if (typeof window !== 'undefined' && window.location && window.location.host) {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws`;
+  }
+  return 'wss://demo.execute-api.us-east-1.amazonaws.com/prod';
+}
+
+const WS_ENDPOINT = getWsEndpoint();
 
 type MessageCallback = (data: WebSocketMessagePayload) => void;
 
@@ -80,8 +92,9 @@ class WebSocketService {
           return;
         }
 
+        const endpoint = getWsEndpoint();
         // Mock socket mode for offline testing / sandbox fallback
-        if (WS_ENDPOINT.includes('demo.execute-api')) {
+        if (endpoint.includes('demo.execute-api')) {
           console.log('[WebSocket] Sandbox Mock Active (AWS Ready)');
           this.setConnectionStatus('connected');
           this.emitMockState();
@@ -89,7 +102,7 @@ class WebSocketService {
           return;
         }
 
-        this.socket = new WebSocket(WS_ENDPOINT);
+        this.socket = new WebSocket(endpoint);
 
         this.socket.onopen = () => {
           console.log('[WebSocket] 🟢 Connected to AWS API Gateway WebSockets');

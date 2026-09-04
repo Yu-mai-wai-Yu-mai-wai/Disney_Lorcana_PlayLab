@@ -1,10 +1,12 @@
 {
-  "name": "disney-lorcana-backend-lambdas",
+  "name": "disney-lorcana-backend",
   "version": "1.0.0",
-  "description": "AWS Serverless Lambda Backend for Disney Lorcana PlayLab Cloud",
-  "main": "auth/register.js",
+  "description": "AWS Unified Express + WebSocket Backend for Disney Lorcana PlayLab Cloud",
+  "main": "dist/server.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx server.ts"
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.1110.0",
@@ -12,13 +14,21 @@
     "@aws-sdk/client-sqs": "^3.1110.0",
     "@aws-sdk/lib-dynamodb": "^3.600.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.130",
     "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.0",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.2",
     "typescript": "^5.4.5"
   }
 }

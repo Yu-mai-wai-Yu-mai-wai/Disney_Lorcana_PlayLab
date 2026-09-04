@@ -1,5 +1,5 @@
 # 🪄 Case Study: Disney Lorcana PlayLab Cloud
-> **Agentic AI Engineering & AWS Serverless Real-Time TCG Playground**
+> **AI-Native Engineering, Lean Multi-AZ VPC Architecture & Auto-Scaling Cloud Infrastructure**
 
 ---
 
@@ -7,14 +7,15 @@
 
 * **Project Title:** Disney Lorcana PlayLab Cloud
 * **Academic Course:** Cloud Computing (1/2569), Faculty of Information Technology, KMITL
-* **Role:** Lead Full-Stack Architect & AI System Engineer
-* **Target Infrastructure:** AWS Serverless ($0.00 Free Tier Optimized)
+* **Role:** Lead Full-Stack Architect & Cloud Infrastructure Engineer
+* **Target Infrastructure:** Hybrid Cloud (IaaS Lean Multi-AZ VPC + Auto Scaling Group + Serverless Dual-Mode)
 * **Core Tech Stack:**
   * **Frontend:** React 19, TypeScript 5.x, Vite 6, Tailwind CSS v4, Framer Motion
-  * **3D Physics & Canvas Engine:** WebGL, CSS 3D Transforms (`preserve-3d`), Pointer Capture Physics
-  * **Backend Compute:** AWS Lambda (Node.js 20.x / Python 3.12), SAM Infrastructure-as-Code (`template.yaml`)
-  * **Real-time & Queues:** AWS API Gateway WebSockets (<100ms real-time sync), Amazon SQS
-  * **Database & Auth:** Amazon DynamoDB (`UsersTable`, `DecksTable`, `RoomStateTable`), JWT + bcrypt Lambda Authorizer
+  * **Web Server & Reverse Proxy:** Nginx (Alpine Linux), SPA Routing, `/health` endpoint
+  * **Compute & Backend:** Amazon EC2 (`t3.micro`), Amazon Linux 2023, Node.js 20.x Express & WebSocket Server, AWS Lambda
+  * **Network & Scaling:** Custom Multi-AZ VPC (`10.0.0.0/16`), Application Load Balancer (ALB), Auto Scaling Group (Target Tracking CPU > 60%)
+  * **Database & Auth:** Amazon DynamoDB (`UsersTable`, `DecksTable`, `LorcanaRoomStateV2`), Amazon SQS, JWT + bcrypt Authorizer
+  * **Cost Guardrails:** 1-Click Scale-to-Zero ($0.00 Idle Compute) & Zero NAT Gateway Design ($0.00 Network)
 
 ---
 
@@ -75,6 +76,9 @@ Booster pack generation uses an un-biased Fisher-Yates shuffle across 3,129 offi
 | **Card Backface Invisibility Bug** | Math collision: `180° + 180° = 360°` causing child div to face away. | Restructured 3D inner container with isolated Y-axis rotation and explicit `backfaceVisibility: 'hidden'`. |
 | **Framer Motion Click Swallow** | Pointer drag gesture capturing mouse down events. | Replaced standard `onClick` with Framer Motion `onTap` and unconstrained elastic bounds. |
 | **Referrer Policy Hotlink Block** | Ravensburger CDN blocking standard image referrer headers. | Added `referrerPolicy="no-referrer"` to all card `<img />` tags. |
+| **Learner Lab NAT Gateway Cost Exhaustion** | Standard enterprise VPC requires NAT Gateway (~$32.40/mo), burning the $50 budget. | Engineered **Lean Multi-AZ VPC** with Public Subnets & strict Security Group chaining, achieving **$0.00 network cost**. |
+| **IAM Role Creation Block (`iam:CreateRole`)** | AWS Academy Learner Lab blocks creating new IAM roles/instance profiles. | Automatically resolved pre-created `LabInstanceProfile` / `LabRole` via IMDSv2 metadata injection. |
+| **`t3.micro` 1GB RAM OOM during Scale-out** | Heavy Docker images or unoptimized builds causing out-of-memory crashes on small instances. | Multi-stage Alpine containerization & single-binary Node.js server bundle (<100MB RAM footprint). |
 
 ---
 

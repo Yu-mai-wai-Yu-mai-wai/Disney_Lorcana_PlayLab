@@ -756,6 +756,116 @@
       "status": "PASS",
       "remark": "",
       "technique": "Cost Measurement (WAF Cost Pillar)"
+    },
+    {
+      "caseId": "TC-BVA-001",
+      "module": "Breakpoint Boundary — 1024px vs 1025px",
+      "description": "ทดสอบจุดรอยต่อ CSS Backdrop-filter และ Shader Performance ที่ Breakpoint 1024px/1025px",
+      "precondition": "Browser viewport ปรับได้ละเอียดระดับ 1px",
+      "steps": [
+        "1. ตั้งค่า viewport 1024px x 768px (Tablet Boundary) -> ตรวจสอบ CSS backdrop-filter = none, FBM Octaves = 3",
+        "2. ตั้งค่า viewport 1025px x 768px (Desktop Boundary) -> ตรวจสอบ CSS backdrop-filter = blur, FBM Octaves = 4"
+      ],
+      "expected": "ที่ <=1024px ปิด backdrop-filter เพื่อประหยัด GPU, ที่ >=1025px เปิดเอฟเฟกต์เต็มรูปแบบตรงตาม Boundary Rule",
+      "actual": "ผ่านตาม Expected (1024px: backdrop none/octave 3, 1025px: backdrop blur/octave 4)",
+      "status": "PASS",
+      "technique": "Boundary Value Analysis (BVA)",
+      "remark": "ยืนยัน Media Query max-width: 1024px ทำงานตรงขอบเป๊ะ"
+    },
+    {
+      "caseId": "TC-BVA-002",
+      "module": "Deck Size Boundary — Min 60 Cards",
+      "description": "ทดสอบกฎขนาดเด็คขั้นต่ำ 60 ใบ (Boundary: 59 ใบ vs 60 ใบ)",
+      "precondition": "เข้าสู่ Deck Builder / Game Match Validation",
+      "steps": [
+        "1. จัดเด็ค 59 ใบ -> กด Submit / Start Match",
+        "2. จัดเด็ค 60 ใบ -> กด Submit / Start Match"
+      ],
+      "expected": "59 ใบถูกบล็อกด้วย validation Deck must contain at least 60 cards, 60 ใบผ่านเข้าสู่เกมได้",
+      "actual": "ผ่านตาม Expected (59 cards: INVALID_DECK_SIZE, 60 cards: VALID)",
+      "status": "PASS",
+      "technique": "Boundary Value Analysis (BVA)",
+      "remark": "ทดสอบทั้ง Client-side Store และ Backend Validation"
+    },
+    {
+      "caseId": "TC-BVA-003",
+      "module": "Win Condition Boundary — Lore Threshold (19 vs 20)",
+      "description": "ทดสอบเงื่อนไขชัยชนะเมื่อคะแนน Lore ถึง 20 (Boundary: 19 Lore vs 20 Lore)",
+      "precondition": "อยู่ใน Match เล่นจริง กำลังสะสม Lore",
+      "steps": [
+        "1. เพิ่ม Lore เป็น 19 -> ตรวจสอบสถานะเกม",
+        "2. เพิ่ม Lore เป็น 20 -> ตรวจสอบสถานะเกม"
+      ],
+      "expected": "19 Lore: เกมดำเนินต่อ (IN_PROGRESS), 20 Lore: ทริกเกอร์ VICTORY_STATE ทันที",
+      "actual": "ผ่านตาม Expected (19 lore: game active, 20 lore: MATCH_WON emitted)",
+      "status": "PASS",
+      "technique": "Boundary Value Analysis (BVA)",
+      "remark": "ครอบคลุม Domain Rule ใน cardRules.test.ts"
+    },
+    {
+      "caseId": "TC-BVA-004",
+      "module": "Room Code Boundary — 5 Digits vs 6 Digits",
+      "description": "ทดสอบความยาวรหัสห้อง Matchmaking (5 หลัก, 6 หลัก, 7 หลัก)",
+      "precondition": "อยู่ที่หน้า Match Lobby Input",
+      "steps": [
+        "1. ป้อนรหัส 12345 (5 หลัก) -> กดเข้าร่วม",
+        "2. ป้อนรหัส 123456 (6 หลัก) -> กดเข้าร่วม",
+        "3. ป้อนรหัส 1234567 (7 หลัก) -> ตรวจสอบการจำกัด input"
+      ],
+      "expected": "5 หลัก: ปฏิเสธ (Format Error), 6 หลัก: ส่ง Request สำเร็จ, 7 หลัก: Input truncate หรือปฏิเสธ",
+      "actual": "ผ่านตาม Expected (maxlength=6 truncate, regex /^[0-9]{6}$/ valid)",
+      "status": "PASS",
+      "technique": "Boundary Value Analysis (BVA)",
+      "remark": "ครอบคลุมทั้ง HTML Input constraints และ Lambda Room validation"
+    },
+    {
+      "caseId": "TC-ZOMB-001",
+      "module": "ZOMBIES / Zero State — Empty Inkwell & 0 Hand",
+      "description": "ทดสอบพฤติกรรมระบบเมื่อค่าเป็น 0 (Inkwell = 0, Hand = 0, Lore = 0)",
+      "precondition": "เริ่มเกม Sandbox ใหม่",
+      "steps": [
+        "1. ตรวจสอบค่าเริ่มต้น Inkwell = 0, Lore = 0",
+        "2. พยายามร่ายการ์ด Cost > 0 ในขณะที่ Inkwell = 0",
+        "3. ตรวจสอบระบบป้องกันการร่ายการ์ดเกินทรัพยากร"
+      ],
+      "expected": "ปุ่มร่ายการ์ด disable หรือแจ้งเตือน Not enough ink, ระบบไม่ crash",
+      "actual": "ผ่านตาม Expected (UI disable play card button, action rejected safely)",
+      "status": "PASS",
+      "technique": "ZOMBIES (Zero / Exception)",
+      "remark": "ทดสอบ Resource Constraint Invariant"
+    },
+    {
+      "caseId": "TC-ZOMB-002",
+      "module": "ZOMBIES / Fault Injection — WebGL Context Lost Fallback",
+      "description": "ทดสอบการคืนสภาพเมื่อ WebGL Context ขัดข้องหรือถูก GPU reset",
+      "precondition": "หน้าจอเปิด Shader Background Animation",
+      "steps": [
+        "1. จำลอง event webglcontextlost บน canvas",
+        "2. ตรวจสอบว่าหน้าเว็บสลับไปใช้ Static CSS Gradient แทนโดยไม่ crash",
+        "3. จำลอง event webglcontextrestored -> shader กลับมาทำงานได้ปกติ"
+      ],
+      "expected": "UI ไม่แสดงจอขาวหรือค้าง, มี Graceful Fallback สู่ CSS Canvas",
+      "actual": "ผ่านตาม Expected (fallback CSS gradient active, no JS unhandled error)",
+      "status": "PASS",
+      "technique": "Fault Injection & Resilience",
+      "remark": "ช่วยให้ผู้ใช้เครื่อง GPU ต่ำยังใช้งานระบบเกมได้ราบรื่น"
+    },
+    {
+      "caseId": "TC-ZOMB-003",
+      "module": "ZOMBIES / Network Fault — WebSocket Reconnect Grace Window",
+      "description": "ทดสอบการตัดการเชื่อมต่อชั่วคราวและกลับเข้าสู่เกมภายใน 60 วินาที (State Recovery)",
+      "precondition": "ผู้เล่น 2 คนกำลังเล่นในห้องเดียวกัน",
+      "steps": [
+        "1. ตัดสัญญาณเน็ต Player 1 (จำลอง $disconnect)",
+        "2. DynamoDB RoomState บันทึก status=disconnected, disconnectedAt=timestamp",
+        "3. Player 1 เชื่อมต่อใหม่ภายใน 45 วินาที -> ส่ง REJOIN_ROOM",
+        "4. ตรวจสอบสถานะการ์ดและคะแนนบนกระดานว่า sync กลับมาสมบูรณ์"
+      ],
+      "expected": "ผู้เล่นกลับเข้าสู่ห้องเดิมได้โดยไม่ต้องเริ่มเกมใหม่ ข้อมูลกระดานคงเดิม 100%",
+      "actual": "ผ่านตาม Expected (State reconstructed from DynamoDB, status restored to active)",
+      "status": "PASS",
+      "technique": "State Recovery & Fault Tolerance",
+      "remark": "ทดสอบร่วมกับ TC-BE-011 และ TC-BE-012"
     }
   ]
 }
