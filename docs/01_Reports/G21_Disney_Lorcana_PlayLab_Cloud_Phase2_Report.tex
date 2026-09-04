@@ -18,6 +18,7 @@
 \usepackage{listings}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{tcolorbox}
 
 \geometry{
     a4paper,
@@ -27,6 +28,7 @@
     right=2.5cm
 }
 
+% Fonts
 \setmainfont{TH Sarabun New}[
     Path = C:/Windows/Fonts/,
     Extension = .ttf,
@@ -35,36 +37,40 @@
     ItalicFont = THSarabunNew Italic,
     BoldItalicFont = THSarabunNew BoldItalic
 ]
+\setmonofont{Consolas}[Scale=0.9]
 
-% Thai Word Breaking & Line Wrap Configuration
+% Thai Word Breaking Configuration (Refined: tight skip, no loose stretch)
 \XeTeXlinebreaklocale "th"
-\XeTeXlinebreakskip = 0pt plus 1pt minus 0.5pt
-\emergencystretch = 2em
-\sloppy
+\XeTeXlinebreakskip = 0pt plus 0.2pt minus 0.1pt
+\tolerance=1000
+\hfuzz=1pt
 
 \setstretch{1.15}
 \setlength{\parindent}{1.25cm}
 \setlength{\parskip}{6pt}
 
+% Tight lists to prevent accidental page overflow
+\setlist{nosep, topsep=3pt, itemsep=3pt, parsep=0pt, leftmargin=1.5cm}
+
 \titleformat{\chapter}[display]
   {\normalfont\bfseries\centering\fontsize{18pt}{22pt}\selectfont}
-  {\chaptertitlename\ \thechapter}{10pt}{\fontsize{18pt}{22pt}\selectfont}
-\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+  {\chaptertitlename\ \thechapter}{8pt}{\fontsize{18pt}{22pt}\selectfont}
+\titlespacing*{\chapter}{0pt}{-15pt}{16pt}
 
 \titleformat{\section}
   {\normalfont\bfseries\fontsize{16pt}{20pt}\selectfont}
   {\thesection}{1em}{}
-\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titlespacing*{\section}{0pt}{12pt}{4pt}
 
 \titleformat{\subsection}
   {\normalfont\bfseries\fontsize{15pt}{18pt}\selectfont}
   {\thesubsection}{1em}{}
-\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
 
 \titleformat{\subsubsection}
   {\normalfont\bfseries\fontsize{14pt}{16pt}\selectfont}
   {\thesubsubsection}{1em}{}
-\titlespacing*{\subsubsection}{0pt}{8pt}{4pt}
+\titlespacing*{\subsubsection}{0pt}{6pt}{2pt}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -124,38 +130,37 @@
 \begin{titlepage}
 \thispagestyle{empty}
 \begin{center}
-    \vspace*{-1.5cm}
-    \includegraphics[width=3.2cm]{images/IT_KMITL_ICON.png} \\[0.6cm]
+    \vspace*{-1.2cm}
+    \includegraphics[width=3.2cm]{images/IT_KMITL_ICON.png} \\[0.5cm]
     
     {\fontsize{18pt}{22pt}\selectfont \textbf{รายงานโครงงานวิชาการเทคโนโลยีกลุ่มเมฆ (Cloud Technology)}}\\[0.2cm]
-    {\fontsize{16pt}{20pt}\selectfont \textbf{ภาคเรียนที่ 1 ปีการศึกษา 2569}}\\[0.6cm]
+    {\fontsize{16pt}{20pt}\selectfont \textbf{ภาคเรียนที่ 1 ปีการศึกษา 2569}}\\[0.5cm]
     
     {\fontsize{18pt}{22pt}\selectfont \textbf{โครงงานระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนคลาวด์}}\\[0.2cm]
     {\fontsize{15pt}{18pt}\selectfont \textbf{สถาปัตยกรรม Lean Multi-AZ VPC, Application Load Balancer และ Auto Scaling Group}}\\[0.2cm]
     {\fontsize{14pt}{18pt}\selectfont \textbf{(Disney Lorcana PlayLab Cloud: Real-Time Multi-AZ IaaS \& Serverless Simulator)}}\\[0.3cm]
-    {\fontsize{16pt}{20pt}\selectfont \textbf{กลุ่ม G21}}\\[0.6cm]
+    {\fontsize{16pt}{20pt}\selectfont \textbf{กลุ่ม G21}}\\[0.5cm]
     
-    {\fontsize{15pt}{18pt}\selectfont \textbf{รายงานความก้าวหน้าโครงการ (Stage 2: บทที่ 1 - 5 และส่วนขยายระบบคลาวด์)}}\\[1.0cm]
+    {\fontsize{15pt}{18pt}\selectfont \textbf{รายงานความก้าวหน้าโครงการ (Stage 2: บทที่ 1 - 5 และส่วนขยายระบบคลาวด์)}}\\[0.8cm]
     
-    \begin{minipage}{0.92\textwidth}
+    \begin{table}[H]
+    \centering
     \fontsize{13pt}{16pt}\selectfont
-    \textbf{คณะผู้จัดทำ:}\\[0.1cm]
-    \begin{tabular}{@{}ll@{}}
+    \begin{tabular}{p{7.2cm}p{5.5cm}}
+    \textbf{คณะผู้จัดทำ:} & \\
     1. นายชยุต บุญวัฒน์ & รหัสนักศึกษา 67070032 \\
     2. นายธนัทภัทร พรหมทอง & รหัสนักศึกษา 67070069 \\
     3. นายภูริ ประชาสุขสิน & รหัสนักศึกษา 67070137 \\
     4. นางสาววรรณณิศา อมรวงศ์ไพบูลย์ & รหัสนักศึกษา 67070155 \\
     5. นายอสิธารา พุ่มดอกไม้ & รหัสนักศึกษา 67070199 \\
     6. นายวรธิษณ์ คงทอง & รหัสนักศึกษา 67070275 \\
-    \end{tabular}\\[0.3cm]
-    
-    \textbf{อาจารย์ประจำวิชา:}\\[0.1cm]
-    \begin{tabular}{@{}l@{}}
-    1. ดร. ธนานพ ทองถาวร \\
-    2. ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส \\
-    3. ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์ \\
+    & \\
+    \textbf{อาจารย์ประจำวิชา:} & \\
+    1. ดร. ธนานพ ทองถาวร & \\
+    2. ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส & \\
+    3. ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์ & \\
     \end{tabular}
-    \end{minipage}
+    \end{table}
     
     \vfill
     {\fontsize{14pt}{18pt}\selectfont
@@ -174,13 +179,13 @@
 \chapter*{บทคัดย่อภาษาไทย}
 \addcontentsline{toc}{chapter}{บทคัดย่อภาษาไทย}
 
-โครงงาน \textbf{Disney Lorcana PlayLab Cloud (กลุ่ม G21)} นำเสนอการวิเคราะห์ ออกแบบ และพัฒนาระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนสถาปัตยกรรมคลาวด์แบบผสมผสาน (Hybrid Cloud Architecture) ที่มี \textbf{Primary IaaS Stack (Lean Multi-AZ VPC, Application Load Balancer, EC2 Auto Scaling Group, และ Multi-stage Docker)} เป็นโครงสร้างหลักสำหรับการรองรับงานระดับ Production และมี \textbf{Secondary Serverless Mode (AWS Lambda, DynamoDB, API Gateway)} เป็นระบบสำรองเพื่อความยืดหยุ่น สำหรับรองรับเกมการ์ดสะสม Disney Lorcana Trading Card Game (TCG) โดยมุ่งเน้นการแก้ปัญหาความหน่วงในการส่งข้อมูลระหว่างผู้เล่น (Latency Reduction) ให้ต่ำกว่า 100 มิลลิวินาที (Sub-100ms) การรองรับความพร้อมใช้งานสูง (High Availability ข้าม Availability Zones \texttt{us-east-1a} และ \texttt{us-east-1b}) และการขยายขนาดตามภาระงานจริง (Elasticity ผ่าน CloudWatch Target Tracking CPU Utilization > 60\%) ภายใต้ข้อจำกัดงบประมาณอย่างเข้มงวดของ AWS Academy Learner Lab (\$50 Total Allocation)
+โครงงาน \textbf{Disney Lorcana PlayLab Cloud (กลุ่ม G21)} นำเสนอการวิเคราะห์ ออกแบบ และพัฒนาระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนสถาปัตยกรรมคลาวด์แบบผสมผสาน (Hybrid Cloud Architecture) ที่มี \textbf{Primary IaaS Stack (Lean Multi-AZ VPC, Application Load Balancer, EC2 Auto Scaling Group, และ Multi-stage Docker)} เป็นโครงสร้างหลักสำหรับการรองรับงานระดับ Production และมี \textbf{Secondary Serverless Mode (AWS Lambda, DynamoDB, API Gateway)} เป็นระบบสำรองเพื่อความยืดหยุ่น สำหรับรองรับเกมการ์ดสะสม Disney Lorcana Trading Card Game (TCG) โดยมุ่งเน้นการแก้ปัญหาความหน่วงในการส่งข้อมูลระหว่างผู้เล่น (Latency Reduction) ให้ต่ำกว่า 100 มิลลิวินาที (Sub-100ms) การรองรับความพร้อมใช้งานสูง (High Availability ข้าม Availability Zones \texttt{us-east-1a} และ \texttt{us-east-1b}) และการขยายขนาดตามภาระงานจริง (Elasticity ผ่าน Target Tracking CPU Utilization > 60\%) ภายใต้ข้อจำกัดงบประมาณอย่างเข้มงวดของ AWS Academy Learner Lab (\$50 Total Allocation)
 
 ในส่วนของส่วนติดต่อผู้ใช้ (Frontend) ระบบได้รับการพัฒนาด้วย React 19, TypeScript 5.x, Tailwind CSS v4, Framer Motion และ Zustand เพื่อส่งมอบประสบการณ์การเล่นระดับพรีเมียม (Luxury Physical TCG Experience) ประกอบด้วยระบบจำลองฟิสิกส์ 3 มิติ (Real-time Mouse Tilt Physics), การตรวจสอบการ์ดแบบ 3D Holographic Foil Inspector, การจำลองเปิดซองการ์ด Booster Pack 12 ใบด้วย Fisher-Yates True Randomization Algorithm, และระบบจัดการเด็คการ์ดที่เชื่อมต่อกับฐานข้อมูลการ์ดอย่างเป็นทางการครบถ้วนกว่า \textbf{3,242 ใบ} (ครอบคลุมทั้ง Set 1 The First Chapter และ Set 2 Rise of the Floodborn)
 
 การดำเนินงานตามระเบียบวิธีปฏิบัติงานแบบ Agile Scrum ได้ลุล่วงตามแผนงาน Sprint 1 ถึง Sprint 3 อย่างสมบูรณ์ 100\% ครอบคลุมการสร้าง Core Gameplay UI, ระบบยืนยันตัวตน (Custom bcrypt + JWT) และจัดการเด็ค, ระบบห้องแข่งขันแบบเรียลไทม์ความเร็วสูง (Sub-100ms Action Sync พร้อมระบบ Rejoin Grace Period 60 วินาที และ Voluntary Exit Match), การย้ายโฮสติ้งจาก S3 Static Hosting สู่ Nginx Reverse Proxy และ Container บน EC2, และการพัฒนาสคริปต์ 1-Click Scale-to-Zero (\texttt{lab\_start.ps1}, \texttt{lab\_stop.ps1}) ที่ควบคุมต้นทุน Compute ให้เหลือ \$0.00/ชม. เมื่อไม่ได้ใช้งาน พร้อมทั้งตัดต้นทุน NAT Gateway (\$32.40/เดือน) เหลือ \$0.00 ด้วยการใช้ Chained Security Groups ทำให้ระบบมีความพร้อมอย่างสมบูรณ์สำหรับการประเมินความก้าวหน้า Stage 2
 
-\vspace{0.8cm}
+\vspace{0.6cm}
 \noindent \textbf{คำสำคัญ:} คลาวด์คอมพิวติง (Cloud Computing), Multi-AZ VPC, Application Load Balancer, Auto Scaling Group, Docker Containers, WebSockets, Disney Lorcana TCG, AWS Learner Lab, Scale-to-Zero
 
 \newpage
@@ -194,7 +199,7 @@ The frontend client is engineered using React 19, TypeScript 5.x, Tailwind CSS v
 
 Project execution adheres to the Agile Scrum framework, achieving 100\% completion across Sprints 1 to 3. Key engineering deliverables include the migration from S3 static hosting to a containerized Nginx reverse proxy on EC2, WebSocket Match Lifecycle v1.5.0 featuring a 60-second Rejoin Grace Period and instant Voluntary Exit Match slot reclamation, chained security group topologies eliminating NAT Gateway expenses (\$32.40/month $\rightarrow$ \$0.00), and 1-Click Scale-to-Zero automation scripts (\texttt{lab\_start.ps1}, \texttt{lab\_stop.ps1}) ensuring \$0.00/hour idle compute expense.
 
-\vspace{0.8cm}
+\vspace{0.6cm}
 \noindent \textbf{Keywords:} Cloud Computing, Multi-AZ VPC, Application Load Balancer, Auto Scaling Group, Docker Containers, WebSockets, Digital TCG, AWS Learner Lab, Scale-to-Zero
 
 \newpage
@@ -203,7 +208,7 @@ Project execution adheres to the Agile Scrum framework, achieving 100\% completi
 \addcontentsline{toc}{chapter}{กิตติกรรมประกาศ}
 
 โครงงาน \textbf{Disney Lorcana PlayLab Cloud} สำเร็จลุล่วงตามวัตถุประสงค์ของการส่งมอบงานในระยะที่ 2 (Stage 2) ได้ด้วยความอนุเคราะห์ คำแนะนำ และการชี้แนะทางวิชาการอันทรงคุณค่ายิ่งจากคณาจารย์ประจำรายวิชาการเทคโนโลยีกลุ่มเมฆ (Cloud Technology) คณะเทคโนโลยีสารสนเทศ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง ได้แก่:
-\begin{enumerate}[leftmargin=1.5cm]
+\begin{enumerate}
     \item \textbf{ดร. ธนานพ ทองถาวร}
     \item \textbf{ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส}
     \item \textbf{ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์}
@@ -212,7 +217,7 @@ Project execution adheres to the Agile Scrum framework, achieving 100\% completi
 
 คณะผู้จัดทำขอขอบพระคุณเพื่อน ๆ นักศึกษาคณะเทคโนโลยีสารสนเทศ ทุกท่านที่ได้ร่วมทดสอบระบบกระดานและห้องเล่นแบบเรียลไทม์ ให้ข้อคิดเห็นด้านประสบการณ์การใช้งาน (UX/UI) และร่วมตรวจสอบข้อผิดพลาดของระบบ รวมถึงขอขอบคุณครอบครัวที่ให้การสนับสนุนและเป็นกำลังใจในการศึกษาค้นคว้าตลอดมา
 
-\vspace{1.5cm}
+\vspace{1.2cm}
 \begin{flushright}
     คณะผู้จัดทำ โครงงานกลุ่ม G21\\
     กันยายน 2569
@@ -336,7 +341,7 @@ Sprint 7 & 21--25 ต.ค. 2569 & จัดทำรายงานฉบับ�
 \centering
 \caption{กำหนดการประเมินผลรายวิชา Cloud Technology และสถานะความพร้อม}
 \label{tab:milestones}
-\begin{tabularx}{\textwidth}{lp{7cm}c}
+\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\centering\arraybackslash}p{3.8cm}}
 \toprule
 \textbf{กำหนดเวลา} & \textbf{กิจกรรม / ชิ้นงานที่ส่งมอบ} & \textbf{สถานะความพร้อม} \\
 \midrule
@@ -420,29 +425,25 @@ Sprint 4--5 (ถึง 10 ต.ค.) & Async Deck Analyzer, SQS Integration, Dist
 
 \begin{figure}[H]
 \centering
-\noindent\fbox{%
-\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
+\begin{tcolorbox}[colback=backcolour,colframe=codeblue,width=0.95\textwidth,arc=2mm,boxrule=1pt]
 \centering
-\vspace{0.2cm}
-{\fontsize{13pt}{16pt}\selectfont \textbf{Internet (Client Browser / Evaluator)}}\\[0.1cm]
-$\Downarrow$ HTTP Port 80\\[0.1cm]
-{\fontsize{13pt}{16pt}\selectfont \textbf{[ Application Load Balancer (ALB) ]}}\\[0.1cm]
-DNS: \texttt{lorcana-alb-687861613.us-east-1.elb.amazonaws.com} (Multi-AZ: \texttt{us-east-1a}, \texttt{us-east-1b})\\[0.2cm]
-$\Downarrow$ Health Check: \texttt{GET /health} (Port 80)\\[0.2cm]
-\begin{tabularx}{\linewidth}{X|X}
+\vspace{2pt}
+{\fontsize{12pt}{15pt}\selectfont \textbf{Client Browser / Evaluator (HTTPS/HTTP:80)}}\\[3pt]
+$\Downarrow$\\[3pt]
+{\fontsize{12pt}{15pt}\selectfont \textbf{Application Load Balancer (ALB: Multi-AZ)}}\\[1pt]
+{\small DNS: \texttt{lorcana-alb-687861613.us-east-1.elb.amazonaws.com}}\\[4pt]
+\begin{tabularx}{0.96\linewidth}{X|X}
 \centering \textbf{Availability Zone: us-east-1a} & \centering \textbf{Availability Zone: us-east-1b} \tabularnewline
-\centering \textbf{Subnet: lorcana-public-1a (10.0.1.0/24)} & \centering \textbf{Subnet: lorcana-public-1b (10.0.2.0/24)} \tabularnewline
-\centering \fbox{\parbox{0.42\textwidth}{\centering \textbf{EC2 Instance 1 (Primary)}\\Amazon Linux 2023 (\texttt{t3.micro})\\Nginx Alpine (Port 80) $\rightarrow$ SPA\\Node.js 20 (Port 3001) $\rightarrow$ WS/API}} &
-\centering \fbox{\parbox{0.42\textwidth}{\centering \textbf{EC2 Instance 2 (Auto Scaled)}\\Auto-spawned on CPU > 60\%\\Nginx Alpine (Port 80) $\rightarrow$ SPA\\Node.js 20 (Port 3001) $\rightarrow$ WS/API}} \tabularnewline
-\end{tabularx}\\[0.2cm]
-$\Downarrow$ IAM LabRole (IMDSv2)\\[0.2cm]
-\begin{tabularx}{\linewidth}{X|X}
-\centering \textbf{Amazon DynamoDB} (\texttt{LorcanaUsers}, \texttt{LorcanaDecks}, \texttt{LorcanaRoomState}) &
-\centering \textbf{Amazon SQS \& CloudWatch} (Async Deck Queue, CPU Alarms) \tabularnewline
+\centering Subnet: \texttt{10.0.1.0/24} & \centering Subnet: \texttt{10.0.2.0/24} \tabularnewline
+\centering \fbox{\parbox{0.42\textwidth}{\centering \textbf{EC2 Instance 1 (Primary)}\\Nginx Port 80 $\rightarrow$ React 19 SPA\\Node.js Port 3001 $\rightarrow$ WS/REST}} &
+\centering \fbox{\parbox{0.42\textwidth}{\centering \textbf{EC2 Instance 2 (Auto Scaled)}\\Auto-spawned on CPU > 60\%\\Nginx Port 80 + Node.js Port 3001}} \tabularnewline
+\end{tabularx}\\[4pt]
+$\Downarrow$ \small IAM LabRole via IMDSv2\\[3pt]
+\begin{tabularx}{0.96\linewidth}{X|X}
+\centering \textbf{Amazon DynamoDB} (Users, Decks, Rooms) & \centering \textbf{Amazon SQS \& CloudWatch} (Queue \& Alarms) \tabularnewline
 \end{tabularx}
-\vspace{0.2cm}
-\end{minipage}%
-}
+\vspace{2pt}
+\end{tcolorbox}
 \caption{ผังภาพสถาปัตยกรรมคลาวด์ Lean Multi-AZ IaaS ร่วมกับ Auto Scaling Group}
 \label{fig:arch_diagram}
 \end{figure}
@@ -473,7 +474,7 @@ $\Downarrow$ IAM LabRole (IMDSv2)\\[0.2cm]
 \caption{โครงสร้างตารางข้อมูล Amazon DynamoDB (NoSQL Schema)}
 \label{tab:dynamodb_schema}
 \small
-\begin{tabularx}{\textwidth}{lp{2.2cm}p{2.2cm}Xp{3.2cm}}
+\begin{tabularx}{\textwidth}{lp{2.2cm}p{2.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.5cm}}
 \toprule
 \textbf{ชื่อตาราง} & \textbf{Partition Key} & \textbf{Sort Key} & \textbf{Attributes สำคัญ} & \textbf{วัตถุประสงค์} \\
 \midrule
@@ -502,7 +503,7 @@ $\Downarrow$ IAM LabRole (IMDSv2)\\[0.2cm]
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{images/aws_fallback_strategy.png}
+\includegraphics[width=0.82\textwidth]{images/aws_fallback_strategy.png}
 \caption{ผังกลยุทธ์ Multi-Tier Fallback และ Local Caching ป้องกัน API ภายนอกขัดข้อง}
 \label{fig:fallback_diagram}
 \end{figure}
@@ -524,7 +525,7 @@ $\Downarrow$ IAM LabRole (IMDSv2)\\[0.2cm]
 \caption{ตารางสรุปข้อจำกัดบน AWS Learner Lab และแนวทางแก้ไขเชิงสถาปัตยกรรม}
 \label{tab:learner_lab_solutions}
 \small
-\begin{tabularx}{\textwidth}{clp{4.2cm}X}
+\begin{tabularx}{\textwidth}{cl>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}X}
 \toprule
 \textbf{ลำดับ} & \textbf{ข้อจำกัด / ปัญหาทางวิศวกรรม} & \textbf{ผลกระทบหากไม่แก้ไข} & \textbf{แนวทางแก้ไขเชิงสถาปัตยกรรม (Solution)} \\
 \midrule
@@ -615,7 +616,7 @@ $\Downarrow$ IAM LabRole (IMDSv2)\\[0.2cm]
 \caption{ผลการทดสอบคุณภาพระบบโดยรวม (Master QA Test Matrix)}
 \label{tab:qa_results}
 \small
-\begin{tabularx}{\textwidth}{p{1.4cm}p{2.2cm}Xp{1.5cm}p{1.5cm}}
+\begin{tabularx}{\textwidth}{p{1.4cm}p{2.2cm}>{\raggedright\arraybackslash}Xp{1.5cm}p{1.5cm}}
 \toprule
 \textbf{Test ID} & \textbf{ระดับการทดสอบ} & \textbf{เงื่อนไขและกรณีทดสอบ} & \textbf{Latency} & \textbf{ผลการทดสอบ} \\
 \midrule
@@ -662,7 +663,7 @@ TC-ELAST-01 & Stress/AutoScale & ยิงโหลด 2,000 Requests Concurrenc
 \caption{การเปรียบเทียบและการประเมินค่าใช้จ่ายบนคลาวด์ตลอดภาคการศึกษา}
 \label{tab:cost_table}
 \small
-\begin{tabularx}{\textwidth}{lp{2.8cm}p{2.2cm}p{2.2cm}X}
+\begin{tabularx}{\textwidth}{lp{2.8cm}p{2.2cm}p{2.2cm}>{\raggedright\arraybackslash}X}
 \toprule
 \textbf{ทรัพยากรคลาวด์} & \textbf{สเปกและการตั้งค่า} & \textbf{ค่าใช้จ่ายปกติ} & \textbf{ค่าใช้จ่ายโครงการ} & \textbf{กลยุทธ์การควบคุมงบประมาณ} \\
 \midrule
@@ -746,7 +747,7 @@ Write-Host "=== 4. Creating Application Load Balancer & Auto Scaling Group ===" 
 
 \section*{ภาคผนวก ข: สคริปต์ 1-Click Scale-to-Zero ควบคุมงบประมาณ (\texttt{scripts/lab\_stop.ps1})}
 
-\begin{lstlisting}[language=bash, caption={สคริปต์ยุบเครื่อง EC2 เหลือ 0 เพื่อตัดค่าใช้จ่าย Compute เหลือ $0.00/ชม.}]
+\begin{lstlisting}[language=bash, caption={สคริปต์ยุบเครื่อง EC2 เหลือ 0 เพื่อตัดค่าใช้จ่าย Compute เหลือ \$0.00/ชม.}]
 # scripts/lab_stop.ps1 - 1-Click Scale-to-Zero Guardrail
 Write-Host ">>> Stopping Lab: Scaling ASG to Zero Instances..." -ForegroundColor Yellow
 aws autoscaling update-auto-scaling-group `
