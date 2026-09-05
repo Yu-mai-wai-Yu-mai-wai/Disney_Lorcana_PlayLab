@@ -470,6 +470,18 @@ function sendToClient(connectionId: string, data: any) {
 }
 
 async function broadcastToRoom(roomId: string, data: any, excludeConnId?: string) {
+  // 1. Instant zero-latency in-memory relay (<1ms)
+  for (const [cId, client] of clients.entries()) {
+    if (client.roomId === roomId && cId !== excludeConnId && client.ws.readyState === WebSocket.OPEN) {
+      try {
+        client.ws.send(JSON.stringify(data));
+      } catch (e) {
+        console.error('[Memory Broadcast Error]', e);
+      }
+    }
+  }
+
+  // 2. DynamoDB persistence & cross-session fallback
   try {
     const res = await docClient.send(
       new QueryCommand({
@@ -481,7 +493,11 @@ async function broadcastToRoom(roomId: string, data: any, excludeConnId?: string
     const members = res.Items || [];
     for (const member of members) {
       if (member.connectionId !== excludeConnId && member.status !== 'disconnected') {
-        sendToClient(member.connectionId, data);
+        const client = clients.get(member.connectionId);
+        if (client && client.roomId !== roomId) {
+          client.roomId = roomId;
+          sendToClient(member.connectionId, data);
+        }
       }
     }
   } catch (err) {
@@ -499,6 +515,20 @@ wss.on('connection', (ws: WebSocket) => {
       const rawText = message.toString();
       const body = JSON.parse(rawText);
       const action = body.gameAction || body.realAction || body.type || body.action;
+
+      // Handle heartbeat ping immediately
+      if (action === 'PING' || body.type === 'PING') {
+        sendToClient(connectionId, { action: 'PONG', type: 'PONG' });
+        return;
+      }
+
+      // Auto-bind client state whenever a message has roomId/username/role
+      const clientInfo = clients.get(connectionId);
+      if (clientInfo) {
+        if (body.roomId) clientInfo.roomId = body.roomId;
+        if (body.username) clientInfo.username = body.username;
+        if (body.role) clientInfo.role = body.role;
+      }
 
       console.log(`[WebSocket Msg] ${connectionId} -> action: ${action}`);
 
@@ -643,6 +673,8 @@ wss.on('connection', (ws: WebSocket) => {
             action: 'GAME_START',
             gameAction: 'GAME_START',
             roomId,
+            role: member.role,
+            username: member.username,
             players: allMembers.map((m) => ({
               username: m.username,
               role: m.role,
@@ -682,9 +714,14 @@ wss.on('connection', (ws: WebSocket) => {
           await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: p1 }));
           await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: p2 }));
 
+          const c1 = clients.get(opponent.connectionId);
+          if (c1) { c1.roomId = roomId; c1.role = 'player1'; c1.username = opponent.username; }
+          const c2 = clients.get(connectionId);
+          if (c2) { c2.roomId = roomId; c2.role = 'player2'; c2.username = username; }
+
           const players = [p1, p2].map((m) => ({ username: m.username, role: m.role, deckId: m.deckId, deckName: m.deckName }));
-          sendToClient(opponent.connectionId, { action: 'MATCH_FOUND', gameAction: 'MATCH_FOUND', roomId, players });
-          sendToClient(connectionId, { action: 'MATCH_FOUND', gameAction: 'MATCH_FOUND', roomId, players });
+          sendToClient(opponent.connectionId, { action: 'MATCH_FOUND', gameAction: 'MATCH_FOUND', roomId, role: 'player1', username: opponent.username, players });
+          sendToClient(connectionId, { action: 'MATCH_FOUND', gameAction: 'MATCH_FOUND', roomId, role: 'player2', username, players });
         } else {
           await docClient.send(
             new PutCommand({
@@ -734,6 +771,13 @@ wss.on('connection', (ws: WebSocket) => {
           await docClient.send(new DeleteCommand({ TableName: ROOM_TABLE, Key: { roomId, connectionId: existing.connectionId } })).catch(() => {});
           const updated: any = withTtl({ ...existing, connectionId, status: 'active', rejoinedAt: new Date().toISOString() });
           await docClient.send(new PutCommand({ TableName: ROOM_TABLE, Item: updated }));
+
+          const clientInfo = clients.get(connectionId);
+          if (clientInfo) {
+            clientInfo.roomId = roomId;
+            clientInfo.username = updated.username;
+            clientInfo.role = updated.role;
+          }
 
           sendToClient(connectionId, {
             action: 'PLAYER_RECONNECTED',

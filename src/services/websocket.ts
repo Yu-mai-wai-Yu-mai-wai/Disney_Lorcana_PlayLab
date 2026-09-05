@@ -26,9 +26,19 @@ class WebSocketService {
   private isConnected: boolean = false;
   private currentRoomId: string | null = null;
   private currentRole: 'player1' | 'player2' = 'player1';
-  private currentUsername: string = 'Illumineer';
+  private currentUsername: string = (() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lorcana_guest_name');
+      if (saved) return saved;
+      const gen = `Illumineer_${Math.floor(1000 + Math.random() * 9000)}`;
+      try { localStorage.setItem('lorcana_guest_name', gen); } catch (e) {}
+      return gen;
+    }
+    return 'Illumineer';
+  })();
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.listeners.set('all', new Set());
@@ -109,6 +119,21 @@ class WebSocketService {
           this.setConnectionStatus('connected');
           this.reconnectAttempts = 0;
           this.flushQueue();
+
+          // Heartbeat Ping loop every 20s to prevent Nginx/ALB idle disconnect
+          if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+          this.heartbeatTimer = setInterval(() => {
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+              this.socket.send(JSON.stringify({ action: 'PING', type: 'PING' }));
+            }
+          }, 20000);
+
+          // Auto-rejoin active room upon reconnect
+          if (this.currentRoomId) {
+            console.log(`[WebSocket] Restoring active room ${this.currentRoomId} as ${this.currentRole}`);
+            this.rejoinRoom(this.currentRoomId);
+          }
+
           resolve(true);
         };
 
@@ -129,6 +154,10 @@ class WebSocketService {
 
         this.socket.onclose = () => {
           console.log('[WebSocket] 🔴 Connection Closed');
+          if (this.heartbeatTimer) {
+            clearInterval(this.heartbeatTimer);
+            this.heartbeatTimer = null;
+          }
           this.setConnectionStatus('disconnected');
           this.attemptReconnect();
         };
@@ -306,6 +335,9 @@ class WebSocketService {
 
   public setUsername(username: string): void {
     this.currentUsername = username;
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem('lorcana_guest_name', username); } catch (e) {}
+    }
   }
 
   public getUsername(): string {
@@ -502,6 +534,10 @@ class WebSocketService {
 
   // Dispatch incoming messages to subscribed callbacks
   private handleIncomingMessage(data: any): void {
+    if (data.action === 'PONG' || data.type === 'PONG') {
+      return;
+    }
+
     const targetAction = data.gameAction || data.realAction || data.action || data.type || (data.payload && (data.payload.gameAction || data.payload.action || data.payload.type));
 
     if (targetAction === 'ROOM_CREATED') {
@@ -578,6 +614,10 @@ class WebSocketService {
   }
 
   public disconnect(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
     if (this.socket) {
       // Prevent auto-reconnect firing on a deliberate close
       this.socket.onclose = null;

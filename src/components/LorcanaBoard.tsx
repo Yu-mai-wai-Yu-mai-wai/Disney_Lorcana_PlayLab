@@ -771,8 +771,12 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     };
 
     const checkFromMe = (data: any) => {
-      if (data.role && playerRole && data.role === playerRole) return true;
-      if (data.username && myUsername && data.username === myUsername) return true;
+      if (data.role && playerRole) {
+        return data.role === playerRole;
+      }
+      if (data.username && myUsername) {
+        return data.username.toLowerCase() === myUsername.toLowerCase();
+      }
       return false;
     };
 
