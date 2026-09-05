@@ -74,8 +74,8 @@ server {
 EOF
 
 # Ensure default nginx config does not conflict on port 80
-sed -i 's/listen       80/listen       8080/g' /etc/nginx/nginx.conf || true
-sed -i 's/listen       \[::\]:80/listen       \[::\]:8080/g' /etc/nginx/nginx.conf || true
+sed -i -E 's/listen\s+80;/listen 8080;/g' /etc/nginx/nginx.conf || true
+sed -i -E 's/listen\s+\[::\]:80;/listen [::]:8080;/g' /etc/nginx/nginx.conf || true
 
 systemctl restart nginx
 systemctl enable nginx
