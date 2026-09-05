@@ -461,6 +461,7 @@ interface SocketClientInfo {
   role?: string;
 }
 const clients = new Map<string, SocketClientInfo>();
+const roomGameStates = new Map<string, any>();
 
 function sendToClient(connectionId: string, data: any) {
   const client = clients.get(connectionId);
@@ -790,6 +791,17 @@ wss.on('connection', (ws: WebSocket) => {
             isSelf: true,
           });
 
+          // Deliver cached board state immediately upon rejoin without waiting for peer
+          const cached = roomGameStates.get(roomId);
+          if (cached) {
+            sendToClient(connectionId, {
+              action: 'STATE_SYNC_RESPONSE',
+              gameAction: 'STATE_SYNC_RESPONSE',
+              roomId,
+              payload: cached,
+            });
+          }
+
           await broadcastToRoom(
             roomId,
             {
@@ -813,6 +825,19 @@ wss.on('connection', (ws: WebSocket) => {
           gameAction: resolvedAction,
           type: resolvedAction,
         };
+
+        // Cache latest match state for instantaneous Rejoin delivery
+        if (resolvedAction === 'STATE_SYNC_RESPONSE' && body.payload) {
+          roomGameStates.set(roomId, body.payload);
+        } else if (resolvedAction === 'TURN_PASSED') {
+          const prev = roomGameStates.get(roomId) || {};
+          roomGameStates.set(roomId, {
+            ...prev,
+            turnNumber: body.turnNumber || body.payload?.turnNumber || ((prev.turnNumber || 1) + 1),
+            isTurnP1: body.role !== 'player1',
+          });
+        }
+
         await broadcastToRoom(roomId, relayMsg, connectionId);
       }
     } catch (err: any) {

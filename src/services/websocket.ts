@@ -382,24 +382,13 @@ class WebSocketService {
 
   public requestUndo(previousState: any, roomId?: string): void {
     const targetRoomId = roomId || this.currentRoomId || '108249';
-    // Send via standard sendAction envelope for 100% AWS WS relay compatibility
+    // Send single canonical UNDO_REQUESTED envelope to avoid duplicate handling
     this.sendAction('UNDO_REQUESTED' as any, {
       roomId: targetRoomId,
       role: this.currentRole,
       username: this.currentUsername,
       requesterUsername: this.currentUsername,
       requesterRole: this.currentRole,
-      previousState,
-    });
-
-    // Also send explicit REQUEST_UNDO for direct backend route handlers
-    this.send({
-      action: 'REQUEST_UNDO',
-      gameAction: 'REQUEST_UNDO',
-      type: 'REQUEST_UNDO',
-      roomId: targetRoomId,
-      username: this.currentUsername,
-      role: this.currentRole,
       previousState,
     });
 
@@ -419,7 +408,7 @@ class WebSocketService {
 
   public respondUndo(voteAccepted: boolean, previousState?: any, roomId?: string): void {
     const targetRoomId = roomId || this.currentRoomId || '108249';
-    // Send via standard sendAction envelope for 100% AWS WS relay compatibility
+    // Send single canonical UNDO_RESOLVED envelope to avoid duplicate handling
     this.sendAction('UNDO_RESOLVED' as any, {
       roomId: targetRoomId,
       role: this.currentRole,
@@ -427,17 +416,6 @@ class WebSocketService {
       voteAccepted,
       previousState,
       respondedBy: this.currentUsername,
-    });
-
-    // Also send explicit RESPOND_UNDO for direct backend route handlers
-    this.send({
-      action: 'RESPOND_UNDO',
-      gameAction: 'RESPOND_UNDO',
-      type: 'RESPOND_UNDO',
-      roomId: targetRoomId,
-      username: this.currentUsername,
-      voteAccepted,
-      previousState,
     });
 
     if (WS_ENDPOINT.includes('demo.execute-api')) {

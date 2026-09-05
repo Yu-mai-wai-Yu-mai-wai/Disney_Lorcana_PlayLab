@@ -235,6 +235,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const matchModeRef = useRef<boolean>(matchMode);
   matchModeRef.current = matchMode;
 
+
   const handleTriggerGameOver = (
     winner: 'me' | 'opponent',
     explicitData?: { winnerName?: string; loserName?: string; winnerLore?: number; loserLore?: number }
@@ -542,6 +543,37 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   });
   const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>(() => (savedBoard?.opponentExerted ?? {}));
 
+  const boardStateRef = useRef({
+    playerLore,
+    opponentLore,
+    availableInk,
+    opponentInk,
+    inkwellCapacity,
+    opponentInkCapacity,
+    turnNumber,
+    isMyTurn,
+    fieldCards,
+    opponentFieldCards,
+    damage,
+    exertedCards,
+    opponentExerted,
+  });
+  boardStateRef.current = {
+    playerLore,
+    opponentLore,
+    availableInk,
+    opponentInk,
+    inkwellCapacity,
+    opponentInkCapacity,
+    turnNumber,
+    isMyTurn,
+    fieldCards,
+    opponentFieldCards,
+    damage,
+    exertedCards,
+    opponentExerted,
+  };
+
   // UNDO / RETURN VOTE SYSTEM STATES
   const [previousSnapshot, setPreviousSnapshot] = useState<any | null>(null);
   const [undoCountRemaining, setUndoCountRemaining] = useState<number>(() => (savedBoard?.undoCountRemaining ?? 2)); // Max 2 undos per match
@@ -675,6 +707,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     if (accept && incomingUndoRequest.previousState) {
       // Restore from opponent perspective (i.e. I am NOT the requester)
       applySnapshot(incomingUndoRequest.previousState, false);
+      setPreviousSnapshot(null);
       showNotice('You accepted opponent undo request. Game state restored.', 'success');
       setLogMessages(prev => ['You voted YES to undo. Game rolled back to previous state.', ...prev]);
     } else {
@@ -1059,25 +1092,26 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         setLogMessages(prev => [`Opponent reconnected to the room. Match resumed.`, ...prev]);
 
         // Send current full match state so rejoining opponent gets updated instantly
-        const isP1 = playerRole === 'player1';
+        const bs = boardStateRef.current;
+        const isP1 = playerRoleRef.current === 'player1';
         webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
           roomId,
-          role: playerRole,
+          role: playerRoleRef.current,
           username: myUsername,
           payload: {
-            loreP1: isP1 ? playerLore : opponentLore,
-            loreP2: isP1 ? opponentLore : playerLore,
-            inkP1: isP1 ? availableInk : opponentInk,
-            inkP2: isP1 ? opponentInk : availableInk,
-            inkCapP1: isP1 ? inkwellCapacity : opponentInkCapacity,
-            inkCapP2: isP1 ? opponentInkCapacity : inkwellCapacity,
+            loreP1: isP1 ? bs.playerLore : bs.opponentLore,
+            loreP2: isP1 ? bs.opponentLore : bs.playerLore,
+            inkP1: isP1 ? bs.availableInk : bs.opponentInk,
+            inkP2: isP1 ? bs.opponentInk : bs.availableInk,
+            inkCapP1: isP1 ? bs.inkwellCapacity : bs.opponentInkCapacity,
+            inkCapP2: isP1 ? bs.opponentInkCapacity : bs.inkwellCapacity,
             turnNumber: turnNumberRef.current,
-            isTurnP1: isP1 ? isMyTurn : !isMyTurn,
-            p1FieldCards: isP1 ? fieldCards : opponentFieldCards,
-            p2FieldCards: isP1 ? opponentFieldCards : fieldCards,
-            damage: damage,
-            p1Exerted: isP1 ? exertedCards : opponentExerted,
-            p2Exerted: isP1 ? opponentExerted : exertedCards,
+            isTurnP1: isP1 ? bs.isMyTurn : !bs.isMyTurn,
+            p1FieldCards: isP1 ? bs.fieldCards : bs.opponentFieldCards,
+            p2FieldCards: isP1 ? bs.opponentFieldCards : bs.fieldCards,
+            damage: bs.damage,
+            p1Exerted: isP1 ? bs.exertedCards : bs.opponentExerted,
+            p2Exerted: isP1 ? bs.opponentExerted : bs.exertedCards,
           },
         });
       }
@@ -1087,25 +1121,26 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     const unsubSyncRequest = webSocketService.subscribe('REQUEST_STATE_SYNC', (data: any) => {
       if (checkFromMe(data)) return;
       markOpponentActive(data.username);
-      const isP1 = playerRole === 'player1';
+      const bs = boardStateRef.current;
+      const isP1 = playerRoleRef.current === 'player1';
       webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
         roomId,
-        role: playerRole,
+        role: playerRoleRef.current,
         username: myUsername,
         payload: {
-          loreP1: isP1 ? playerLore : opponentLore,
-          loreP2: isP1 ? opponentLore : playerLore,
-          inkP1: isP1 ? availableInk : opponentInk,
-          inkP2: isP1 ? opponentInk : availableInk,
-          inkCapP1: isP1 ? inkwellCapacity : opponentInkCapacity,
-          inkCapP2: isP1 ? opponentInkCapacity : inkwellCapacity,
+          loreP1: isP1 ? bs.playerLore : bs.opponentLore,
+          loreP2: isP1 ? bs.opponentLore : bs.playerLore,
+          inkP1: isP1 ? bs.availableInk : bs.opponentInk,
+          inkP2: isP1 ? bs.opponentInk : bs.availableInk,
+          inkCapP1: isP1 ? bs.inkwellCapacity : bs.opponentInkCapacity,
+          inkCapP2: isP1 ? bs.opponentInkCapacity : bs.inkwellCapacity,
           turnNumber: turnNumberRef.current,
-          isTurnP1: isP1 ? isMyTurn : !isMyTurn,
-          p1FieldCards: isP1 ? fieldCards : opponentFieldCards,
-          p2FieldCards: isP1 ? opponentFieldCards : fieldCards,
-          damage: damage,
-          p1Exerted: isP1 ? exertedCards : opponentExerted,
-          p2Exerted: isP1 ? opponentExerted : exertedCards,
+          isTurnP1: isP1 ? bs.isMyTurn : !bs.isMyTurn,
+          p1FieldCards: isP1 ? bs.fieldCards : bs.opponentFieldCards,
+          p2FieldCards: isP1 ? bs.opponentFieldCards : bs.fieldCards,
+          damage: bs.damage,
+          p1Exerted: isP1 ? bs.exertedCards : bs.opponentExerted,
+          p2Exerted: isP1 ? bs.opponentExerted : bs.exertedCards,
         },
       });
     });
@@ -1116,7 +1151,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       markOpponentActive(data.username);
       const p = data.payload || data;
       if (p) {
-        const isP1 = playerRole === 'player1';
+        const isP1 = playerRoleRef.current === 'player1';
         if (p.loreP1 !== undefined && p.loreP2 !== undefined) {
           const myL = isP1 ? (p.loreP1 ?? 0) : (p.loreP2 ?? 0);
           const oppL = isP1 ? (p.loreP2 ?? 0) : (p.loreP1 ?? 0);
@@ -1159,16 +1194,11 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }
     });
 
-    // Undo requested by opponent (Supports UNDO_REQUESTED & REQUEST_UNDO)
+    // Undo requested by opponent (Single canonical action)
     const handleUndoRequestedEvent = (data: any) => {
+      if (checkFromMe(data)) return;
       const p = data.payload || data;
       const fromUsername = p.requesterUsername || p.username || data.username || data.requesterUsername;
-      const fromRole = p.requesterRole || p.role || data.role || data.requesterRole;
-      
-      // If sent from self, ignore
-      if ((fromUsername && myUsername && fromUsername === myUsername) || (fromRole && playerRole && fromRole === playerRole)) {
-        return;
-      }
 
       markOpponentActive(fromUsername);
       setIncomingUndoRequest({
@@ -1191,10 +1221,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     };
 
     const unsubUndoRequested = webSocketService.subscribe('UNDO_REQUESTED', handleUndoRequestedEvent);
-    const unsubRequestUndo = webSocketService.subscribe('REQUEST_UNDO', handleUndoRequestedEvent);
 
-    // Undo resolved by opponent (Supports UNDO_RESOLVED & RESPOND_UNDO)
+    // Undo resolved by opponent (Single canonical action)
     const handleUndoResolvedEvent = (data: any) => {
+      if (checkFromMe(data)) return;
       const p = data.payload || data;
       const fromUser = p.respondedBy || p.username || data.username;
       markOpponentActive(fromUser);
@@ -1207,6 +1237,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         if (stateToRestore) {
           applySnapshot(stateToRestore, true);
         }
+        setPreviousSnapshot(null); // Clear snapshot once reverted
         setUndoCountRemaining(prev => Math.max(0, prev - 1));
         showNotice('Opponent accepted your undo request! Action reverted.', 'success');
         setLogMessages(prev => [`Undo request ACCEPTED by opponent. Turn action rolled back.`, ...prev]);
@@ -1217,7 +1248,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     };
 
     const unsubUndoResolved = webSocketService.subscribe('UNDO_RESOLVED', handleUndoResolvedEvent);
-    const unsubRespondUndo = webSocketService.subscribe('RESPOND_UNDO', handleUndoResolvedEvent);
 
     const unsubDrawn = webSocketService.subscribe('CARD_DRAWN', (data) => {
       if (checkFromMe(data)) return;
@@ -1312,9 +1342,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       unsubSyncRequest();
       unsubSyncResponse();
       unsubUndoRequested();
-      unsubRequestUndo();
       unsubUndoResolved();
-      unsubRespondUndo();
       unsubDrawn();
       unsubChat();
       unsubAll();
@@ -1326,7 +1354,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       if (undoTimerRef.current) clearInterval(undoTimerRef.current);
       if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
     };
-  }, [matchMode, playerRole, myUsername, roomId, isRejoin, playerLore, opponentLore, availableInk, opponentInk, inkwellCapacity, opponentInkCapacity, isMyTurn, fieldCards, opponentFieldCards]);
+  }, [matchMode, playerRole, myUsername, roomId, isRejoin]);
 
   const handleJoinRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
