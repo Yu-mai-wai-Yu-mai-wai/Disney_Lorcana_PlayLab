@@ -4,13 +4,13 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = 'lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302';
 
-describe('AWS Serverless Lambda Handlers QA Suite', () => {
+describe('Auth & Backend Security QA Suite', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   describe('1. Custom Auth Registration Security & Hashing', () => {
-    it('TC-LAMBDA-01: bcrypt should hash password with salt factor of 10', async () => {
+    it('TC-AUTH-01: bcrypt should hash password with salt factor of 10', async () => {
       const password = 'MagicalPassword2026!';
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(password, salt);
@@ -25,7 +25,7 @@ describe('AWS Serverless Lambda Handlers QA Suite', () => {
       expect(isWrongMatch).toBe(false);
     });
 
-    it('TC-LAMBDA-02: registration validation must enforce minimum password length', () => {
+    it('TC-AUTH-02: registration validation must enforce minimum password length', () => {
       const validateUser = (username: string, pass: string, email: string) => {
         if (!username || username.trim().length < 3) return 'Username must be at least 3 characters';
         if (!pass || pass.length < 6) return 'Password must be at least 6 characters';
@@ -41,7 +41,7 @@ describe('AWS Serverless Lambda Handlers QA Suite', () => {
   });
 
   describe('2. Custom Auth Login & JWT Token Lifecycle', () => {
-    it('TC-LAMBDA-03: jwt.sign should produce valid token with username and expiration', () => {
+    it('TC-AUTH-03: jwt.sign should produce valid token with username and expiration', () => {
       const payload = { username: 'LorcanaMaster', userId: 'user-999' };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d', algorithm: 'HS256' });
 
@@ -54,7 +54,7 @@ describe('AWS Serverless Lambda Handlers QA Suite', () => {
       expect(decoded.exp).toBeGreaterThan(Date.now() / 1000);
     });
 
-    it('TC-LAMBDA-04: jwt.verify should reject expired or tampered tokens', () => {
+    it('TC-AUTH-04: jwt.verify should reject expired or tampered tokens', () => {
       const payload = { username: 'LorcanaMaster' };
       const token = jwt.sign(payload, 'wrong_secret', { expiresIn: '1h' });
 
@@ -65,7 +65,7 @@ describe('AWS Serverless Lambda Handlers QA Suite', () => {
   });
 
   describe('3. Deck Management & Payload Formatting', () => {
-    it('TC-LAMBDA-05: deck payload parser should validate required card structure', () => {
+    it('TC-AUTH-05: deck payload parser should validate required card structure', () => {
       const parseDeck = (body: any) => {
         if (!body.name || typeof body.name !== 'string') throw new Error('Deck name required');
         if (!Array.isArray(body.cards)) throw new Error('Cards array required');
@@ -86,7 +86,7 @@ describe('AWS Serverless Lambda Handlers QA Suite', () => {
   });
 
   describe('4. WebSocket Room Router State Transitions', () => {
-    it('TC-LAMBDA-06: should assign correct role (player1 vs player2) on joinRoom', () => {
+    it('TC-AUTH-06: should assign correct role (player1 vs player2) on joinRoom', () => {
       const assignRole = (roomConnections: string[], connectionId: string): 'player1' | 'player2' | 'spectator' => {
         if (roomConnections.length === 0) return 'player1';
         if (roomConnections.length === 1 && !roomConnections.includes(connectionId)) return 'player2';
