@@ -9,18 +9,20 @@
 
 1. เข้าสู่ **AWS Academy** (learn.awsacademy.com) → คอร์ส Cloud Computing → **Learner Lab**
 2. กดปุ่ม **Start Lab** (สีเขียว) → รอสถานะเป็นวงกลมสีเขียว (Session ใช้งานได้ ~4 ชั่วโมง)
-3. กดที่เมนู **AWS Details** (มุมบนซ้าย) → กด **Show** แล้วคัดลอกค่า 3 ตัวนี้:
-   - `aws_access_key_id`
-   - `aws_secret_access_key`
-   - `aws_session_token`
-4. เปิด **PowerShell / Terminal** บนเครื่อง แล้วรันคำสั่งตั้งค่า:
-   ```powershell
-   aws configure set aws_access_key_id "<คัดลอกมาวาง>"
-   aws configure set aws_secret_access_key "<คัดลอกมาวาง>"
-   aws configure set aws_session_token "<คัดลอกมาวาง>"
-   aws configure set region "us-east-1"
-   aws configure set output "json"
-   ```
+3. กดที่เมนู **AWS Details** (มุมบนซ้าย) → กด **Show**
+4. **ตั้งค่า AWS Credentials บนเครื่อง (เลือกแบบใดแบบหนึ่ง):**
+   - **วิธีที่ 1 (เร็วที่สุด — 1-Click Clipboard):** กดปุ่มคัดลอกทั้งบล็อก `[default] ...` จาก AWS Details แล้วรันคำสั่งเดียวใน PowerShell:
+     ```powershell
+     Set-Content -Path "$HOME\.aws\credentials" -Value (Get-Clipboard)
+     ```
+   - **วิธีที่ 2 (ตั้งค่าทีละตัวแปรผ่าน AWS CLI):**
+     ```powershell
+     aws configure set aws_access_key_id "<คัดลอกมาวาง>"
+     aws configure set aws_secret_access_key "<คัดลอกมาวาง>"
+     aws configure set aws_session_token "<คัดลอกมาวาง>"
+     aws configure set region "us-east-1"
+     aws configure set output "json"
+     ```
 5. ตรวจสอบการเชื่อมต่อ:
    ```powershell
    aws sts get-caller-identity
@@ -57,21 +59,27 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 
 ### 1. เมื่อต้องการทำแล็บ หรือเปิดเดโมให้อาจารย์ดู
 ```powershell
-.\scripts\lab_start.ps1
+.\scripts\lab.ps1 start   # หรือ .\scripts\lab_start.ps1
 ```
 * สั่งปรับ `Desired Capacity = 1`
 * EC2 Instance จะบูตขึ้นมาพร้อมรับทราฟฟิกภายใน 1–2 นาที
 
-### 2. เมื่อเลิกใช้งานประจำวัน (Scale-to-Zero)
+### 2. ตรวจสอบสถานะเครื่อง & สุขภาพ ALB
 ```powershell
-.\scripts\lab_stop.ps1
+.\scripts\lab.ps1 status
+```
+* แสดงตาราง Instance ใน ASG และยิง Health Check ทดสอบการตอบสนอง
+
+### 3. เมื่อเลิกใช้งานประจำวัน (Scale-to-Zero)
+```powershell
+.\scripts\lab.ps1 stop    # หรือ .\scripts\lab_stop.ps1
 ```
 * สั่งปรับ `Desired Capacity = 0` และ `Min Size = 0`
 * EC2 Instances ทั้งหมดจะถูก Terminate ดับสนิท **ค่าใช้จ่าย Compute กลายเป็น $0.00/ชม. ทันที**
 
-### 3. เมื่อส่งโปรเจกต์เสร็จสิ้น / ไม่ได้ใช้งานยาวนาน (Complete Teardown)
+### 4. เมื่อส่งโปรเจกต์เสร็จสิ้น / ไม่ได้ใช้งานยาวนาน (Complete Teardown)
 ```powershell
-python .\scripts\lab_destroy.py
+.\scripts\lab.ps1 destroy # หรือ .\scripts\lab_destroy.ps1
 ```
 * ลบ ALB, Target Group, ASG, Launch Template, Security Groups และ VPC ทิ้งทั้งหมด
 * ค่าใช้จ่ายรายชั่วโมงจะกลายเป็น **$0.0000** 100%
@@ -99,7 +107,7 @@ python .\scripts\lab_destroy.py
 | ชิ้นส่วนระบบ | สเปก / รูปแบบ | ค่าใช้จ่าย | วิธีการคุมงบ |
 |---|---|---|---|
 | **VPC & Subnets** | Lean Multi-AZ (No NAT) | **$0.00** | ไม่เปิด NAT Gateway (ประหยัด $32.40/เดือน) |
-| **EC2 Instance** | `t3.micro` (1 vCPU, 1GB RAM) | $0.0104 / ชม. | รัน `lab_stop.ps1` เมื่อเลิกเรียน (Scale-to-0) |
-| **Load Balancer (ALB)** | 1x Application Load Balancer | $0.0225 / ชม. | สั่ง `lab_destroy.py` หากไม่ได้ใช้นานเกิน 1 สัปดาห์ |
+| **EC2 Instance** | `t3.micro` (1 vCPU, 1GB RAM) | $0.0104 / ชม. | รัน `.\scripts\lab.ps1 stop` เมื่อเลิกเรียน (Scale-to-0) |
+| **Load Balancer (ALB)** | 1x Application Load Balancer | $0.0225 / ชม. | สั่ง `.\scripts\lab.ps1 destroy` หากไม่ได้ใช้นานเกิน 1 สัปดาห์ |
 | **DynamoDB & SQS** | On-Demand Free Tier | **$0.00** | อยู่ในเกณฑ์ Free Tier ตลอดไป |
-| **S3 Static Website** | Decommissioned | **$0.00** | รัน `retire_s3.ps1` ย้ายไปอยู่บน Nginx ทั้งหมด |
+| **S3 Static Website** | Decommissioned | **$0.00** | รวมโฮสต์บน Nginx ภายใน EC2 ทั้งหมด ไม่เสียค่า S3 เพิ่ม |
