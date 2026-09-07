@@ -1,1 +1,0 @@
-{"httpMethod":"POST","path":"/auth/register","body":"{\"username\":\"qa-test-p1\",\"password\":\"AnotherPass1!\"}"}

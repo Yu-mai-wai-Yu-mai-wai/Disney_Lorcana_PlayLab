@@ -1,1 +1,0 @@
-{"httpMethod":"POST","path":"/auth/login","body":"{\"username\":\"' OR 1=1--\",\"password\":\"' OR '1'='1\"}"}

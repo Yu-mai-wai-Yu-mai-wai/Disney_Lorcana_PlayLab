@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, Maximize2, X, Play, Pause } from 'lucide-react';
-import { Modal } from './ui/Modal';
+import { Modal } from './Modal';
 
 export interface ArtworkItem {
   id: string;

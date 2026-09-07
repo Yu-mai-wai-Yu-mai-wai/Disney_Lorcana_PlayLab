@@ -8,7 +8,7 @@ import { RulesGuide } from './components/RulesGuide';
 import { UserDashboard } from './components/UserDashboard';
 import { AuthModal } from './components/AuthModal';
 import { PatchNotesModal } from './components/PatchNotesModal';
-import { MatchLobby } from './pages/MatchLobby';
+import { MatchLobby } from './components/MatchLobby';
 import { GoldInkShaderCanvas } from './components/GoldInkShaderCanvas';
 import { webSocketService } from './services/websocket';
 import { APP_VERSION } from './data/patchNotes';

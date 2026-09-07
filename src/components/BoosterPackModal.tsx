@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { X, RotateCcw, Plus, Eye, Gift, Scissors, ChevronRight } from 'lucide-react';
 import { LorcanaCard } from '../types/lorcana';
 import { InkSymbol } from './InkSymbol';
-import { Modal } from './ui/Modal';
+import { Modal } from './Modal';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { translateCardType, translateRarity, translateInkColor } from '../utils/cardTranslator';
 

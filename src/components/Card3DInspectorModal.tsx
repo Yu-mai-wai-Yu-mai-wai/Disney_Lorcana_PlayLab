@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Plus, Minus, Sparkles, Star, Tag, Globe, HelpCircle } from 'lucide-react';
 import { LorcanaCard } from '../types/lorcana';
 import { InkSymbol } from './InkSymbol';
-import { Modal } from './ui/Modal';
+import { Modal } from './Modal';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { translateCardAbilityText, translateAbilityName, extractKeywordsFromText, translateCardType, translateRarity, translateInkColor } from '../utils/cardTranslator';
 

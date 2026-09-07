@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
-import { Modal } from './ui/Modal';
+import { Modal } from './Modal';
 import { DiceDuelModal } from './DiceDuelModal';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
 import { AbilityNotificationBanner, type AbilityAlert } from './AbilityNotificationBanner';

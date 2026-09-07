@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { webSocketService } from '../services/websocket';
-import { MatchDeckSelect } from '../components/MatchDeckSelect';
+import { MatchDeckSelect } from './MatchDeckSelect';
 import { apiService } from '../services/api';
 import { STARTER_POOL } from '../data/cardPool';
 import { Swords, LogIn, Plus, Loader2, X, AlertCircle, Palette, Sparkles, Copy, Check } from 'lucide-react';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { usePlaymatStore } from '../store/usePlaymatStore';
-import { PlaymatSelectorModal } from '../components/PlaymatSelectorModal';
+import { PlaymatSelectorModal } from './PlaymatSelectorModal';
 
 interface MatchLobbyProps {
   onStartMatch: (deckId: string, deckName: string, roomId?: string, role?: string, deckObject?: any, isRejoin?: boolean) => void;

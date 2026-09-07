@@ -1,1 +1,0 @@
-{"httpMethod":"POST","path":"/auth/login","body":"{\"username\":\"io5\",\"password\":\"wrong-password-x\"}"}

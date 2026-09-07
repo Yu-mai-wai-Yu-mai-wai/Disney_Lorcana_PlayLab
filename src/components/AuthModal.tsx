@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { apiService } from '../services/api';
 import { X, Lock, Mail, User, ShieldCheck, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { Modal } from './ui/Modal';
+import { Modal } from './Modal';
 
 interface AuthModalProps {
   isOpen: boolean;
