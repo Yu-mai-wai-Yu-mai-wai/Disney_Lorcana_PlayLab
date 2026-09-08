@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = 'lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302';
+const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-unit-testing-only';
 
 describe('Auth & Backend Security QA Suite', () => {
   beforeEach(() => {

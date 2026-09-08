@@ -15,7 +15,7 @@ services:
       - DECKS_TABLE=DecksTable
       - ROOM_TABLE=LorcanaRoomStateV2
       - MATCHMAKING_TABLE=LorcanaMatchmaking
-      - JWT_SECRET=lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-do-not-use-in-production}
 
   frontend:
     build:

@@ -46,6 +46,12 @@ secrets/
 *.pem
 *.key
 credentials.json
+qa/tmp/
+scratch/
+tmp/
+*.id_token
+*.access_token
+
 
 # IDEs
 .vscode/
@@ -56,3 +62,8 @@ credentials.json
 # Test & Coverage Outputs
 test-results/
 playwright-report/
+qa/tmp/
+qa/*.tmp
+*.session
+*.token
+*.jwt

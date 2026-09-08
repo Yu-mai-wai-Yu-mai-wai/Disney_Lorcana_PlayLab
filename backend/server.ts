@@ -30,7 +30,7 @@ const DECKS_TABLE = process.env.DECKS_TABLE || 'DecksTable';
 const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomStateV2';
 const MATCHMAKING_TABLE = process.env.MATCHMAKING_TABLE || 'LorcanaMatchmaking';
 const LORCANA_SQS_URL = process.env.LORCANA_SQS_URL || '';
-const JWT_SECRET = process.env.JWT_SECRET || 'lorcana_jwt_secure_prod_2026_9b8f2d87e3a14c62b5d4e8a1c9e7f302';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
 const PORT = process.env.PORT || 3001;
 
 // DynamoDB TTL Helper (2 Hours)
