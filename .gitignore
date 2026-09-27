@@ -8,6 +8,7 @@ build/
 .output/
 backend/dist/
 backend/dist_bundle/
+backend/lambdas/
 *.zip
 server.cjs
 scratch_bundle_test.cjs

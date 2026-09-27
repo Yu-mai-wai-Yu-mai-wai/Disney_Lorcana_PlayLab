@@ -1,6 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { spawn } from 'child_process';
+import os from 'os';
+import path from 'path';
+
+// Boots the real server.ts; resolves with exit code, or 'running' if still alive after waitMs
+function bootServer(env: Record<string, string>, waitMs: number): Promise<number | 'running'> {
+  const backendDir = path.resolve(__dirname, '..');
+  const child = spawn(process.execPath, [path.join(backendDir, 'node_modules/tsx/dist/cli.mjs'), path.join(backendDir, 'server.ts')], {
+    cwd: os.tmpdir(), // keep dotenv away from any local env file
+    env: { ...process.env, PORT: '0', JWT_SECRET: '', ADMIN_PASSCODE: '', ...env },
+    stdio: 'ignore',
+  });
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { child.kill(); resolve('running'); }, waitMs);
+    child.on('exit', (code) => { clearTimeout(timer); resolve(code ?? -1); });
+  });
+}
+
+describe('0. Production secret guard (OWASP A02/A07)', () => {
+  it('TC-AUTH-00a: server refuses to start in production without JWT_SECRET/ADMIN_PASSCODE', async () => {
+    const result = await bootServer({ NODE_ENV: 'production' }, 10000);
+    expect(result).not.toBe('running');
+    expect(result).not.toBe(0);
+  }, 15000);
+
+  it('TC-AUTH-00b: server starts in production when secrets are provided', async () => {
+    const result = await bootServer({ NODE_ENV: 'production', JWT_SECRET: 'x'.repeat(48), ADMIN_PASSCODE: 'y'.repeat(24) }, 5000);
+    expect(result).toBe('running');
+  }, 10000);
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-unit-testing-only';
 

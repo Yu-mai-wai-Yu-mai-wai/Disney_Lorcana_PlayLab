@@ -1,0 +1,226 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, QueryCommand, DeleteCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import jwt from 'jsonwebtoken';
+
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
+const sqsClient = new SQSClient({});
+
+const DECKS_TABLE = process.env.DECKS_TABLE || 'DecksTable';
+const JWT_SECRET: string = process.env.JWT_SECRET ?? '';
+if (!JWT_SECRET) throw new Error('JWT_SECRET env is required');
+const LORCANA_SQS_URL = process.env.LORCANA_SQS_URL;
+
+// Dynamic CORS & Security Headers Resolver
+const ALLOWED_ORIGIN_ENV = process.env.ALLOWED_ORIGIN || '';
+const ALLOWED_PATTERNS = [
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/,
+  /^https:\/\/yu-mai-wai-yu-mai-wai\.github\.io$/,
+];
+
+function getSecurityHeaders(eventHeaders: Record<string, string | undefined> = {}) {
+  const origin = eventHeaders.origin || eventHeaders.Origin || '';
+  let matchedOrigin = 'https://yu-mai-wai-yu-mai-wai.github.io';
+
+  if (ALLOWED_ORIGIN_ENV && origin === ALLOWED_ORIGIN_ENV) {
+    matchedOrigin = origin;
+  } else if (ALLOWED_PATTERNS.some((pattern) => pattern.test(origin))) {
+    matchedOrigin = origin;
+  } else if (origin === '') {
+    matchedOrigin = '*';
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': matchedOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
+    'Access-Control-Allow-Methods': 'OPTIONS,GET,POST,DELETE',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  };
+}
+
+function verifyToken(authHeader?: string): { username: string, exp?: number } | null {
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { username: string, exp?: number };
+    if (decoded.exp && decoded.exp < Date.now() / 1000) {
+      return null;
+    }
+    return decoded;
+  } catch (err) {
+    return null;
+  }
+}
+
+export const handler = async (event: any): Promise<APIGatewayProxyResult> => {
+  console.log('[DECK EVENT]', JSON.stringify(event));
+  const headersMap = event.headers || {};
+  const headers = getSecurityHeaders(headersMap);
+
+  // Support BOTH payload v1 (event.httpMethod) and v2 (event.requestContext.http.method)
+  const httpMethod = event.httpMethod || event.requestContext?.http?.method || '';
+  const rawBody = event.body || '';
+  const body = event.isBase64Encoded ? Buffer.from(rawBody, 'base64').toString('utf-8') : rawBody;
+  // resourcePath = path WITHOUT stage prefix — lives in requestContext for v1
+  const path = event.resourcePath || event.requestContext?.resourcePath || event.rawPath || event.path || '';
+  const pathParams = event.pathParameters || {};
+
+  if (httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  const authUser = verifyToken(headersMap.Authorization || headersMap.authorization);
+  // SECURITY FIX (QA Campaign TC-AWS-006/007 — OWASP A01 Broken Access Control):
+  // Invalid/missing tokens must be rejected outright. Previously the handler fell
+  // back to 'anonymous_guest', allowing unauthenticated deck access.
+  if (!authUser) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized — valid Bearer token required' }),
+    };
+  }
+  const userId = authUser.username;
+
+  try {
+    // POST /decks/{deckId}/analyze
+    if (httpMethod === 'POST' && path.match(/^\/decks\/[^/]+\/analyze$/)) {
+      const deckId = pathParams.deckId || path.split('/')[2];
+      if (!deckId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'deckId required' }) };
+
+      const res = await docClient.send(new GetCommand({ TableName: DECKS_TABLE, Key: { deckId, userId } }));
+      if (!res.Item) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Deck not found' }) };
+      }
+
+      if (!LORCANA_SQS_URL) {
+        return { statusCode: 202, headers, body: JSON.stringify({ status: 'queued', message: 'SQS_URL not set, mocking queue success' }) };
+      }
+
+      await sqsClient.send(new SendMessageCommand({
+        QueueUrl: LORCANA_SQS_URL,
+        MessageBody: JSON.stringify({ deckId, userId, name: res.Item.name, cards: res.Item.cards }),
+      }));
+
+      return { statusCode: 202, headers, body: JSON.stringify({ status: 'queued', message: 'Analysis queued successfully' }) };
+    }
+
+    // GET /decks/{deckId}/analysis
+    if (httpMethod === 'GET' && path.match(/^\/decks\/[^/]+\/analysis$/)) {
+      const deckId = pathParams.deckId || path.split('/')[2];
+      if (!deckId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'deckId required' }) };
+
+      const res = await docClient.send(new GetCommand({ TableName: DECKS_TABLE, Key: { deckId, userId } }));
+      if (!res.Item) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Deck not found' }) };
+      }
+
+      return { statusCode: 200, headers, body: JSON.stringify({ analysis: res.Item.analysis || null }) };
+    }
+
+    // 1. POST /decks — Save/Update Deck
+    if (httpMethod === 'POST' && (path === '/decks' || path === '/decks/')) {
+      if (!body) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Body required' }) };
+      }
+      const { name, cards } = JSON.parse(body);
+      const deckId = `deck_${Date.now()}`;
+      const updatedAt = new Date().toISOString();
+
+      const item = {
+        deckId,
+        userId,
+        name: name || 'Untitled Lorcana Deck',
+        cards: cards || [],
+        totalCards: Array.isArray(cards) ? cards.reduce((acc: number, c: any) => acc + (c.count || 1), 0) : 0,
+        updatedAt,
+      };
+
+      await docClient.send(new PutCommand({ TableName: DECKS_TABLE, Item: item }));
+
+      if (LORCANA_SQS_URL && item.cards.length > 0) {
+        try {
+          await sqsClient.send(new SendMessageCommand({
+            QueueUrl: LORCANA_SQS_URL,
+            MessageBody: JSON.stringify({ deckId, userId, name: item.name, cards: item.cards }),
+          }));
+        } catch (e) {
+          console.error("Auto-queue failed", e);
+        }
+      }
+
+      return {
+        statusCode: 201,
+        headers,
+        body: JSON.stringify({ message: 'Deck saved successfully to DynamoDB', deckId, deck: item }),
+      };
+    }
+
+    // 2. GET /decks — List User Decks
+    if (httpMethod === 'GET' && (path === '/decks' || path === '/decks/')) {
+      const res = await docClient.send(
+        new QueryCommand({
+          TableName: DECKS_TABLE,
+          IndexName: 'userId-index',
+          KeyConditionExpression: 'userId = :uid',
+          ExpressionAttributeValues: { ':uid': userId },
+        })
+      ).catch(async () => {
+        // Fallback scan if GSI is not created yet
+        return await docClient.send(
+          new ScanCommand({
+            TableName: DECKS_TABLE,
+            FilterExpression: 'userId = :uid',
+            ExpressionAttributeValues: { ':uid': userId },
+          })
+        );
+      });
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ decks: res.Items || [] }),
+      };
+    }
+
+    // 3. DELETE /decks/{deckId} — Delete Deck
+    if (httpMethod === 'DELETE' && path.match(/^\/decks\/[^/]+$/)) {
+      const deckId = pathParams.deckId || path.split('/')[2];
+      if (!deckId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'deckId param missing' }) };
+      }
+
+      await docClient.send(
+        new DeleteCommand({
+          TableName: DECKS_TABLE,
+          Key: { deckId, userId },
+        })
+      );
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ message: 'Deck deleted successfully' }),
+      };
+    }
+
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+  } catch (err: any) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: err.message || 'Internal Server Error' }),
+    };
+  }
+};

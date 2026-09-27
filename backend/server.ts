@@ -30,6 +30,13 @@ const DECKS_TABLE = process.env.DECKS_TABLE || 'DecksTable';
 const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomStateV2';
 const MATCHMAKING_TABLE = process.env.MATCHMAKING_TABLE || 'LorcanaMatchmaking';
 const LORCANA_SQS_URL = process.env.LORCANA_SQS_URL || '';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+// Fail closed: dev defaults are public in the repo, so production must supply real secrets
+const missingSecrets = ['JWT_SECRET', 'ADMIN_PASSCODE'].filter((k) => !process.env[k]);
+if (IS_PRODUCTION && missingSecrets.length) {
+  console.error(`[FATAL] Missing required secrets in production: ${missingSecrets.join(', ')}`);
+  process.exit(1);
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
 const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || 'LORCANA_ADMIN_2026';
 const PORT = process.env.PORT || 3001;
@@ -52,7 +59,8 @@ const LOCKOUT_PERIOD_MS = 5 * 60 * 1000;
 
 // Initialize Express App
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+// Production serves SPA + API from the same ALB origin, so cross-origin access stays off
+if (!IS_PRODUCTION) app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 
 // Request Logging Middleware
