@@ -1,0 +1,8 @@
+run during real failure: victim i-0dcacfe74c2aa486c unhealthy in TG from 11:23:27Z
+start 11:23:37Z
+  ok 1 [Desktop Chrome] › e2e\05-match-realtime-sync.spec.ts:11:1 › TC-E2E-16: deployed API rejects tokens signed with the public dev secret + sends security headers (ALB only) (814ms)
+  ok 2 [Desktop Chrome] › e2e\05-match-realtime-sync.spec.ts:61:3 › 5. Real-time Multi-Client Match Sync & WebSockets QA Suite › TC-E2E-15: P2 joins P1 room across instances and P1 sees the opponent (ALB only) (14.2s)
+  ok 3 [Desktop Chrome] › e2e\05-match-realtime-sync.spec.ts:11:1 › TC-E2E-16: deployed API rejects tokens signed with the public dev secret + sends security headers (ALB only) (823ms)
+  ok 4 [Desktop Chrome] › e2e\05-match-realtime-sync.spec.ts:61:3 › 5. Real-time Multi-Client Match Sync & WebSockets QA Suite › TC-E2E-15: P2 joins P1 room across instances and P1 sees the opponent (ALB only) (10.6s)
+  4 passed (30.0s)
+end 11:24:20Z

@@ -1,0 +1,1 @@
+Stress test: POST http://lorcana-alb-1083183203.us-east-1.elb.amazonaws.com/api/auth/login for 480s with 40 workers (start 08:40:20 UTC)

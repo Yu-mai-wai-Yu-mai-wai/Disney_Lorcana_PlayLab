@@ -1,0 +1,35 @@
+=======================================================
+[*] AWS Auto Scaling Group Self-Healing Test (Min = 2)
+ASG: lorcana-asg | Region: us-east-1
+=======================================================
+
+[1/4] Checking current ASG instance pool...
+  Min Size:          2
+  Desired Capacity:  2
+  Max Size:          4
+
+[2/4] Waiting for initial instances to reach InService (Min = 2)...
+  [OK] 2/2 Instances are InService!
+
+[+] Current Active Instances:
+  - Instance ID: i-02ce5c4c39704bf82 | AZ: us-east-1a | IP: 54.196.197.109 | Status: Healthy
+  - Instance ID: i-0ba996c95bb1dcf98 | AZ: us-east-1b | IP: 52.91.218.222 | Status: Healthy
+
+[3/4] [SIMULATE FAILURE: app] on i-02ce5c4c39704bf82...
+  T+   6s 08:32:55Z failure injected on i-02ce5c4c39704bf82 (survivor: i-0ba996c95bb1dcf98)
+
+[4/4] [AUTO-RECOVERY MONITOR] polling every 10s (timeout 15 min)...
+  T+   7s 08:32:57Z alarm lorcana-unhealthy-hosts = OK
+  T+ 146s 08:35:15Z ASG launched replacement i-0051648ec4f7dbaf9
+  T+ 231s 08:36:41Z i-0051648ec4f7dbaf9 healthy in target group
+  T+ 243s 08:36:53Z alarm lorcana-unhealthy-hosts = ALARM
+  T+ 426s 08:39:55Z alarm lorcana-unhealthy-hosts = OK
+
+=== Recovery timeline ===
+  Terminated:          i-02ce5c4c39704bf82 at T+0s 08:32:50Z
+  ReplacementLaunched: T+ 146s 08:35:15Z
+  ReplacementHealthy:  T+ 231s 08:36:41Z
+  AlarmFired:          T+ 243s 08:36:53Z
+  AlarmRecovered:      T+ 428s 08:39:57Z
+[PASS] ASG replaced i-02ce5c4c39704bf82 with i-0051648ec4f7dbaf9; alarm returned to OK
+exit=0

@@ -1,0 +1,10 @@
+Stress test: POST http://lorcana-alb-1083183203.us-east-1.elb.amazonaws.com/api/auth/login for 360s with 40 workers (start 09:35:43 UTC)
+Done at 09:41:45 UTC | OK: 9653 | Failed: 0 | 26.8 logins/s
+
+Auto Scaling activity since start:
+-----------------------------------------------------------------------------------------------------------------------
+|                                              DescribeScalingActivities                                              |
++-----------------------------------+---------------------------+-----------------------------------------------------+
+|  2026-09-27T09:40:26.544000+00:00 |  WaitingForInstanceWarmup |  Launching a new EC2 instance: i-06d8b1af912010b80  |
+|  2026-09-27T09:40:26.454000+00:00 |  WaitingForInstanceWarmup |  Launching a new EC2 instance: i-05b4a4dcd9b9508ea  |
++-----------------------------------+---------------------------+-----------------------------------------------------+
