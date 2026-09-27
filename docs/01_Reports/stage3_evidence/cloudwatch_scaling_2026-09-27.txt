@@ -1,0 +1,29 @@
+# ASG average CPU (1-min, detailed monitoring) — run 2 with cluster workers
+2026-09-27T16:34:00+07:00	1.2940791333622175	2.560680623905246
+2026-09-27T16:35:00+07:00	17.515085852183006	34.81350503769934
+2026-09-27T16:36:00+07:00	28.46607831092366	29.39952041563978
+2026-09-27T16:37:00+07:00	99.80398847249515	99.99000016666388
+2026-09-27T16:38:00+07:00	99.86415752120269	99.98498598692112
+2026-09-27T16:39:00+07:00	99.96416699998333	99.9866673333
+2026-09-27T16:40:00+07:00	99.95171527419417	99.98333333333333
+2026-09-27T16:41:00+07:00	99.97163309916735	100.0
+
+# Run 1 (single Node process, 08:40-08:47Z) plateau for comparison
+2026-09-27T15:40:00+07:00	16.56752520051655	30.265657811406285
+2026-09-27T15:41:00+07:00	49.8770173778987	50.00333022512322
+2026-09-27T15:42:00+07:00	49.22673661459351	49.482767236927586
+2026-09-27T15:43:00+07:00	49.893545133746	50.15091130417383
+2026-09-27T15:44:00+07:00	49.08175725272342	49.31351450544684
+2026-09-27T15:45:00+07:00	48.6559571901862	48.77784808018915
+2026-09-27T15:46:00+07:00	37.29000355219638	49.55082584709745
+2026-09-27T15:47:00+07:00	2.502150207889874	4.687786730727524
+
+# Target tracking AlarmHigh history
+2026-09-27T16:40:19.227000+07:00	Alarm updated from OK to ALARM
+
+# Scaling activities
+2026-09-27T09:40:26.544000+00:00	WaitingForInstanceWarmup	Launching a new EC2 instance: i-06d8b1af912010b80	At 2026-09-27T09:40:19Z a monitor alarm TargetTracking-lorcana-asg-AlarmHigh-0229205d-26a5-4ccd-92d4-4d352b1db0a0 in state ALARM triggered policy cpu-target-tracking-60 changing the desired capacity from 2 to 4.  At 2026-09-27T09:40:24Z an instance was started in response to a difference between desired and actual capacity, increasing the capacity from 2 to 4.
+2026-09-27T09:40:26.454000+00:00	WaitingForInstanceWarmup	Launching a new EC2 instance: i-05b4a4dcd9b9508ea	At 2026-09-27T09:40:19Z a monitor alarm TargetTracking-lorcana-asg-AlarmHigh-0229205d-26a5-4ccd-92d4-4d352b1db0a0 in state ALARM triggered policy cpu-target-tracking-60 changing the desired capacity from 2 to 4.  At 2026-09-27T09:40:24Z an instance was started in response to a difference between desired and actual capacity, increasing the capacity from 2 to 4.
+2026-09-27T09:33:35.815000+00:00	Successful	Launching a new EC2 instance: i-0f59fd8ddddc8860f	At 2026-09-27T09:33:33Z an instance was started in response to a difference between desired and actual capacity, increasing the capacity from 1 to 2.
+2026-09-27T09:33:30.487000+00:00	Successful	Terminating EC2 instance: i-0ba996c95bb1dcf98	At 2026-09-27T09:33:30Z instance i-0ba996c95bb1dcf98 was taken out of service in response to a user request.
+None
