@@ -3,9 +3,10 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { apiService } from '../services/api';
 import { translateInkColor } from '../utils/cardTranslator';
-import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye, Palette } from 'lucide-react';
+import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye, Palette, ShieldAlert } from 'lucide-react';
 import { DeckViewerModal } from './DeckViewerModal';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
+import { AdminBillingDashboardModal } from './AdminBillingDashboardModal';
 import { usePlaymatStore } from '../store/usePlaymatStore';
 
 interface UserDashboardProps {
@@ -18,6 +19,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   const { getCurrentPlaymat } = usePlaymatStore();
   const currentPlaymat = getCurrentPlaymat();
   const [isPlaymatModalOpen, setIsPlaymatModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
@@ -295,18 +297,43 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                   <div>
                     <h3 className="font-cinzel font-bold text-xl text-[#F1F5F9]">{user.username}</h3>
                     <p className="text-xs text-[#94A3B8] mt-1">{user.email || 'Illumineer Member'}</p>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
-                      <UserCheck className="w-4 h-4" />
-                      <span>{language === 'th' ? 'บัญชีซิงค์คลาวด์เรียบร้อย' : 'Account Active & Synced'}</span>
-                    </div>
+                    {user.role === 'admin' ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 rounded-full bg-purple-500/15 border border-purple-500/40 text-purple-300 text-xs font-mono font-bold shadow-[0_0_12px_rgba(168,85,247,0.3)]">
+                        <ShieldAlert className="w-3.5 h-3.5 text-[#F59E0B]" />
+                        <span>{language === 'th' ? 'ผู้ดูแลระบบ (ADMIN)' : 'ADMINISTRATOR'}</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
+                        <UserCheck className="w-4 h-4" />
+                        <span>{language === 'th' ? 'บัญชีซิงค์คลาวด์เรียบร้อย' : 'Account Active & Synced'}</span>
+                      </div>
+                    )}
                   </div>
 
-                  <button
-                    onClick={logout}
-                    className="w-full py-2.5 bg-[#0B0F19] hover:bg-rose-950/60 border border-[#30363d] hover:border-rose-500/40 text-rose-300 font-bold text-xs rounded-lg transition-colors cursor-pointer"
-                  >
-                    {t.navSignOut}
-                  </button>
+                  <div className="space-y-2 pt-2">
+                    <button
+                      onClick={() => setIsAdminModalOpen(true)}
+                      className={`w-full py-2.5 rounded-xl font-cinzel font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                        user.role === 'admin'
+                          ? 'bg-gradient-to-r from-amber-500 via-purple-600 to-amber-500 text-black hover:opacity-95 shadow-[0_0_15px_rgba(245,158,11,0.35)] hover:scale-[1.02]'
+                          : 'bg-[#0B0F19] hover:bg-[#141a26] border border-[#30363d] hover:border-[#F59E0B] text-[#F59E0B]'
+                      }`}
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>
+                        {user.role === 'admin'
+                          ? (language === 'th' ? '🛡️ ดู AWS BUDGET & CLOUD' : '🛡️ VIEW AWS BUDGET & CLOUD')
+                          : (language === 'th' ? '🔑 ปลดล็อกสิทธิ์ ADMIN CONSOLE' : '🔑 ACCESS ADMIN CONSOLE')}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={logout}
+                      className="w-full py-2.5 bg-[#0B0F19] hover:bg-rose-950/60 border border-[#30363d] hover:border-rose-500/40 text-rose-300 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                    >
+                      {t.navSignOut}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -517,6 +544,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
       <PlaymatSelectorModal
         isOpen={isPlaymatModalOpen}
         onClose={() => setIsPlaymatModalOpen(false)}
+      />
+
+      {/* Admin Cloud & Budget Billing Dashboard Modal */}
+      <AdminBillingDashboardModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
       />
     </div>
   );

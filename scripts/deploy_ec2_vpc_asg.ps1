@@ -165,13 +165,13 @@ aws ec2 create-launch-template `
     --region $Region | Out-Null
 Remove-Item -Path $ltFile -Force
 
-# Create ASG (Min: 1, Max: 3, Desired: 1)
+# Create ASG (Min: 2, Max: 4, Desired: 2) — Multi-AZ (1 EC2 in Subnet 1a, 1 EC2 in Subnet 1b)
 aws autoscaling create-auto-scaling-group `
     --auto-scaling-group-name "lorcana-asg" `
     --launch-template "LaunchTemplateName=lorcana-lt,Version=`$Latest" `
-    --min-size 1 `
-    --max-size 3 `
-    --desired-capacity 1 `
+    --min-size 2 `
+    --max-size 4 `
+    --desired-capacity 2 `
     --target-group-arns $TargetGroupArn `
     --vpc-zone-identifier "$Subnet1Id,$Subnet2Id" `
     --health-check-type "ELB" `

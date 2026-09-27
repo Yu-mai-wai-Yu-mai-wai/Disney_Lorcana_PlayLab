@@ -73,6 +73,45 @@ server {
 }
 EOF
 
+# Ensure fallback index.html exists with Instance ID and Availability Zone
+if [ ! -f /var/www/lorcana-web/index.html ]; then
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)
+  AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone 2>/dev/null || echo "us-east-1a")
+  INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || hostname)
+  cat << HTML > /var/www/lorcana-web/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Disney Lorcana PlayLab - AWS Multi-AZ</title>
+  <style>
+    body { background: #0B0F19; color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { background: #141a26; border: 2px solid #F59E0B; border-radius: 20px; padding: 40px; text-align: center; box-shadow: 0 0 30px rgba(245, 158, 11, 0.2); max-width: 500px; }
+    h1 { color: #F59E0B; margin: 0 0 10px 0; font-size: 24px; }
+    .badge { display: inline-block; background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid #10B981; padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 12px; margin-bottom: 20px; }
+    .info-box { background: #0B0F19; border: 1px solid #30363d; border-radius: 12px; padding: 15px; text-align: left; font-family: monospace; font-size: 14px; margin-top: 15px; }
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; }
+    .info-row:last-child { border-bottom: none; }
+    .label { color: #94A3B8; }
+    .value { color: #F59E0B; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏰 Disney Lorcana PlayLab</h1>
+    <div class="badge">● AWS LEAN MULTI-AZ CLOUD READY</div>
+    <div class="info-box">
+      <div class="info-row"><span class="label">Instance ID:</span><span class="value">$INSTANCE_ID</span></div>
+      <div class="info-row"><span class="label">Availability Zone:</span><span class="value" style="color: #10B981;">$AZ</span></div>
+      <div class="info-row"><span class="label">ASG Cluster:</span><span class="value">lorcana-asg (Min: 2)</span></div>
+      <div class="info-row"><span class="label">ALB Health:</span><span class="value">HTTP 200 OK</span></div>
+    </div>
+  </div>
+</body>
+</html>
+HTML
+fi
+
 # Ensure default nginx config does not conflict on port 80
 sed -i -E 's/listen\s+80;/listen 8080;/g' /etc/nginx/nginx.conf || true
 sed -i -E 's/listen\s+\[::\]:80;/listen [::]:8080;/g' /etc/nginx/nginx.conf || true

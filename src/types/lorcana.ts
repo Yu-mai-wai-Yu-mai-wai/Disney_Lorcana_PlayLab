@@ -34,6 +34,35 @@ export interface UserProfile {
   role: string;
 }
 
+export interface AdminServiceCost {
+  name: string;
+  category: string;
+  cost: number;
+  percentage: number;
+  status: string;
+}
+
+export interface AdminBillingData {
+  accountId: string;
+  budgetTotal: number;
+  monthToDateSpend: number;
+  forecastSpend: number;
+  remainingBudget: number;
+  budgetUsagePercent: number;
+  currentHourlyBurnRate: number;
+  cloudStatus: 'stopped' | 'running' | 'degraded';
+  services: AdminServiceCost[];
+  resourceTelemetry: {
+    asgDesired: number;
+    asgCurrent: number;
+    albCount: number;
+    ec2Running: number;
+    dynamoTables: number;
+    sqsQueues: number;
+  };
+  lastUpdated: string;
+}
+
 export interface AuthState {
   user: UserProfile | null;
   token: string | null;
