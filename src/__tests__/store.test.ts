@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { apiService } from '../services/api';
+import { copyText } from '../utils/copyText';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDeckStore } from '../store/useDeckStore';
 import { useLanguageStore } from '../store/useLanguageStore';
@@ -140,6 +142,47 @@ describe('Zustand Global Stores QA Suite', () => {
       const playmat = usePlaymatStore.getState().getCurrentPlaymat();
       expect(playmat).toBeDefined();
       expect(playmat.id).toBe('stitch-rockstar');
+    });
+
+    it('TC-STORE-11: logged-in selection is saved to the account on AWS', () => {
+      const save = vi.spyOn(apiService, 'savePlaymat').mockResolvedValue(true);
+      useAuthStore.getState().setAuth(MOCK_USER_PROFILE, MOCK_JWT_TOKEN);
+      usePlaymatStore.getState().setPlaymatId('elsa-spirit-winter');
+      expect(save).toHaveBeenCalledWith('elsa-spirit-winter', MOCK_JWT_TOKEN);
+      save.mockRestore();
+    });
+
+    it('TC-STORE-12: loading an account applies its saved playmat, or the default when none/unknown', async () => {
+      const get = vi.spyOn(apiService, 'getPlaymat');
+      useAuthStore.getState().setAuth(MOCK_USER_PROFILE, MOCK_JWT_TOKEN);
+
+      get.mockResolvedValueOnce('maui-demigod');
+      await usePlaymatStore.getState().loadFromServer();
+      expect(usePlaymatStore.getState().currentPlaymatId).toBe('maui-demigod');
+
+      // another account with nothing saved must not inherit the previous account's skin
+      get.mockResolvedValueOnce(null);
+      await usePlaymatStore.getState().loadFromServer();
+      expect(usePlaymatStore.getState().currentPlaymatId).toBe('illuminary-classic');
+
+      get.mockResolvedValueOnce('not-a-real-skin');
+      await usePlaymatStore.getState().loadFromServer();
+      expect(usePlaymatStore.getState().currentPlaymatId).toBe('illuminary-classic');
+      get.mockRestore();
+    });
+  });
+
+  describe('5. copyText (works on plain HTTP)', () => {
+    it('TC-UTIL-01: falls back to execCommand when navigator.clipboard is unavailable', async () => {
+      const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+      Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+      const exec = vi.fn().mockReturnValue(true);
+      (document as any).execCommand = exec;
+
+      await expect(copyText('588907')).resolves.toBe(true);
+      expect(exec).toHaveBeenCalledWith('copy');
+
+      if (original) Object.defineProperty(navigator, 'clipboard', original);
     });
   });
 });

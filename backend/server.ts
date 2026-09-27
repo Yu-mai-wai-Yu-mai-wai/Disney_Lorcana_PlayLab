@@ -552,6 +552,50 @@ router.get('/decks/:deckId/analysis', authenticateToken, async (req: Request, re
   }
 });
 
+// 8. Playmat preference, stored on the user item so it follows the account across devices
+const PLAYMAT_ID_RE = /^[a-z0-9-]{1,64}$/;
+
+router.get('/users/me/playmat', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const username = (req as any).user.username;
+    const userRes = await docClient.send(
+      new GetCommand({ TableName: USERS_TABLE, Key: { username }, ProjectionExpression: 'playmatId' })
+    );
+    res.status(200).json({ playmatId: userRes.Item?.playmatId ?? null });
+  } catch (err: any) {
+    console.error('[Get Playmat Error]', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/users/me/playmat', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  const { playmatId } = req.body || {};
+  if (typeof playmatId !== 'string' || !PLAYMAT_ID_RE.test(playmatId)) {
+    res.status(400).json({ error: 'playmatId must be 1-64 chars of a-z, 0-9 or -' });
+    return;
+  }
+  try {
+    const username = (req as any).user.username;
+    await docClient.send(
+      new UpdateCommand({
+        TableName: USERS_TABLE,
+        Key: { username },
+        UpdateExpression: 'SET playmatId = :p',
+        ConditionExpression: 'attribute_exists(username)', // never create a user item from a token alone
+        ExpressionAttributeValues: { ':p': playmatId },
+      })
+    );
+    res.status(200).json({ playmatId });
+  } catch (err: any) {
+    if (err?.name === 'ConditionalCheckFailedException') {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    console.error('[Save Playmat Error]', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Mount router on both root and /api
 app.use('/', router);
 app.use('/api', router);

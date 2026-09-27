@@ -19,6 +19,25 @@ function bootServer(env: Record<string, string>, waitMs: number): Promise<number
   });
 }
 
+const SERVER_JWT = 'x'.repeat(48);
+
+// Boots server.ts in production mode on a random port and waits for /health
+async function startServer(): Promise<{ base: string; stop: () => void }> {
+  const port = String(39000 + Math.floor(Math.random() * 1000));
+  const backendDir = path.resolve(__dirname, '..');
+  const child = spawn(process.execPath, [path.join(backendDir, 'node_modules/tsx/dist/cli.mjs'), path.join(backendDir, 'server.ts')], {
+    cwd: os.tmpdir(),
+    env: { ...process.env, NODE_ENV: 'production', PORT: port, JWT_SECRET: SERVER_JWT, ADMIN_PASSCODE: 'real-passcode-123' },
+    stdio: 'ignore',
+  });
+  const base = `http://127.0.0.1:${port}`;
+  for (let i = 0; i < 40; i++) {
+    if (await fetch(`${base}/health`).then((r) => r.ok, () => false)) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return { base, stop: () => child.kill() };
+}
+
 describe('0. Production secret guard (OWASP A02/A07)', () => {
   it('TC-AUTH-00a: server refuses to start in production without JWT_SECRET/ADMIN_PASSCODE', async () => {
     const result = await bootServer({ NODE_ENV: 'production' }, 10000);
@@ -32,26 +51,34 @@ describe('0. Production secret guard (OWASP A02/A07)', () => {
   }, 10000);
 
   it('TC-AUTH-00c: only ADMIN_PASSCODE verifies; old hardcoded passcodes are rejected', async () => {
-    const port = String(39000 + Math.floor(Math.random() * 1000));
-    const backendDir = path.resolve(__dirname, '..');
-    const child = spawn(process.execPath, [path.join(backendDir, 'node_modules/tsx/dist/cli.mjs'), path.join(backendDir, 'server.ts')], {
-      cwd: os.tmpdir(),
-      env: { ...process.env, NODE_ENV: 'production', PORT: port, JWT_SECRET: 'x'.repeat(48), ADMIN_PASSCODE: 'real-passcode-123' },
-      stdio: 'ignore',
-    });
+    const { base, stop } = await startServer();
     const verify = (passcode: string) =>
-      fetch(`http://127.0.0.1:${port}/api/admin/verify-passcode`, {
+      fetch(`${base}/api/admin/verify-passcode`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode }),
       }).then((r) => r.status);
     try {
-      for (let i = 0; i < 40; i++) {
-        if (await fetch(`http://127.0.0.1:${port}/health`).then((r) => r.ok, () => false)) break;
-        await new Promise((r) => setTimeout(r, 250));
-      }
       for (const bad of ['admin123', 'LORCANA_ADMIN_2026', 'Admin@2026']) expect(await verify(bad)).not.toBe(200);
       expect(await verify('real-passcode-123')).toBe(200);
     } finally {
-      child.kill();
+      stop();
+    }
+  }, 20000);
+
+  it('TC-AUTH-00d: playmat endpoint needs a token and rejects malformed ids before touching DynamoDB', async () => {
+    const { base, stop } = await startServer();
+    const token = jwt.sign({ username: 'playmat_tester' }, SERVER_JWT, { algorithm: 'HS256', expiresIn: '5m' });
+    const put = (playmatId: unknown, auth?: string) =>
+      fetch(`${base}/api/users/me/playmat`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(auth ? { Authorization: `Bearer ${auth}` } : {}) },
+        body: JSON.stringify({ playmatId }),
+      }).then((r) => r.status);
+    try {
+      expect(await fetch(`${base}/api/users/me/playmat`).then((r) => r.status)).toBe(401);
+      expect(await put('elsa-spirit-winter')).toBe(401);
+      for (const bad of ['', 'x'.repeat(65), '../etc', 'Has Spaces', 42, null]) expect(await put(bad, token)).toBe(400);
+    } finally {
+      stop();
     }
   }, 20000);
 });

@@ -116,6 +116,29 @@ export const apiService = {
     }
   },
 
+  async getPlaymat(token: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me/playmat`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) return null;
+      return (await response.json()).playmatId ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  async savePlaymat(playmatId: string, token: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me/playmat`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ playmatId }),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  },
+
   async verifyAdminPasscode(passcode: string): Promise<{ valid: boolean; role?: string; error?: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/admin/verify-passcode`, {

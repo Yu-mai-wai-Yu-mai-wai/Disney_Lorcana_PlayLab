@@ -23,6 +23,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { apiService } from '../services/api';
 import { AdminBillingData } from '../types/lorcana';
+import { copyText } from '../utils/copyText';
 
 interface AdminBillingDashboardModalProps {
   isOpen: boolean;
@@ -86,8 +87,8 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
     }
   };
 
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = async (text: string, id: string) => {
+    if (!(await copyText(text))) return;
     setCopiedCmd(id);
     setTimeout(() => setCopiedCmd(null), 2500);
   };

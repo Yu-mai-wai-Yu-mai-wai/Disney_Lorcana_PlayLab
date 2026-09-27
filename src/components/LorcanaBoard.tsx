@@ -34,6 +34,7 @@ import {
   Pin,
   Eye,
   Globe,
+  LogOut,
 } from 'lucide-react';
 import { webSocketService } from '../services/websocket';
 import { InkSymbol } from './InkSymbol';
@@ -96,6 +97,8 @@ export interface LorcanaBoardProps {
   matchMode?: boolean;
   isRejoin?: boolean;
   onExitMatch?: () => void;
+  /** Leave without the confirm dialog (used after the opponent already left) */
+  onReturnToLobby?: () => void;
 }
 
 export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
@@ -106,6 +109,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   matchMode = false,
   isRejoin = false,
   onExitMatch,
+  onReturnToLobby,
 }) => {
   const { user } = useAuthStore();
   const { t, language, toggleLanguage } = useLanguageStore();
@@ -654,6 +658,10 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [isOpponentDisconnected, setIsOpponentDisconnected] = useState(false);
   const [disconnectCountdown, setDisconnectCountdown] = useState(60);
   const disconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [opponentLeftName, setOpponentLeftName] = useState<string | null>(null);
+  // Rejoin: our local board may be stale. Until the opponent answers a sync request we neither
+  // broadcast our state nor let anyone overwrite theirs with it.
+  const awaitingSyncRef = useRef<boolean>(isRejoin);
 
   // Capture game snapshot before an action
   const captureSnapshot = () => {
@@ -788,6 +796,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       }, 200);
     }
   }, [roomId, playerRole, matchMode, user, isRejoin, myUsername]);
+
+  // Rejoin sync retry: the first request can be relayed before Lambda has registered our new
+  // connection, so the answer goes to the dead one. Re-ask every 2s (max 5), then fall back to local state.
+  React.useEffect(() => {
+    if (!matchMode || !roomId || !isRejoin) return;
+    let attempts = 0;
+    const timer = setInterval(() => {
+      if (!awaitingSyncRef.current) return clearInterval(timer);
+      if (++attempts > 5) {
+        awaitingSyncRef.current = false;
+        return clearInterval(timer);
+      }
+      webSocketService.sendAction('REQUEST_STATE_SYNC' as any, { roomId, role: playerRoleRef.current, username: myUsername });
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [matchMode, roomId, isRejoin, myUsername]);
 
   React.useEffect(() => {
     if (!matchMode) return;
@@ -1083,11 +1107,19 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setDisconnectCountdown(0);
       if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
       setLogMessages(prev => [`${data.username || 'Opponent'} exited the match.`, ...prev]);
+      setOpponentLeftName(data.username || opponentName || 'Opponent');
     });
 
     const unsubReconnected = webSocketService.subscribe('PLAYER_RECONNECTED', (data: any) => {
+      if (data.isSelf) {
+        // Lambda confirmed our new connection is registered: now a sync answer can reach us
+        if (awaitingSyncRef.current) {
+          webSocketService.sendAction('REQUEST_STATE_SYNC' as any, { roomId, role: playerRoleRef.current, username: myUsername });
+        }
+        return;
+      }
       markOpponentActive(data.username);
-      if (!data.isSelf) {
+      if (!awaitingSyncRef.current) {
         showNotice(`🎉 ${data.username || 'Opponent'} reconnected to the match!`, 'success');
         setLogMessages(prev => [`Opponent reconnected to the room. Match resumed.`, ...prev]);
 
@@ -1121,6 +1153,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     const unsubSyncRequest = webSocketService.subscribe('REQUEST_STATE_SYNC', (data: any) => {
       if (checkFromMe(data)) return;
       markOpponentActive(data.username);
+      if (awaitingSyncRef.current) return; // our board may be stale; don't hand it out
       const bs = boardStateRef.current;
       const isP1 = playerRoleRef.current === 'player1';
       webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
@@ -1149,6 +1182,9 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     const unsubSyncResponse = webSocketService.subscribe('STATE_SYNC_RESPONSE', (data: any) => {
       if (checkFromMe(data)) return;
       markOpponentActive(data.username);
+      // Only a rejoining board applies a snapshot; a live board keeps its own authoritative state
+      if (!awaitingSyncRef.current) return;
+      awaitingSyncRef.current = false;
       const p = data.payload || data;
       if (p) {
         const isP1 = playerRoleRef.current === 'player1';
@@ -3430,6 +3466,47 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
                     </button>
                   )}
                 </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* OPPONENT LEFT (pressed Exit Match) — no grace period, offer the same exit */}
+      <AnimatePresence>
+        {opponentLeftName && (
+          <div className="fixed inset-0 z-[115] flex items-center justify-center bg-[#0B0F19]/90 backdrop-blur-md p-4">
+            <motion.div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="opponent-left-title"
+              aria-describedby="opponent-left-desc"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#141a26] border-2 border-rose-500/70 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-[0_0_50px_rgba(244,63,94,0.25)] flex flex-col items-center text-center gap-5"
+            >
+              <div className="w-16 h-16 rounded-full bg-rose-500/10 border-2 border-rose-500 flex items-center justify-center text-rose-400">
+                <LogOut className="w-8 h-8" aria-hidden="true" />
+              </div>
+              <div>
+                <h3 id="opponent-left-title" className="font-cinzel text-2xl font-bold text-[#F1F5F9] mb-2">
+                  {language === 'th' ? 'คู่แข่งออกจากห้องแล้ว' : 'Opponent Left the Match'}
+                </h3>
+                <p id="opponent-left-desc" className="text-sm text-slate-300 font-outfit max-w-md">
+                  {language === 'th'
+                    ? `${opponentLeftName} กดออกจากห้อง แมตช์นี้จบแล้วและจะกลับเข้ามาไม่ได้`
+                    : `${opponentLeftName} exited the match. This match has ended and cannot be resumed.`}
+                </p>
+              </div>
+              {(onReturnToLobby || onExitMatch) && (
+                <button
+                  autoFocus
+                  onClick={() => (onReturnToLobby ?? onExitMatch)?.()}
+                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white text-white font-cinzel font-bold text-sm transition-all cursor-pointer shadow-lg"
+                >
+                  {language === 'th' ? 'ออกจากห้อง กลับ Lobby' : 'Exit to Lobby'}
+                </button>
               )}
             </motion.div>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { GameHub } from './components/GameHub';
 import { LorcanaBoard } from './components/LorcanaBoard';
@@ -11,6 +11,8 @@ import { PatchNotesModal } from './components/PatchNotesModal';
 import { MatchLobby } from './components/MatchLobby';
 import { GoldInkShaderCanvas } from './components/GoldInkShaderCanvas';
 import { webSocketService } from './services/websocket';
+import { useAuthStore } from './store/useAuthStore';
+import { usePlaymatStore } from './store/usePlaymatStore';
 import { APP_VERSION } from './data/patchNotes';
 import { Tag } from 'lucide-react';
 
@@ -40,14 +42,24 @@ export function App() {
     setActiveTab('board');
   };
 
+  // Playmat follows the logged-in account (saved on AWS); guests get the default
+  const token = useAuthStore((s) => s.token);
+  useEffect(() => {
+    if (token) void usePlaymatStore.getState().loadFromServer();
+    else usePlaymatStore.getState().reset();
+  }, [token]);
+
+  // Voluntary exit: LEAVE_ROOM frees the seat immediately and the opponent is notified (no rejoin)
+  const leaveMatch = () => {
+    localStorage.removeItem('lorcana_active_session');
+    webSocketService.leaveRoom();
+    setMatchInfo(null);
+    setActiveTab('match');
+  };
+
   const handleExitMatch = () => {
-    if (confirm('Are you sure you want to leave to Lobby? (You can rejoin as long as your opponent is still in the room)')) {
-      // We deliberately PRESERVE lorcana_active_session and lorcana_board_state_[roomId]
-      // so the player can see the "Rejoin Match" banner in the Match Lobby and jump right back in!
-      localStorage.removeItem('lorcana_active_session');
-      webSocketService.leaveRoom();
-      setMatchInfo(null);
-      setActiveTab('match');
+    if (confirm('Leave this match? You cannot rejoin this room afterwards, and your opponent will be notified.')) {
+      leaveMatch();
     }
   };
 
@@ -81,6 +93,7 @@ export function App() {
             roomId={matchInfo?.roomId} 
             playerRole={matchInfo?.role} 
             onExitMatch={matchInfo ? handleExitMatch : undefined}
+            onReturnToLobby={matchInfo ? leaveMatch : undefined}
           />
         )}
         {activeTab === 'deckbuilder' && <DeckBuilder />}

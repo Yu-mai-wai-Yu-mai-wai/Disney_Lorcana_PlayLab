@@ -8,6 +8,7 @@ import { Swords, LogIn, Plus, Loader2, X, AlertCircle, Palette, Sparkles, Copy, 
 import { useLanguageStore } from '../store/useLanguageStore';
 import { usePlaymatStore } from '../store/usePlaymatStore';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
+import { copyText } from '../utils/copyText';
 
 interface MatchLobbyProps {
   onStartMatch: (deckId: string, deckName: string, roomId?: string, role?: string, deckObject?: any, isRejoin?: boolean) => void;
@@ -288,12 +289,23 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
     setOpponent(null);
   };
 
-  const handleCopyRoomCode = () => {
-    if (currentRoomId) {
-      navigator.clipboard.writeText(currentRoomId);
+  const handleCopyRoomCode = async () => {
+    if (currentRoomId && (await copyText(currentRoomId))) {
       setCopiedRoomCode(true);
       setTimeout(() => setCopiedRoomCode(false), 2000);
     }
+  };
+
+  // Host cancels a room nobody joined yet: LEAVE_ROOM deletes the host record, then back to IDLE
+  const handleCancelRoom = () => {
+    webSocketService.leaveRoom();
+    try {
+      localStorage.removeItem('lorcana_active_session');
+    } catch (e) {}
+    setSavedSession(null);
+    setCurrentRoomId(null);
+    setOpponent(null);
+    setRoomState('IDLE');
   };
 
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -549,6 +561,14 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
                   <Loader2 className="w-4 h-4 animate-spin text-[#F59E0B]" />
                   <span className="font-outfit">{t.waitingForOpponent}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleCancelRoom}
+                  className="mt-4 w-full py-2.5 rounded-xl border border-rose-500/60 text-rose-300 hover:bg-rose-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 font-cinzel font-bold text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <X className="w-4 h-4" aria-hidden="true" />
+                  {language === 'th' ? 'ยกเลิกห้อง' : 'Cancel Room'}
+                </button>
               </div>
             )}
 
