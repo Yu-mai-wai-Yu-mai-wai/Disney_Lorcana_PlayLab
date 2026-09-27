@@ -261,7 +261,7 @@ router.post('/auth/login', async (req: Request, res: Response): Promise<void> =>
 // 3. POST /admin/verify-passcode
 router.post('/admin/verify-passcode', (req: Request, res: Response): void => {
   const { passcode } = req.body;
-  if (passcode && (String(passcode).trim() === ADMIN_PASSCODE || String(passcode).trim() === 'admin123')) {
+  if (passcode && (String(passcode).trim() === ADMIN_PASSCODE)) {
     res.status(200).json({ valid: true, role: 'admin' });
     return;
   }
@@ -274,7 +274,7 @@ router.post('/admin/elevate', authenticateToken, async (req: Request, res: Respo
     const { passcode } = req.body;
     const authUser = (req as any).user;
 
-    if (!passcode || (String(passcode).trim() !== ADMIN_PASSCODE && String(passcode).trim() !== 'admin123')) {
+    if (!passcode || (String(passcode).trim() !== ADMIN_PASSCODE)) {
       res.status(401).json({ success: false, error: 'Invalid admin passcode' });
       return;
     }
@@ -567,6 +567,8 @@ interface SocketClientInfo {
   username?: string;
   role?: string;
 }
+// ponytail: in-memory WS state only works on one instance; kept for local dev (`npm run dev` -> /ws).
+// Production realtime runs on API Gateway WebSocket + Lambda (backend/serverless/room). Delete once local dev points at the WS API too.
 const clients = new Map<string, SocketClientInfo>();
 const roomGameStates = new Map<string, any>();
 

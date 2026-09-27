@@ -29,6 +29,26 @@ Write-Host "  [OK] Connected as Account: $AccountId" -ForegroundColor Gray
 $LabInstanceProfileArn = "arn:aws:iam::$($AccountId):instance-profile/LabInstanceProfile"
 Write-Host "  [OK] Using IAM Instance Profile: $LabInstanceProfileArn" -ForegroundColor Gray
 
+# Guard: re-running would create a duplicate VPC (quota is 5 per region)
+$existingVpc = aws ec2 describe-vpcs --filters "Name=tag:Name,Values=lorcana-lean-vpc" --region $Region --query "Vpcs[0].VpcId" --output text
+if ($existingVpc -and $existingVpc -ne "None") {
+    Write-Host "[ABORT] lorcana-lean-vpc already exists ($existingVpc). Run '.\lab.ps1 destroy' first." -ForegroundColor Red
+    exit 1
+}
+
+# Secrets in SSM: created once, never overwritten (put-parameter without --overwrite)
+function New-SsmParam([string]$Name, [string]$Type, [string]$Value) {
+    $ErrorActionPreference = "Continue" # PS 5.1 turns native stderr into a terminating error under Stop
+    $out = aws ssm put-parameter --name $Name --type $Type --value $Value --region $Region 2>&1
+    if ($LASTEXITCODE -ne 0 -and "$out" -notmatch "ParameterAlreadyExists") { throw "SSM put-parameter $Name failed: $out" }
+}
+function New-Secret { $b = New-Object byte[] 48; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b) }
+$SqsUrl = aws sqs get-queue-url --queue-name lorcana-deck-analyzer --region $Region --query QueueUrl --output text
+New-SsmParam "/lorcana/jwt-secret" "SecureString" (New-Secret)
+New-SsmParam "/lorcana/admin-passcode" "SecureString" (New-Secret)
+New-SsmParam "/lorcana/sqs-url" "String" $SqsUrl
+Write-Host "  [OK] SSM parameters /lorcana/* ready" -ForegroundColor Gray
+
 # 2. Create Lean Multi-AZ VPC (Zero NAT Gateway = $0.00)
 Write-Host "`n[2/7] [+] Creating Lean Multi-AZ VPC..." -ForegroundColor Green
 $vpcTag = 'ResourceType=vpc,Tags=[{Key=Name,Value=lorcana-lean-vpc}]'
@@ -81,9 +101,8 @@ aws ec2 authorize-security-group-ingress --group-id $AlbSgId --protocol tcp --po
 $ec2SgRes = aws ec2 create-security-group --group-name "lorcana-ec2-sg" --description "Security group for Lorcana EC2 Instances" --vpc-id $VpcId --region $Region --output json | ConvertFrom-Json
 $Ec2SgId = $ec2SgRes.GroupId
 aws ec2 authorize-security-group-ingress --group-id $Ec2SgId --protocol tcp --port 80 --source-group $AlbSgId --region $Region | Out-Null
-aws ec2 authorize-security-group-ingress --group-id $Ec2SgId --protocol tcp --port 3001 --source-group $AlbSgId --region $Region | Out-Null
 Write-Host "  [OK] ALB SG: $AlbSgId (Inbound 80 from anywhere)" -ForegroundColor Gray
-Write-Host "  [OK] EC2 SG: $Ec2SgId (Inbound 80/3001 strictly from ALB SG)" -ForegroundColor Gray
+Write-Host "  [OK] EC2 SG: $Ec2SgId (Inbound 80 strictly from ALB SG)" -ForegroundColor Gray
 
 # 4. Create Application Load Balancer & Target Group
 Write-Host "`n[4/7] [+] Provisioning Application Load Balancer..." -ForegroundColor Green
@@ -94,7 +113,7 @@ $tgRes = aws elbv2 create-target-group `
     --vpc-id $VpcId `
     --target-type instance `
     --health-check-protocol HTTP `
-    --health-check-path "/health" `
+    --health-check-path "/api/health" `
     --health-check-interval-seconds 15 `
     --health-check-timeout-seconds 5 `
     --healthy-threshold-count 2 `
@@ -142,6 +161,7 @@ $ltData = @{
     InstanceType = $InstanceType
     SecurityGroupIds = @($Ec2SgId)
     IamInstanceProfile = @{ Arn = $LabInstanceProfileArn }
+    MetadataOptions = @{ HttpTokens = "required"; HttpPutResponseHopLimit = 1; HttpEndpoint = "enabled" }
     UserData = $UserDataBase64
     TagSpecifications = @(
         @{
@@ -197,6 +217,21 @@ aws autoscaling put-scaling-policy `
 
 Write-Host "  [OK] Auto Scaling Policy configured (Scale-out when CPU > 60%)" -ForegroundColor Gray
 
+# HA evidence: alarm when any target is unhealthy (no SNS action, report evidence only)
+$AlarmName = "lorcana-unhealthy-hosts"
+$tgDim = $TargetGroupArn.Substring($TargetGroupArn.IndexOf("targetgroup/"))
+$lbDim = $AlbArn.Substring($AlbArn.IndexOf("app/"))
+aws cloudwatch put-metric-alarm `
+    --alarm-name $AlarmName `
+    --namespace "AWS/ApplicationELB" `
+    --metric-name "UnHealthyHostCount" `
+    --dimensions "Name=TargetGroup,Value=$tgDim" "Name=LoadBalancer,Value=$lbDim" `
+    --statistic Maximum --period 60 --evaluation-periods 1 `
+    --threshold 0 --comparison-operator GreaterThanThreshold `
+    --treat-missing-data notBreaching `
+    --region $Region | Out-Null
+Write-Host "  [OK] CloudWatch alarm: $AlarmName (UnHealthyHostCount > 0)" -ForegroundColor Gray
+
 # Save State to JSON File
 $state = @{
     Region = $Region
@@ -213,6 +248,7 @@ $state = @{
     TargetGroupArn = $TargetGroupArn
     LaunchTemplateName = "lorcana-lt"
     AutoScalingGroupName = "lorcana-asg"
+    AlarmName = $AlarmName
     DeployedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
 }
 

@@ -14,11 +14,12 @@ export default defineConfig({
     ['./qa/qa-reporter.cjs'],
   ],
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    // E2E_BASE_URL=http://<alb-dns> runs the suite against the deployed stack
+    baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:5173',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  webServer: {
+  webServer: process.env.E2E_BASE_URL ? undefined : {
     command: 'npm run dev -- --host 127.0.0.1 --port 5173',
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: true,

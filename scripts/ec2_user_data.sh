@@ -10,6 +10,17 @@ mkdir -p /var/www/lorcana-backend
 aws s3 sync s3://lorcana-playlab-static-953899323223 /var/www/lorcana-web --region us-east-1 || true
 aws s3 cp s3://lorcana-playlab-assets-953899323223/server.cjs /var/www/lorcana-backend/server.cjs --region us-east-1 || true
 
+# Secrets from SSM (via LabInstanceProfile). Fail closed: no env file = backend never starts.
+ssm() { aws ssm get-parameter --region us-east-1 --name "$1" --with-decryption --query Parameter.Value --output text; }
+umask 077
+if JWT=$(ssm /lorcana/jwt-secret) && ADMIN=$(ssm /lorcana/admin-passcode) && SQS=$(ssm /lorcana/sqs-url); then
+  printf 'JWT_SECRET=%s\nADMIN_PASSCODE=%s\nLORCANA_SQS_URL=%s\n' "$JWT" "$ADMIN" "$SQS" > /etc/lorcana.env
+else
+  echo "[FATAL] Could not read /lorcana/* from SSM; backend will not start" >&2
+fi
+unset JWT ADMIN SQS
+umask 022
+
 # Create systemd service for Lorcana Backend
 cat << 'EOF' > /etc/systemd/system/lorcana-backend.service
 [Unit]
@@ -23,6 +34,8 @@ WorkingDirectory=/var/www/lorcana-backend
 ExecStart=/usr/bin/node /var/www/lorcana-backend/server.cjs
 Restart=always
 RestartSec=5
+EnvironmentFile=/etc/lorcana.env
+Environment=NODE_ENV=production
 Environment=PORT=3001
 Environment=AWS_REGION=us-east-1
 Environment=USERS_TABLE=UsersTable
@@ -45,6 +58,12 @@ server {
     root /var/www/lorcana-web;
     index index.html;
 
+    # Same security headers as nginx.conf in repo
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
     location = /health {
         access_log off;
         add_header Content-Type text/plain;
@@ -59,13 +78,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    location /ws {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
-    }
+    # Realtime runs on API Gateway WebSocket + Lambda (state in DynamoDB), not on EC2
 
     location / {
         try_files $uri $uri/ /index.html;

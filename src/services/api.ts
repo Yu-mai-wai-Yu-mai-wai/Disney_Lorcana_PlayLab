@@ -128,11 +128,7 @@ export const apiService = {
         return { valid: true, role: data.role || 'admin' };
       }
     } catch (e) {
-      // Backend offline fallback check:
-    }
-    const clean = passcode.trim();
-    if (clean === 'LORCANA_ADMIN_2026' || clean === 'admin123' || clean === 'Admin@2026') {
-      return { valid: true, role: 'admin' };
+      // Backend offline: passcode can only be verified server-side
     }
     return { valid: false, error: 'Invalid admin passcode' };
   },
@@ -152,12 +148,7 @@ export const apiService = {
         return { success: true, role: data.role || 'admin', token: data.token };
       }
     } catch (e) {
-      // Fallback for offline development
-    }
-
-    const clean = passcode.trim();
-    if (clean === 'LORCANA_ADMIN_2026' || clean === 'admin123' || clean === 'Admin@2026') {
-      return { success: true, role: 'admin' };
+      // Backend offline: passcode can only be verified server-side
     }
     return { success: false, error: 'รหัส Admin ไม่ถูกต้อง (Invalid Admin Passcode)' };
   },

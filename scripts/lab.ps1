@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("start", "stop", "status", "destroy")]
+    [ValidateSet("start", "stop", "status", "publish", "destroy")]
     [string]$Action = "status",
     [string]$Region = "us-east-1"
 )
@@ -18,9 +18,6 @@ $state = if (Test-Path $stateFile) { Get-Content $stateFile | ConvertFrom-Json }
 if ($state -and $state.Region) { $Region = $state.Region }
 $asg = if ($state -and $state.AsgName) { $state.AsgName } elseif ($state -and $state.AutoScalingGroupName) { $state.AutoScalingGroupName } else { "lorcana-asg" }
 $albDns = if ($state) { $state.AlbDnsName } else { $null }
-$ec2Sg = if ($state -and $state.Ec2SgId) { $state.Ec2SgId } elseif ($state) { $state.Ec2SecurityGroupId } else { $null }
-$albSg = if ($state -and $state.AlbSgId) { $state.AlbSgId } elseif ($state) { $state.AlbSecurityGroupId } else { $null }
-$ltId = if ($state -and $state.LaunchTemplateId) { $state.LaunchTemplateId } else { $null }
 $ltName = if ($state -and $state.LaunchTemplateName) { $state.LaunchTemplateName } else { "lorcana-lt" }
 
 switch ($Action) {
@@ -50,56 +47,121 @@ switch ($Action) {
             }
         }
     }
+    "publish" {
+        # Build SPA (realtime -> API Gateway WebSocket) + backend bundle, upload to S3, sync Lambda secret, rolling refresh
+        $root = Split-Path $PSScriptRoot -Parent
+        $wsApi = aws apigatewayv2 get-apis --region $Region --query "Items[?Name=='LorcanaPlayLabWebSocketApi'].ApiEndpoint | [0]" --output text
+        if (-not $wsApi -or $wsApi -eq "None") { Write-Error "LorcanaPlayLabWebSocketApi not found"; exit 1 }
+
+        Write-Host "[1/5] Building frontend (VITE_WS_ENDPOINT=$wsApi/prod)..." -ForegroundColor Green
+        Push-Location $root
+        try {
+            # Process env beats .env files in Vite; API stays same-origin behind the ALB
+            $env:VITE_WS_ENDPOINT = "$wsApi/prod"; $env:VITE_API_BASE_URL = "/api"
+            npm run build; if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
+            Write-Host "[2/5] Bundling backend -> backend/dist_bundle/server.cjs..." -ForegroundColor Green
+            npx esbuild backend/server.ts --bundle --platform=node --target=node18 --format=cjs --outfile=backend/dist_bundle/server.cjs --log-level=warning
+            if ($LASTEXITCODE -ne 0) { throw "backend bundle failed" }
+        } finally {
+            Remove-Item Env:VITE_WS_ENDPOINT, Env:VITE_API_BASE_URL -ErrorAction SilentlyContinue
+            Pop-Location
+        }
+
+        Write-Host "[3/5] Uploading to S3..." -ForegroundColor Green
+        $acct = aws sts get-caller-identity --query Account --output text
+        aws s3 sync (Join-Path $root "dist") "s3://lorcana-playlab-static-$acct" --region $Region --only-show-errors
+        if ($LASTEXITCODE -ne 0) { Write-Error "s3 sync failed"; exit 1 }
+        aws s3 cp (Join-Path $root "backend/dist_bundle/server.cjs") "s3://lorcana-playlab-assets-$acct/server.cjs" --region $Region --only-show-errors
+        if ($LASTEXITCODE -ne 0) { Write-Error "s3 cp server.cjs failed"; exit 1 }
+
+        Write-Host "[4/5] Syncing JWT secret from SSM to legacy Lambdas..." -ForegroundColor Green
+        $jwt = aws ssm get-parameter --name /lorcana/jwt-secret --with-decryption --region $Region --query Parameter.Value --output text
+        if ($LASTEXITCODE -ne 0 -or -not $jwt) { Write-Error "SSM /lorcana/jwt-secret missing (run deploy first)"; exit 1 }
+        foreach ($fn in @("lorcana-auth-login", "lorcana-deck")) {
+            $vars = aws lambda get-function-configuration --function-name $fn --region $Region --query "Environment.Variables" --output json | ConvertFrom-Json
+            if (-not $vars) { $vars = [pscustomobject]@{} }
+            $vars | Add-Member -NotePropertyName JWT_SECRET -NotePropertyValue $jwt -Force
+            $tmp = [System.IO.Path]::GetTempFileName()
+            try {
+                @{ Variables = $vars } | ConvertTo-Json -Compress | Set-Content -Path $tmp -Encoding Ascii
+                aws lambda update-function-configuration --function-name $fn --environment "file://$tmp" --region $Region --query "LastUpdateStatus" --output text
+            } finally { Remove-Item $tmp -Force }
+        }
+        Remove-Variable jwt
+
+        Write-Host "[5/5] Rolling instance refresh (MinHealthyPercentage 50)..." -ForegroundColor Green
+        $exists = aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --query "length(AutoScalingGroups)" --output text
+        if ($exists -eq "1") {
+            aws autoscaling start-instance-refresh --auto-scaling-group-name $asg --preferences MinHealthyPercentage=50 --region $Region --query InstanceRefreshId --output text
+        } else {
+            Write-Host "  ASG not deployed; new instances will pull this build on boot." -ForegroundColor Yellow
+        }
+    }
     "destroy" {
         Write-Host "[TEARDOWN] Deleting all Lorcana cloud infrastructure..." -ForegroundColor Red
-        if (-not $state) {
-            Write-Warning "No infrastructure_state.json found. Attempting best-effort cleanup by resource names..."
+        $failed = @()
+        function Invoke-Aws([string]$What, [scriptblock]$Cmd) {
+            $out = & $Cmd 2>&1
+            if ($LASTEXITCODE -ne 0 -and "$out" -notmatch "NotFound|does not exist|InvalidGroup.NotFound|ValidationError.*not found") {
+                Write-Host "  [FAIL] $What : $out" -ForegroundColor Red
+                $script:failed += $What
+            }
         }
+        $vpc = if ($state -and $state.VpcId) { $state.VpcId } else {
+            aws ec2 describe-vpcs --filters "Name=tag:Name,Values=lorcana-lean-vpc" --region $Region --query "Vpcs[0].VpcId" --output text
+        }
+        if ($vpc -eq "None") { $vpc = $null }
 
-        # 1. Scale to 0 and delete ASG & Launch Template
-        Write-Host "[1/5] Removing Auto Scaling Group and Launch Template..." -ForegroundColor Gray
-        aws autoscaling update-auto-scaling-group --auto-scaling-group-name $asg --min-size 0 --desired-capacity 0 --region $Region 2>$null
-        aws autoscaling delete-auto-scaling-group --auto-scaling-group-name $asg --force-delete --region $Region 2>$null
-        if ($ltId) { aws ec2 delete-launch-template --launch-template-id $ltId --region $Region 2>$null }
-        aws ec2 delete-launch-template --launch-template-name $ltName --region $Region 2>$null
+        Write-Host "[1/6] ASG, Launch Template, Alarm..." -ForegroundColor Gray
+        Invoke-Aws "delete ASG" { aws autoscaling delete-auto-scaling-group --auto-scaling-group-name $asg --force-delete --region $Region }
+        Invoke-Aws "delete LT" { aws ec2 delete-launch-template --launch-template-name $ltName --region $Region }
+        Invoke-Aws "delete alarm" { aws cloudwatch delete-alarms --alarm-names "lorcana-unhealthy-hosts" --region $Region }
 
-        # 2. ALB & Target Group
-        Write-Host "[2/5] Removing Load Balancer and Target Group..." -ForegroundColor Gray
+        Write-Host "[2/6] Load Balancer & Target Group..." -ForegroundColor Gray
         $albArn = aws elbv2 describe-load-balancers --names "lorcana-alb" --region $Region --query "LoadBalancers[0].LoadBalancerArn" --output text 2>$null
         if ($albArn -and $albArn -ne "None") {
-            aws elbv2 delete-load-balancer --load-balancer-arn $albArn --region $Region 2>$null
-            Start-Sleep -Seconds 15
+            Invoke-Aws "delete ALB" { aws elbv2 delete-load-balancer --load-balancer-arn $albArn --region $Region }
+            aws elbv2 wait load-balancers-deleted --load-balancer-arns $albArn --region $Region
         }
-        $tgArn = if ($state -and $state.TargetGroupArn) { $state.TargetGroupArn } else {
-            aws elbv2 describe-target-groups --names "lorcana-tg" --region $Region --query "TargetGroups[0].TargetGroupArn" --output text 2>$null
-        }
-        if ($tgArn -and $tgArn -ne "None") {
-            aws elbv2 delete-target-group --target-group-arn $tgArn --region $Region 2>$null
-        }
+        $tgArn = aws elbv2 describe-target-groups --names "lorcana-tg" --region $Region --query "TargetGroups[0].TargetGroupArn" --output text 2>$null
+        if ($tgArn -and $tgArn -ne "None") { Invoke-Aws "delete TG" { aws elbv2 delete-target-group --target-group-arn $tgArn --region $Region } }
 
-        # 3. Security Groups
-        Write-Host "[3/5] Removing Security Groups..." -ForegroundColor Gray
-        if ($ec2Sg) { aws ec2 delete-security-group --group-id $ec2Sg --region $Region 2>$null }
-        if ($albSg) { aws ec2 delete-security-group --group-id $albSg --region $Region 2>$null }
-
-        # 4. VPC, Subnets & Internet Gateway
-        Write-Host "[4/5] Removing VPC, Subnets, and Gateways..." -ForegroundColor Gray
-        $vpc = if ($state -and $state.VpcId) { $state.VpcId } else { $null }
         if ($vpc) {
-            $igws = aws ec2 describe-internet-gateways --filters ("Name=attachment.vpc-id,Values=" + $vpc) --region $Region --query "InternetGateways[*].InternetGatewayId" --output text 2>$null
-            foreach ($igw in ($igws -split "\s+")) {
-                if ($igw) {
-                    aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc --region $Region 2>$null
-                    aws ec2 delete-internet-gateway --internet-gateway-id $igw --region $Region 2>$null
-                }
+            Write-Host "[3/6] Waiting for EC2/ALB network interfaces in $vpc to disappear..." -ForegroundColor Gray
+            for ($i = 0; $i -lt 60; $i++) {
+                $eni = aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=$vpc" --region $Region --query "length(NetworkInterfaces)" --output text
+                if ($eni -eq "0") { break }
+                Start-Sleep -Seconds 10
             }
-            if ($state.Subnet1Id) { aws ec2 delete-subnet --subnet-id $state.Subnet1Id --region $Region 2>$null }
-            if ($state.Subnet2Id) { aws ec2 delete-subnet --subnet-id $state.Subnet2Id --region $Region 2>$null }
-            aws ec2 delete-vpc --vpc-id $vpc --region $Region 2>$null
+            if ($eni -ne "0") { $failed += "ENIs still attached after 10 min" }
+
+            Write-Host "[4/6] Security Groups..." -ForegroundColor Gray
+            foreach ($sgName in @("lorcana-ec2-sg", "lorcana-alb-sg")) {
+                $sg = aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$vpc" "Name=group-name,Values=$sgName" --region $Region --query "SecurityGroups[0].GroupId" --output text
+                if ($sg -and $sg -ne "None") { Invoke-Aws "delete $sgName" { aws ec2 delete-security-group --group-id $sg --region $Region } }
+            }
+
+            Write-Host "[5/6] Subnets, Route Tables, Internet Gateway..." -ForegroundColor Gray
+            foreach ($s in ((aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc" --region $Region --query "Subnets[].SubnetId" --output text) -split "\s+" | Where-Object { $_ })) {
+                Invoke-Aws "delete subnet $s" { aws ec2 delete-subnet --subnet-id $s --region $Region }
+            }
+            foreach ($rt in ((aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc" --region $Region --query "RouteTables[?Associations[0].Main!=``true``].RouteTableId" --output text) -split "\s+" | Where-Object { $_ })) {
+                Invoke-Aws "delete route table $rt" { aws ec2 delete-route-table --route-table-id $rt --region $Region }
+            }
+            foreach ($igw in ((aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$vpc" --region $Region --query "InternetGateways[].InternetGatewayId" --output text) -split "\s+" | Where-Object { $_ })) {
+                Invoke-Aws "detach IGW $igw" { aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc --region $Region }
+                Invoke-Aws "delete IGW $igw" { aws ec2 delete-internet-gateway --internet-gateway-id $igw --region $Region }
+            }
+
+            Write-Host "[6/6] VPC..." -ForegroundColor Gray
+            Invoke-Aws "delete VPC $vpc" { aws ec2 delete-vpc --vpc-id $vpc --region $Region }
         }
 
-        # 5. Clean local state file
-        Write-Host "[5/5] Purging local state cache..." -ForegroundColor Gray
+        if ($failed.Count -gt 0) {
+            Write-Host "[INCOMPLETE] $($failed.Count) step(s) failed; state file kept. Fix and re-run destroy:" -ForegroundColor Red
+            $failed | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+            exit 1
+        }
         Remove-Item -Path $stateFile -Force -ErrorAction SilentlyContinue
         Write-Host "[DONE] Complete Teardown Finished. Hourly cost is `$0.0000." -ForegroundColor Green
     }
