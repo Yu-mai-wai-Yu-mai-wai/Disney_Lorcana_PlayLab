@@ -19,6 +19,26 @@ test('TC-E2E-16: deployed API rejects tokens signed with the public dev secret +
   expect(home.headers()['x-content-type-options']).toBe('nosniff');
 });
 
+// Deck save -> DynamoDB + SQS enqueue (queue URL comes from SSM on EC2), then analyze + read back
+test('TC-E2E-17: deck save, analyze and read analysis through the ALB (ALB only)', async ({ request, baseURL }) => {
+  test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
+  const name = `e2e_deck_${Date.now().toString(36)}`;
+  const password = 'E2e-pass-2026';
+  await request.post(`${baseURL}/api/auth/register`, { data: { username: name, email: `${name}@e2e.test`, password } });
+  const { token } = await (await request.post(`${baseURL}/api/auth/login`, { data: { username: name, password } })).json();
+  const auth = { Authorization: `Bearer ${token}` };
+
+  const cards = [{ card: { id: 'e2e-1', cost: 2, inkable: true, type: 'Character' }, count: 4 }];
+  const saved = await request.post(`${baseURL}/api/decks`, { headers: auth, data: { name: 'E2E Deck', cards } });
+  expect(saved.status()).toBe(201);
+  const { deckId } = await saved.json();
+
+  expect((await request.post(`${baseURL}/api/decks/${deckId}/analyze`, { headers: auth })).status()).toBe(202);
+  const got = await request.get(`${baseURL}/api/decks/${deckId}/analysis`, { headers: auth });
+  expect(got.status()).toBe(200);
+  expect((await got.json()).analysis).not.toBeNull();
+});
+
 test.describe('5. Real-time Multi-Client Match Sync & WebSockets QA Suite', () => {
   test('TC-E2E-13: should open 2 independent player sessions and navigate to Match Lobby', async ({ browser }) => {
     // 1. Create Context for Player 1
