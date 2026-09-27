@@ -89,12 +89,23 @@ switch ($Action) {
         }
         Remove-Variable jwt
 
-        Write-Host "[5/5] Rolling instance refresh (MinHealthyPercentage 50)..." -ForegroundColor Green
-        $exists = aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --query "length(AutoScalingGroups)" --output text
-        if ($exists -eq "1") {
-            aws autoscaling start-instance-refresh --auto-scaling-group-name $asg --preferences MinHealthyPercentage=50 --region $Region --query InstanceRefreshId --output text
-        } else {
-            Write-Host "  ASG not deployed; new instances will pull this build on boot." -ForegroundColor Yellow
+        # Learner Lab SCP denies StartInstanceRefresh, so replace instances one at a time instead
+        Write-Host "[5/5] Rolling replace (one instance at a time)..." -ForegroundColor Green
+        $group = (aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --output json | ConvertFrom-Json).AutoScalingGroups[0]
+        if (-not $group) { Write-Host "  ASG not deployed; new instances will pull this build on boot." -ForegroundColor Yellow; break }
+        $tgArn = $group.TargetGroupARNs[0]
+        foreach ($old in $group.Instances.InstanceId) {
+            Write-Host "  Replacing $old..." -ForegroundColor Gray
+            aws autoscaling terminate-instance-in-auto-scaling-group --instance-id $old --no-should-decrement-desired-capacity --region $Region | Out-Null
+            if ($LASTEXITCODE -ne 0) { Write-Error "terminate $old failed"; exit 1 }
+            $healthy = 0
+            for ($i = 0; $i -lt 60; $i++) {
+                Start-Sleep -Seconds 10
+                $healthy = [int](aws elbv2 describe-target-health --target-group-arn $tgArn --region $Region --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy' && Target.Id!='$old'])" --output text)
+                if ($healthy -ge $group.DesiredCapacity) { break }
+            }
+            if ($healthy -lt $group.DesiredCapacity) { Write-Error "Replacement for $old not healthy after 10 min"; exit 1 }
+            Write-Host "  [OK] $healthy/$($group.DesiredCapacity) healthy" -ForegroundColor Gray
         }
     }
     "destroy" {

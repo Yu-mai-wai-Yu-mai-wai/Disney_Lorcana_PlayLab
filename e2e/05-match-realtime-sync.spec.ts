@@ -1,4 +1,23 @@
 import { test, expect } from '@playwright/test';
+import { createHmac } from 'crypto';
+
+// HS256 JWT signed with an arbitrary secret (stdlib only)
+const signJwt = (payload: object, secret: string) => {
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const body = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ ...payload, exp: Math.floor(Date.now() / 1000) + 3600 })}`;
+  return `${body}.${createHmac('sha256', secret).update(body).digest('base64url')}`;
+};
+
+test('TC-E2E-16: deployed API rejects tokens signed with the public dev secret + sends security headers (ALB only)', async ({ request, baseURL }) => {
+  test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
+  const forged = signJwt({ username: 'attacker', role: 'admin' }, 'dev-secret-key-do-not-use-in-production');
+  const res = await request.get(`${baseURL}/api/decks`, { headers: { Authorization: `Bearer ${forged}` } });
+  expect(res.status()).toBe(401);
+
+  const home = await request.get(`${baseURL}/`);
+  expect(home.headers()['x-frame-options']).toBe('DENY');
+  expect(home.headers()['x-content-type-options']).toBe('nosniff');
+});
 
 test.describe('5. Real-time Multi-Client Match Sync & WebSockets QA Suite', () => {
   test('TC-E2E-13: should open 2 independent player sessions and navigate to Match Lobby', async ({ browser }) => {
