@@ -60,7 +60,7 @@ switch ($Action) {
             $env:VITE_WS_ENDPOINT = "$wsApi/prod"; $env:VITE_API_BASE_URL = "/api"
             npm run build; if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
             Write-Host "[2/5] Bundling backend -> backend/dist_bundle/server.cjs..." -ForegroundColor Green
-            npx esbuild backend/server.ts --bundle --platform=node --target=node18 --format=cjs --outfile=backend/dist_bundle/server.cjs --log-level=warning
+            npx esbuild backend/cluster.ts --bundle --platform=node --target=node18 --format=cjs --outfile=backend/dist_bundle/server.cjs --log-level=warning
             if ($LASTEXITCODE -ne 0) { throw "backend bundle failed" }
         } finally {
             Remove-Item Env:VITE_WS_ENDPOINT, Env:VITE_API_BASE_URL -ErrorAction SilentlyContinue

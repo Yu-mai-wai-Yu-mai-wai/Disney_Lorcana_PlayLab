@@ -1,15 +1,18 @@
 # ==============================================================================
 # DISNEY LORCANA PLAYLAB - Lean Auto Scaling Stress Test & Verification
-# Fires concurrent HTTP requests to /health to verify Target Tracking Scale-out
+# Default load = successful logins (bcrypt cost 10 on Node), which is what burns CPU.
+# /health is answered by nginx without touching Node, so it cannot trigger scale-out.
+# Requires PowerShell 7 (ForEach-Object -Parallel).
 # ==============================================================================
 
 [CmdletBinding()]
 param(
     [string]$AlbDnsName = "",
-    [int]$TotalRequests = 1000,
-    [int]$Concurrency = 20,
+    [int]$DurationSeconds = 600,
+    [int]$Concurrency = 40,
     [string]$Region = "us-east-1",
-    [string]$AutoScalingGroupName = "lorcana-asg"
+    [string]$AutoScalingGroupName = "lorcana-asg",
+    [string]$StressUser = "stress_bot"
 )
 
 $stateFile = Join-Path $PSScriptRoot "infrastructure_state.json"
@@ -19,36 +22,32 @@ if (Test-Path $stateFile) {
     if ($state.Region) { $Region = $state.Region }
     if ($state.AutoScalingGroupName) { $AutoScalingGroupName = $state.AutoScalingGroupName }
 }
+if (-not $AlbDnsName) { Write-Error "ALB DNS Name required. Pass -AlbDnsName or deploy the stack first."; exit 1 }
 
-if (-not $AlbDnsName) {
-    Write-Error "ALB DNS Name required. Pass -AlbDnsName or deploy the stack first."
-    exit 1
-}
+# Throwaway load-test account (random password each run; register is a no-op if the user exists)
+$password = [guid]::NewGuid().ToString()
+$base = "http://$AlbDnsName/api"
+try { Invoke-RestMethod -Method Post -Uri "$base/auth/register" -ContentType "application/json" -Body (@{ username = $StressUser; email = "$StressUser@loadtest.local"; password = $password } | ConvertTo-Json) | Out-Null }
+catch { Write-Error "Stress user '$StressUser' already exists with another password; pass -StressUser <new name>"; exit 1 }
+$body = @{ username = $StressUser; password = $password } | ConvertTo-Json
 
-$targetUrl = "http://$AlbDnsName/health"
-Write-Host "🔥 Stress Test: Sending $TotalRequests requests to $targetUrl (Workers: $Concurrency)..." -ForegroundColor Yellow
-
-$reqPerWorker = [Math]::Ceiling($TotalRequests / $Concurrency)
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$startUtc = (Get-Date).ToUniversalTime()
+Write-Host "Stress test: POST $base/auth/login for ${DurationSeconds}s with $Concurrency workers (start $($startUtc.ToString('HH:mm:ss')) UTC)" -ForegroundColor Yellow
+$deadline = (Get-Date).AddSeconds($DurationSeconds)
 
 $results = 1..$Concurrency | ForEach-Object -Parallel {
-    $url = $using:targetUrl
-    $count = $using:reqPerWorker
-    $ok = 0
-    for ($i = 0; $i -lt $count; $i++) {
-        try {
-            $null = Invoke-RestMethod -Uri $url -TimeoutSec 2
-            $ok++
-        } catch {}
+    $ok = 0; $fail = 0
+    while ((Get-Date) -lt $using:deadline) {
+        try { $null = Invoke-RestMethod -Method Post -Uri "$($using:base)/auth/login" -ContentType "application/json" -Body $using:body -TimeoutSec 15; $ok++ }
+        catch { $fail++ }
     }
-    $ok
+    [pscustomobject]@{ Ok = $ok; Fail = $fail }
 } -ThrottleLimit $Concurrency
 
-$sw.Stop()
-$totalOk = ($results | Measure-Object -Sum).Sum
-$elapsedSec = [Math]::Max($sw.Elapsed.TotalSeconds, 0.01)
-$rps = [Math]::Round($totalOk / $elapsedSec, 1)
+$totalOk = ($results | Measure-Object Ok -Sum).Sum
+$totalFail = ($results | Measure-Object Fail -Sum).Sum
+$rps = [Math]::Round($totalOk / $DurationSeconds, 1)
+Write-Host "Done at $((Get-Date).ToUniversalTime().ToString('HH:mm:ss')) UTC | OK: $totalOk | Failed: $totalFail | $rps logins/s" -ForegroundColor Green
 
-Write-Host "✅ Completed in $([Math]::Round($elapsedSec, 2))s | Success: $totalOk / $TotalRequests ($rps req/s)" -ForegroundColor Green
-Write-Host "`n🔍 Auto Scaling Activity History:" -ForegroundColor Cyan
-aws autoscaling describe-scaling-activities --auto-scaling-group-name $AutoScalingGroupName --max-items 3 --region $Region --query "Activities[*].[StartTime,StatusCode,Description]" --output table
+Write-Host "`nAuto Scaling activity since start:" -ForegroundColor Cyan
+aws autoscaling describe-scaling-activities --auto-scaling-group-name $AutoScalingGroupName --region $Region --max-items 10 --query "Activities[?StartTime>='$($startUtc.ToString('yyyy-MM-ddTHH:mm:ss'))'].[StartTime,StatusCode,Description]" --output table

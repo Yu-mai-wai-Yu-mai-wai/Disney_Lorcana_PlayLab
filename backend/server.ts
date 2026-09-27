@@ -53,6 +53,7 @@ interface RateLimitEntry {
   count: number;
   lastAttempt: number;
 }
+// ponytail: per-process map, so each cluster worker/instance counts separately (up to 5 x workers x instances tries); move to DynamoDB if lockout must be global
 const loginAttempts = new Map<string, RateLimitEntry>();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_PERIOD_MS = 5 * 60 * 1000;

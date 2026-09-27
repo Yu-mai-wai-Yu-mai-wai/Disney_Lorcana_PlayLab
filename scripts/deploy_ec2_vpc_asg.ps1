@@ -163,6 +163,7 @@ $ltData = @{
     SecurityGroupIds = @($Ec2SgId)
     IamInstanceProfile = @{ Arn = $LabInstanceProfileArn }
     MetadataOptions = @{ HttpTokens = "required"; HttpPutResponseHopLimit = 1; HttpEndpoint = "enabled" }
+    Monitoring = @{ Enabled = $true } # 1-min CPU datapoints; target tracking alarm uses 60s periods
     UserData = $UserDataBase64
     TagSpecifications = @(
         @{
