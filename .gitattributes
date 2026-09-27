@@ -1,0 +1,2 @@
+# EC2 user_data runs under bash; CRLF breaks it
+*.sh text eol=lf
