@@ -41,6 +41,53 @@ test('TC-E2E-18: playmat follows the account across devices, not across accounts
   await Promise.all([a1.ctx.dispose(), a2.ctx.dispose(), b.ctx.dispose()]);
 });
 
+// Regression for the rejoin deadlock: two tabs in one browser shared localStorage, so the refreshing
+// player sent the opponent's role and Lambda ("username OR role") gave it the opponent's seat.
+test('TC-E2E-19: rejoin carrying a foreign role keeps both seats and both directions of relay (WebSocket API)', async () => {
+  test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
+  test.setTimeout(45000);
+  const url = process.env.E2E_WS_URL || 'wss://a86238wqo4.execute-api.us-east-1.amazonaws.com/prod';
+  const open = async () => {
+    const ws = new WebSocket(url);
+    const inbox: any[] = [];
+    ws.onmessage = (e) => inbox.push(JSON.parse(String(e.data)));
+    await new Promise((ok, fail) => { ws.onopen = ok; ws.onerror = fail; });
+    const next = async (pred: (m: any) => boolean, ms = 8000) => {
+      for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 100))) {
+        const i = inbox.findIndex(pred);
+        if (i >= 0) return inbox.splice(i, 1)[0];
+      }
+      throw new Error(`timeout waiting for message; inbox=${JSON.stringify(inbox).slice(0, 300)}`);
+    };
+    return { ws, send: (m: object) => ws.send(JSON.stringify(m)), next };
+  };
+  const run = Date.now().toString(36);
+  const [u1, u2] = [`e2e_rj1_${run}`, `e2e_rj2_${run}`];
+
+  const a = await open();
+  a.send({ action: 'CREATE_ROOM', username: u1, deckId: 'starter-pool', deckName: 'E2E' });
+  const { roomId } = await a.next((m) => m.action === 'ROOM_CREATED');
+
+  const b = await open();
+  b.send({ action: 'JOIN_ROOM', roomId, username: u2, deckId: 'starter-pool', deckName: 'E2E' });
+  await b.next((m) => m.action === 'ROOM_STATE' || m.action === 'GAME_START');
+  b.ws.close();
+  await new Promise((r) => setTimeout(r, 1500));
+
+  const c = await open(); // player 2 "refreshes" but carries player 1's role
+  c.send({ action: 'REJOIN_ROOM', roomId, username: u2, role: 'player1' });
+  expect((await c.next((m) => m.action === 'PLAYER_RECONNECTED' && m.isSelf)).role).toBe('player2');
+
+  a.send({ action: 'CHAT_MESSAGE', roomId, username: u1, text: 'from-p1' });
+  await c.next((m) => m.action === 'CHAT_MESSAGE' && m.text === 'from-p1');
+  c.send({ action: 'CHAT_MESSAGE', roomId, username: u2, text: 'from-p2' });
+  await a.next((m) => m.action === 'CHAT_MESSAGE' && m.text === 'from-p2');
+
+  a.send({ action: 'LEAVE_ROOM', roomId, username: u1 });
+  a.ws.close();
+  c.ws.close();
+});
+
 // Deck save -> DynamoDB + SQS enqueue (queue URL comes from SSM on EC2), then analyze + read back
 test('TC-E2E-17: deck save, analyze and read analysis through the ALB (ALB only)', async ({ request, baseURL }) => {
   test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');

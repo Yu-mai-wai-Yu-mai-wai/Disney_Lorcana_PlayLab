@@ -133,7 +133,6 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
   if (action === 'REJOIN_ROOM') {
     const roomId = body.roomId;
     const username = body.username;
-    const role = body.role;
 
     if (!roomId) {
       await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Room ID is required to rejoin.' });
@@ -147,8 +146,9 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2): Promise<A
         return { statusCode: 404, body: 'Room not found' };
       }
 
-      // Find user entry in room (either by username or role)
-      const existingUser: any = roomMembers.find((m: any) => m.username === username || m.role === role);
+      // Match the seat by username only. Matching "username OR role" let a client holding a stale/shared
+      // session (two tabs, same browser) take over the opponent's seat -> both boards stuck on "opponent turn".
+      const existingUser: any = username ? roomMembers.find((m: any) => m.username === username) : undefined;
       if (!existingUser) {
         await sendMessageToConnection(apigwManagementApi, connectionId, { action: 'ERROR', message: 'Player session not found in this room.' });
         return { statusCode: 403, body: 'Not a member' };

@@ -13,6 +13,7 @@ import { GoldInkShaderCanvas } from './components/GoldInkShaderCanvas';
 import { webSocketService } from './services/websocket';
 import { useAuthStore } from './store/useAuthStore';
 import { usePlaymatStore } from './store/usePlaymatStore';
+import { activeSessionKey } from './utils/matchSession';
 import { APP_VERSION } from './data/patchNotes';
 import { Tag } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export function App() {
 
   // Playmat follows the logged-in account (saved on AWS); guests get the default
   const token = useAuthStore((s) => s.token);
+  const username = useAuthStore((s) => s.user?.username);
   useEffect(() => {
     if (token) void usePlaymatStore.getState().loadFromServer();
     else usePlaymatStore.getState().reset();
@@ -51,7 +53,7 @@ export function App() {
 
   // Voluntary exit: LEAVE_ROOM frees the seat immediately and the opponent is notified (no rejoin)
   const leaveMatch = () => {
-    localStorage.removeItem('lorcana_active_session');
+    localStorage.removeItem(activeSessionKey(username));
     webSocketService.leaveRoom();
     setMatchInfo(null);
     setActiveTab('match');

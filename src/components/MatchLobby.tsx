@@ -9,6 +9,7 @@ import { useLanguageStore } from '../store/useLanguageStore';
 import { usePlaymatStore } from '../store/usePlaymatStore';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
 import { copyText } from '../utils/copyText';
+import { activeSessionKey } from '../utils/matchSession';
 
 interface MatchLobbyProps {
   onStartMatch: (deckId: string, deckName: string, roomId?: string, role?: string, deckObject?: any, isRejoin?: boolean) => void;
@@ -36,14 +37,14 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   // Load active session from localStorage if exists
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('lorcana_active_session');
+      const saved = localStorage.getItem(activeSessionKey(user?.username));
       if (saved) {
         const parsed = JSON.parse(saved);
         // Only consider session valid if within last 1 hour
         if (parsed && parsed.roomId && Date.now() - (parsed.timestamp || 0) < 3600000) {
           setSavedSession(parsed);
         } else {
-          localStorage.removeItem('lorcana_active_session');
+          localStorage.removeItem(activeSessionKey(user?.username));
         }
       }
     } catch (e) {
@@ -67,7 +68,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   };
 
   const handleDismissSession = () => {
-    localStorage.removeItem('lorcana_active_session');
+    localStorage.removeItem(activeSessionKey(user?.username));
     setSavedSession(null);
   };
 
@@ -84,7 +85,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
       if (data.roomId) {
         webSocketService.setRoomId(data.roomId);
         try {
-          localStorage.setItem('lorcana_active_session', JSON.stringify({
+          localStorage.setItem(activeSessionKey(user?.username), JSON.stringify({
             roomId: data.roomId,
             role: 'player1',
             deckId: selectedDeckId,
@@ -116,7 +117,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
           if (effectiveRoomId) {
             webSocketService.setRoomId(effectiveRoomId);
             try {
-              localStorage.setItem('lorcana_active_session', JSON.stringify({
+              localStorage.setItem(activeSessionKey(user?.username), JSON.stringify({
                 roomId: effectiveRoomId,
                 role: myRole,
                 deckId: selectedDeckId,
@@ -149,7 +150,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
         if (effectiveRoomId) {
           webSocketService.setRoomId(effectiveRoomId);
           try {
-            localStorage.setItem('lorcana_active_session', JSON.stringify({
+            localStorage.setItem(activeSessionKey(user?.username), JSON.stringify({
               roomId: effectiveRoomId,
               role: myRole,
               deckId: selectedDeckId,
@@ -254,7 +255,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   const handleCreateRoom = async () => {
     if (!selectedDeckId) return;
     try {
-      localStorage.removeItem('lorcana_active_session');
+      localStorage.removeItem(activeSessionKey(user?.username));
     } catch (e) {}
     setSavedSession(null);
     await webSocketService.connect(user?.username);
@@ -264,7 +265,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   const handleJoinRoom = async () => {
     if (!selectedDeckId || !joinCode) return;
     try {
-      localStorage.removeItem('lorcana_active_session');
+      localStorage.removeItem(activeSessionKey(user?.username));
     } catch (e) {}
     setSavedSession(null);
     await webSocketService.connect(user?.username);
@@ -274,7 +275,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   const handleFindMatch = async () => {
     if (!selectedDeckId) return;
     try {
-      localStorage.removeItem('lorcana_active_session');
+      localStorage.removeItem(activeSessionKey(user?.username));
     } catch (e) {}
     setSavedSession(null);
     setRoomState('WAITING');
@@ -300,7 +301,7 @@ export const MatchLobby: React.FC<MatchLobbyProps> = ({ onStartMatch }) => {
   const handleCancelRoom = () => {
     webSocketService.leaveRoom();
     try {
-      localStorage.removeItem('lorcana_active_session');
+      localStorage.removeItem(activeSessionKey(user?.username));
     } catch (e) {}
     setSavedSession(null);
     setCurrentRoomId(null);

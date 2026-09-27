@@ -124,7 +124,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const savedBoard: SavedBoardState | null = React.useMemo(() => {
     if (!roomId || !isRejoin) return null;
     try {
-      const raw = localStorage.getItem(`lorcana_board_state_${roomId}`);
+      const raw = localStorage.getItem(`lorcana_board_state_${roomId}_${myUsername}`);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && Date.now() - (parsed.timestamp || 0) < 7200000) {
@@ -619,7 +619,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         undoCountRemaining,
         timestamp: Date.now(),
       };
-      localStorage.setItem(`lorcana_board_state_${roomId}`, JSON.stringify(stateToSave));
+      localStorage.setItem(`lorcana_board_state_${roomId}_${myUsername}`, JSON.stringify(stateToSave));
     } catch (e) {
       console.error('Failed to auto-save board state', e);
     }
