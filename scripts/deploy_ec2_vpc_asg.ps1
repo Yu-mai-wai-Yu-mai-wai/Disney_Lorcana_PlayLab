@@ -13,6 +13,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true # PS 7.3+: any failing aws call stops the deploy
 
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host "[*] Deploying Disney Lorcana Lean Multi-AZ VPC + ASG Stack" -ForegroundColor Yellow
@@ -57,8 +58,8 @@ $VpcId = $vpcRes.Vpc.VpcId
 Write-Host "  [OK] Created VPC: $VpcId" -ForegroundColor Gray
 
 # Enable DNS Support & Hostnames
-aws ec2 modify-vpc-attribute --vpc-id $VpcId --enable-dns-support '{\"Value\":true}' --region $Region | Out-Null
-aws ec2 modify-vpc-attribute --vpc-id $VpcId --enable-dns-hostnames '{\"Value\":true}' --region $Region | Out-Null
+aws ec2 modify-vpc-attribute --vpc-id $VpcId --enable-dns-support "Value=true" --region $Region | Out-Null
+aws ec2 modify-vpc-attribute --vpc-id $VpcId --enable-dns-hostnames "Value=true" --region $Region | Out-Null
 
 # Create Internet Gateway
 $igwTag = 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=lorcana-igw}]'
@@ -138,7 +139,7 @@ aws elbv2 create-listener `
     --load-balancer-arn $AlbArn `
     --protocol HTTP `
     --port 80 `
-    --default-actions Type=forward,TargetGroupArn=$TargetGroupArn `
+    --default-actions "Type=forward,TargetGroupArn=$TargetGroupArn" `
     --region $Region | Out-Null
 Write-Host "  [OK] Target Group: lorcana-tg" -ForegroundColor Gray
 Write-Host "  [OK] Application Load Balancer: $AlbDnsName" -ForegroundColor Yellow
