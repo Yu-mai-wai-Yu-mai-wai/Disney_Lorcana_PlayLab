@@ -31,7 +31,7 @@
 
 ## 📌 Project Overview
 
-Disney Lorcana PlayLab Cloud is a high-performance web application engineered for Disney Lorcana TCG players to test single-player deck sandbox interactions, open 3D physical booster packs, inspect official cards in 3D holographic foil, simulate real-time 2-player match coordinates via AWS WebSockets (with room codes & ranked matchmaking), and analyze deck ink curves asynchronously — all running on a **$0.00 AWS Free Tier** serverless infrastructure within AWS Academy Learner Lab constraints.
+Disney Lorcana PlayLab Cloud is a high-performance web application engineered for Disney Lorcana TCG players to test single-player deck sandbox interactions, open 3D physical booster packs, inspect official cards in 3D holographic foil, simulate real-time 2-player match coordinates via AWS WebSockets (with room codes & ranked matchmaking), and analyze deck ink curves asynchronously. It runs on AWS within AWS Academy Learner Lab constraints: ALB + EC2 Auto Scaling for the web app and REST API, API Gateway WebSocket + Lambda for realtime matches.
 
 ---
 
@@ -96,18 +96,20 @@ Disney Lorcana PlayLab Cloud supports **two production infrastructure modes** de
          └─────────────────────┘             └─────────────────────┘
 ```
 
-* **Zero NAT Gateway Cost ($0.00 Network):** Uses Public Multi-AZ subnets with tightly controlled Security Groups (ALB accepts Port 80, EC2 instances accept traffic strictly from ALB SG). Saves **$32.40/month** compared to enterprise NAT Gateways.
-* **Auto Scaling Group (ASG):** Configured with Min 1, Max 3, Desired 1, and Target Tracking Scaling Policy (`CPUUtilization > 60%`).
+* **No NAT Gateway:** Public Multi-AZ subnets with tight Security Groups (ALB accepts port 80; EC2 accepts port 80 only from the ALB SG). Saves about $32.40/month vs a NAT Gateway. Public IPv4 addresses are still billed ($0.005/hr each).
+* **Auto Scaling Group (ASG):** Min 2, Desired 2 (one instance per AZ), Max 4, target tracking on average CPU 60%. Health check is ELB-based on `/api/health` (goes through Node, not just nginx).
+* **Node.js cluster:** one worker per vCPU (`backend/cluster.ts`). A single process capped CPU at 50% on the 2-vCPU t3.micro, so the 60% target could never fire.
+* **Secrets:** `JWT_SECRET`, `ADMIN_PASSCODE`, SQS URL come from SSM Parameter Store at boot. The backend refuses to start in production without them. IMDSv2 is required.
+* **HA evidence:** CloudWatch alarm `lorcana-unhealthy-hosts` (UnHealthyHostCount > 0). Results: [`docs/01_Reports/STAGE3_EXPERIMENT_RESULTS.md`](docs/01_Reports/STAGE3_EXPERIMENT_RESULTS.md).
 * **S3 Decommissioning:** Frontend is served directly via high-performance Nginx Reverse Proxy on EC2 (replacing S3 Static Hosting).
 
 ---
 
-### 2. ⚡ Legacy Serverless Mode ($0.00 24/7 Idle Cost)
+### 2. Realtime tier: API Gateway WebSocket + Lambda
 
-For 24/7 zero-maintenance live play without VM instance costs:
-* **Frontend:** S3 Static Website Hosting
-* **API / WS:** API Gateway HTTP + WebSocket APIs
-* **Compute:** AWS Lambda functions with IAM `LabRole`
+Realtime match traffic does not go to EC2. The SPA connects to `LorcanaPlayLabWebSocketApi` (stage `prod`), handled by Lambda `lorcana-room`, with room state in DynamoDB. Players served by different EC2 instances can play together, and an EC2 failure does not drop a match.
+* **Source:** `backend/serverless/` (restored Lambda source + SAM template)
+* **Legacy:** the HTTP API + auth/deck Lambdas from the old serverless mode still exist; they now read `JWT_SECRET` from the same SSM value (synced by `lab.ps1 publish`)
 
 ---
 
@@ -149,11 +151,12 @@ DISNEY_LORCANA_PLAYLAB_CLOUD/
 │   └── _ARCHIVE/              # Historical drafts & legacy Serverless reports (Aug 20 & 24)
 └── 📁 scripts/                # Deployment, lifecycle & load-testing utilities
     ├── deploy_ec2_vpc_asg.ps1 # 1-Click IaaS Deployer (VPC, ALB, LT, ASG)
-    ├── lab_start.ps1          # Scale to 1 (Start Lab Demo)
+    ├── lab_start.ps1          # Scale to 2 (Start Lab Demo, one per AZ)
     ├── lab_stop.ps1           # Scale to 0 ($0.00 Cost Protection)
     ├── stress_test.ps1        # Auto Scaling Load Generator & Verification
-    ├── retire_s3.ps1          # Safe S3 Bucket Retirement
-    └── lab_destroy.py         # Complete infrastructure teardown
+    ├── lab.ps1                # start | stop | status | publish | destroy
+    ├── test_asg_recovery.ps1  # Failover test (app failure via SSM, or terminate)
+    └── lab_destroy.ps1        # Complete infrastructure teardown (wraps lab.ps1 destroy)
 ```
 
 ---
@@ -178,17 +181,23 @@ cd scripts
 
 ### $50 Budget Lifecycle Controls (Cost Guardrails)
 ```powershell
-# Start / Scale Up for Demo (Desired Capacity = 1)
+# Start / Scale Up for Demo (Min/Desired = 2, one instance per AZ)
 .\lab_start.ps1
 
-# Scale to Zero when done (Desired Capacity = 0 -> $0.00 Compute Cost)
+# Scale to Zero when done (EC2 cost stops; ALB still bills ~$0.03/hr -> use destroy for long breaks)
 .\lab_stop.ps1
 
 # Run Load Stress Test to trigger CPU Scaling (>60%) for Stage 2/3 Evidence
-.\stress_test.ps1 -TotalRequests 2000 -Concurrency 20
+.\stress_test.ps1 -DurationSeconds 360 -Concurrency 40 -StressUser stress_bot_<date>
 
-# Safe S3 Retirement (Delete old Static Website Bucket)
-.\retire_s3.ps1
+# Build + upload SPA/backend to S3, sync JWT to Lambdas, replace instances one at a time
+.\lab.ps1 publish
+
+# App-failure failover test (stops Node on one instance via SSM, prints recovery timeline)
+.\test_asg_recovery.ps1 -FailureMode app
+
+# Complete teardown when not using the lab for a while
+.\lab.ps1 destroy
 ```
 
 ---

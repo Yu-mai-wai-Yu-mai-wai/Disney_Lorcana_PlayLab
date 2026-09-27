@@ -43,13 +43,17 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 ```
 
 ### สถาปัตยกรรมที่สคริปต์จะสร้างขึ้นอัตโนมัติ:
-1. **Lean Multi-AZ VPC (`10.0.0.0/16`):** 2 Public Subnets บน `us-east-1a` และ `us-east-1b` + Internet Gateway (**ไม่มี NAT Gateway = ค่าบริการ $0.00**)
+1. **Lean Multi-AZ VPC (`10.0.0.0/16`):** 2 Public Subnets บน `us-east-1a` และ `us-east-1b` + Internet Gateway (ไม่มี NAT Gateway ประหยัดราว $32.40/เดือน แต่ public IPv4 ยังคิด $0.005/ชม./address)
 2. **Security Groups:**
    - `ALB SG`: เปิดรับ HTTP Port 80 จากทั่วโลก (`0.0.0.0/0`)
-   - `EC2 SG`: เปิดรับ Port 80 และ 3001 **เฉพาะจาก ALB SG เท่านั้น**
-3. **Application Load Balancer (ALB):** รับทราฟฟิกและส่งต่อเข้า Target Group พร้อมตั้ง Health Check ที่ `/health`
-4. **Launch Template:** ระบบ Amazon Linux 2023 (`t3.micro`) แนบ IAM `LabInstanceProfile` พร้อม User Data Script ติดตั้ง Nginx, Node.js และดึงโค้ดมารันอัตโนมัติ
-5. **Auto Scaling Group (ASG):** Min 1, Max 3, Desired 1 พร้อม **CPU Target Tracking Policy (Scale-out เมื่อ CPU > 60%)**
+   - `EC2 SG`: เปิดรับ Port 80 **เฉพาะจาก ALB SG เท่านั้น**
+3. **Application Load Balancer (ALB):** รับทราฟฟิกและส่งต่อเข้า Target Group พร้อมตั้ง Health Check ที่ `/api/health` (ผ่าน nginx ไปถึง Node ถ้า backend ล่ม เครื่องจะถูกมาร์ก unhealthy)
+4. **Launch Template:** ระบบ Amazon Linux 2023 (`t3.micro`) แนบ IAM `LabInstanceProfile` พร้อม User Data Script ติดตั้ง Nginx, Node.js ดึงโค้ดจาก S3 และอ่าน secret จาก SSM Parameter Store (`/lorcana/*`) บังคับ IMDSv2 และเปิด detailed monitoring
+5. **Auto Scaling Group (ASG):** Min 2, Desired 2 (AZ ละ 1 เครื่อง), Max 4 พร้อม CPU Target Tracking 60%
+6. **CloudWatch alarm** `lorcana-unhealthy-hosts` (UnHealthyHostCount > 0) ใช้เป็นหลักฐาน HA
+7. **Realtime:** ไม่ได้รันบน EC2 ใช้ API Gateway WebSocket + Lambda `lorcana-room` (state อยู่ใน DynamoDB)
+
+หลัง deploy ครั้งแรกหรือเมื่อแก้โค้ด ให้รัน `.\scripts\lab.ps1 publish` (build, อัปโหลด S3, sync secret ให้ Lambda และเปลี่ยนเครื่องทีละเครื่อง)
 
 ---
 
@@ -61,8 +65,8 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 ```powershell
 .\scripts\lab.ps1 start   # หรือ .\scripts\lab_start.ps1
 ```
-* สั่งปรับ `Desired Capacity = 1`
-* EC2 Instance จะบูตขึ้นมาพร้อมรับทราฟฟิกภายใน 1–2 นาที
+* สั่งปรับ `Min = Desired = 2`
+* EC2 2 เครื่อง (us-east-1a และ 1b) บูตและผ่าน health check ภายในราว 2-3 นาที
 
 ### 2. ตรวจสอบสถานะเครื่อง & สุขภาพ ALB
 ```powershell
@@ -75,14 +79,15 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 .\scripts\lab.ps1 stop    # หรือ .\scripts\lab_stop.ps1
 ```
 * สั่งปรับ `Desired Capacity = 0` และ `Min Size = 0`
-* EC2 Instances ทั้งหมดจะถูก Terminate ดับสนิท **ค่าใช้จ่าย Compute กลายเป็น $0.00/ชม. ทันที**
+* EC2 ทั้งหมดถูก terminate ค่า EC2 หยุดทันที แต่ ALB และ public IPv4 ของ ALB ยังคิดราว $0.0325/ชม. (≈ $23.7/เดือน) ถ้าหยุดนานให้ใช้ destroy
 
 ### 4. เมื่อส่งโปรเจกต์เสร็จสิ้น / ไม่ได้ใช้งานยาวนาน (Complete Teardown)
 ```powershell
 .\scripts\lab.ps1 destroy # หรือ .\scripts\lab_destroy.ps1
 ```
 * ลบ ALB, Target Group, ASG, Launch Template, Security Groups และ VPC ทิ้งทั้งหมด
-* ค่าใช้จ่ายรายชั่วโมงจะกลายเป็น **$0.0000** 100%
+* ค่าใช้จ่ายรายชั่วโมงของ VPC/ALB/EC2 เป็น $0 (ยังเหลือ S3, DynamoDB, SSM ตามข้อมูลที่เก็บ ซึ่งต่ำมาก)
+* ถ้าลบไม่ครบ สคริปต์จะ exit 1 และเก็บ `infrastructure_state.json` ไว้ ให้รันซ้ำได้
 
 ---
 
@@ -91,13 +96,16 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 รันสคริปต์ Stress Test เพื่อจำลองโหลดผู้เล่นจำนวนมาก:
 
 ```powershell
-.\scripts\stress_test.ps1 -TotalRequests 2000 -Concurrency 20
+.\scripts\stress_test.ps1 -DurationSeconds 360 -Concurrency 40 -StressUser stress_bot_<วันที่>
+
+# ทดสอบ failover: หยุด Node บนเครื่องหนึ่งผ่าน SSM แล้วพิมพ์ timeline การกู้คืน
+.\scripts\test_asg_recovery.ps1 -FailureMode app
 ```
 
 ### สิ่งที่ต้องแคปภาพหน้าจอใน AWS Console สำหรับทำรายงาน:
 1. **VPC Console:** ภาพ Resource Map ของ VPC แสดง 2 Subnets Multi-AZ และ Route Table
 2. **EC2 Console -> Load Balancers:** ภาพ Target Group แสดงสถานะ **Healthy 200 OK**
-3. **EC2 Console -> Auto Scaling Groups -> Activity:** ภาพแสดงประวัติการสปอว์นเครื่อง EC2 เครื่องที่ 2 เมื่อ CPU พุ่งสูง
+3. **EC2 Console -> Auto Scaling Groups -> Activity:** ภาพประวัติที่ alarm สั่งเพิ่มเครื่อง 2 → 4 และการเปลี่ยนเครื่องที่ unhealthy
 4. **CloudWatch Console -> Alarms:** ภาพกราฟ Target Tracking Alarm เปลี่ยนสถานะเป็น `In alarm` ระหว่างการยิงโหลด
 
 ---
@@ -106,8 +114,13 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 
 | ชิ้นส่วนระบบ | สเปก / รูปแบบ | ค่าใช้จ่าย | วิธีการคุมงบ |
 |---|---|---|---|
-| **VPC & Subnets** | Lean Multi-AZ (No NAT) | **$0.00** | ไม่เปิด NAT Gateway (ประหยัด $32.40/เดือน) |
-| **EC2 Instance** | `t3.micro` (1 vCPU, 1GB RAM) | $0.0104 / ชม. | รัน `.\scripts\lab.ps1 stop` เมื่อเลิกเรียน (Scale-to-0) |
-| **Load Balancer (ALB)** | 1x Application Load Balancer | $0.0225 / ชม. | สั่ง `.\scripts\lab.ps1 destroy` หากไม่ได้ใช้นานเกิน 1 สัปดาห์ |
-| **DynamoDB & SQS** | On-Demand Free Tier | **$0.00** | อยู่ในเกณฑ์ Free Tier ตลอดไป |
-| **S3 Static Website** | Decommissioned | **$0.00** | รวมโฮสต์บน Nginx ภายใน EC2 ทั้งหมด ไม่เสียค่า S3 เพิ่ม |
+| **VPC & Subnets** | Lean Multi-AZ (No NAT) | $0 (ไม่มี NAT) | ประหยัดค่า NAT Gateway ราว $32.40/เดือน |
+| **EC2 Instance** | `t3.micro` (2 vCPU, 1 GB RAM) x2 | $0.0104/ชม./เครื่อง | `lab.ps1 stop` เมื่อเลิกใช้ |
+| **EBS root** | gp3 8 GiB x2 | ≈ $0.0009/ชม./เครื่อง | ลบไปพร้อม EC2 |
+| **Public IPv4** | EC2 2 + ALB 2 | $0.005/ชม./address | `lab.ps1 destroy` เมื่อไม่ใช้นาน |
+| **Load Balancer (ALB)** | 1x ALB | $0.0225/ชม. + LCU | `lab.ps1 destroy` เมื่อไม่ใช้นาน |
+| **Detailed monitoring** | 2 เครื่อง | $2.10/เครื่อง-เดือน | จำเป็นสำหรับ scaling 1 นาที |
+| **DynamoDB, SQS, Lambda, API GW WebSocket** | On-demand | ≈ $0 ที่ระดับห้องเรียน | - |
+| **S3** | static + assets (EC2 ดึงไฟล์ตอนบูต) | ≈ $0 (ไม่กี่ MB) | - |
+
+รวมเมื่อเปิด 2 เครื่อง ≈ $0.079/ชม. (≈ $58/เดือนถ้าเปิด 24 ชม. เกินงบ $50, ≈ $9.5/เดือนถ้าเปิด 4 ชม./วัน) รายละเอียดและข้อควรตรวจราคา: `docs/01_Reports/STAGE3_EXPERIMENT_RESULTS.md` ข้อ 8
