@@ -19,6 +19,28 @@ test('TC-E2E-16: deployed API rejects tokens signed with the public dev secret +
   expect(home.headers()['x-content-type-options']).toBe('nosniff');
 });
 
+// Playmat is stored on the account: a fresh browser context (another device) sees it, another account does not
+test('TC-E2E-18: playmat follows the account across devices, not across accounts (ALB only)', async ({ playwright, baseURL }) => {
+  test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
+  const password = 'E2e-pass-2026';
+  const tokenFor = async (name: string) => {
+    const ctx = await playwright.request.newContext(); // separate "device"
+    await ctx.post(`${baseURL}/api/auth/register`, { data: { username: name, email: `${name}@e2e.test`, password } });
+    const { token } = await (await ctx.post(`${baseURL}/api/auth/login`, { data: { username: name, password } })).json();
+    return { ctx, auth: { Authorization: `Bearer ${token}` } };
+  };
+  const run = Date.now().toString(36);
+  const a1 = await tokenFor(`e2e_pm_a_${run}`);
+  expect((await a1.ctx.put(`${baseURL}/api/users/me/playmat`, { headers: a1.auth, data: { playmatId: 'maui-demigod' } })).status()).toBe(200);
+
+  const a2 = await tokenFor(`e2e_pm_a_${run}`); // same account, new device
+  expect((await (await a2.ctx.get(`${baseURL}/api/users/me/playmat`, { headers: a2.auth })).json()).playmatId).toBe('maui-demigod');
+
+  const b = await tokenFor(`e2e_pm_b_${run}`); // different account
+  expect((await (await b.ctx.get(`${baseURL}/api/users/me/playmat`, { headers: b.auth })).json()).playmatId).toBeNull();
+  await Promise.all([a1.ctx.dispose(), a2.ctx.dispose(), b.ctx.dispose()]);
+});
+
 // Deck save -> DynamoDB + SQS enqueue (queue URL comes from SSM on EC2), then analyze + read back
 test('TC-E2E-17: deck save, analyze and read analysis through the ALB (ALB only)', async ({ request, baseURL }) => {
   test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
