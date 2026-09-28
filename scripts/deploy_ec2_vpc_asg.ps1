@@ -260,7 +260,7 @@ $state | ConvertTo-Json -Depth 5 | Set-Content -Path $stateFile -Encoding utf8
 Write-Host "`n=======================================================" -ForegroundColor Cyan
 Write-Host "[+] DEPLOYMENT COMPLETE!" -ForegroundColor Green
 Write-Host "ALB URL: http://$AlbDnsName" -ForegroundColor Yellow
-Write-Host "Health Check: http://$AlbDnsName/health" -ForegroundColor Yellow
+Write-Host "Health Check: http://$AlbDnsName/api/health" -ForegroundColor Yellow
 Write-Host "State Saved: $stateFile" -ForegroundColor Gray
-Write-Host '[!] Run lab_stop.ps1 to scale to 0 and protect your $50 budget!' -ForegroundColor Magenta
+Write-Host '[!] Run .\lab.ps1 destroy when done (ALB bills every hour it exists) to protect your $50 budget!' -ForegroundColor Magenta
 Write-Host "=======================================================" -ForegroundColor Cyan
