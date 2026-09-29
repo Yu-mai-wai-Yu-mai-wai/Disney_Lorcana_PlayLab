@@ -1,0 +1,12 @@
+{
+  "note": "Baseline before T02, e2e/06-caching.spec.ts run against the deployed ALB (old nginx config, old frontend). All three tests failed as expected.",
+  "at": "2026-09-29",
+  "baseURL": "http://lorcana-alb-1300232797.us-east-1.elb.amazonaws.com",
+  "url": "/dataset/lorcana_set1_set2.json",
+  "hashedName": false,
+  "indexHtmlCacheControl": "",
+  "assetCacheControl": "",
+  "gzip": false,
+  "bytesOverNetwork": 2351188,
+  "uncompressedBytes": 2351188
+}

@@ -1,10 +1,29 @@
 // ------------------------------------------------------------
-// CARD POOL — official dataset (lorcana_set1_set2.json, 3,242 cards)
+// CARD POOL — official dataset (src/assets/lorcana_cards.json, 3,242 cards, Set 1-13 + Q1/Q2)
 // All imageUrl verified HTTP 200 via GET (2026-08-14)
 // ------------------------------------------------------------
 import type { LorcanaCard } from '../types/lorcana';
 
-const DATASET_URL = '/dataset/lorcana_set1_set2.json';
+// ?url makes Vite emit the file as /assets/lorcana_cards-<hash>.json, so nginx can cache it for a year (immutable)
+import datasetUrl from '../assets/lorcana_cards.json?url';
+
+export const DATASET_URL = datasetUrl;
+
+// One shared download for every consumer (before: cardPool and DeckBuilder each fetched 2.35 MB)
+let rawDatasetPromise: Promise<any[]> | null = null;
+export function fetchRawDataset(): Promise<any[]> {
+  rawDatasetPromise ??= fetch(DATASET_URL)
+    .then((res) => {
+      if (!res.ok) throw new Error(`Failed to load card dataset: ${res.status}`);
+      return res.json();
+    })
+    .then((raw) => (Array.isArray(raw) ? raw : raw.cards || raw.data || []))
+    .catch((err) => {
+      rawDatasetPromise = null; // let the next caller retry
+      throw err;
+    });
+  return rawDatasetPromise;
+}
 
 export interface PoolCard extends LorcanaCard {
   isInkable: boolean;
@@ -43,10 +62,7 @@ export function toPoolCard(c: any): PoolCard {
 export async function fetchFullDataset(): Promise<PoolCard[]> {
   if (cachedFullDataset) return cachedFullDataset;
   try {
-    const res = await fetch(DATASET_URL);
-    if (!res.ok) throw new Error(`Failed to load card dataset: ${res.status}`);
-    const raw = await res.json();
-    const cards: any[] = Array.isArray(raw) ? raw : raw.cards || raw.data || [];
+    const cards = await fetchRawDataset();
     cachedFullDataset = cards.map(toPoolCard);
     return cachedFullDataset;
   } catch (err) {

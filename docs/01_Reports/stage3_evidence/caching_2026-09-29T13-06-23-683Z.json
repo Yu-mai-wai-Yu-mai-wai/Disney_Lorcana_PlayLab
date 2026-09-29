@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-29T13:06:23.683Z",
+  "baseURL": "http://lorcana-alb-1300232797.us-east-1.elb.amazonaws.com",
+  "url": "/assets/lorcana_cards-DHNwgV-K.json",
+  "uncompressedBytes": 2351188,
+  "first": {
+    "ms": 602,
+    "bytes": 2351188
+  },
+  "second": {
+    "ms": 86,
+    "bytes": 2351188
+  },
+  "secondTransferSize": 0,
+  "encodedBodySize": 436557,
+  "decodedBodySize": 2351188
+}

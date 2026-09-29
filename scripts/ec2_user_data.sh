@@ -58,6 +58,13 @@ server {
     root /var/www/lorcana-web;
     index index.html;
 
+    # Text assets travel compressed (the card data is 2.35 MB of JSON)
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+
     # Same security headers as nginx.conf in repo
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -79,6 +86,27 @@ server {
     }
 
     # Realtime runs on API Gateway WebSocket + Lambda (state in DynamoDB), not on EC2
+
+    # Vite emits hashed names under /assets/, so a file never changes under the same name: cache for a year.
+    # add_header inside a location replaces the inherited ones, so the security headers are repeated here.
+    # Cache-Control has no "always" on purpose: a 404 must not be cached as immutable.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        try_files $uri =404;
+    }
+
+    # index.html names the hashed files, so it is revalidated on every load; a new publish shows up immediately
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;

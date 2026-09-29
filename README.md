@@ -47,7 +47,7 @@ Disney Lorcana PlayLab Cloud is a high-performance web application engineered fo
    - Live sync: card moves, ink, lore, turn state (~50–80ms round-trip)
    - **v1.5.0:** Exit Match vs network-drop distinction (LEAVE_ROOM hard-delete vs 60s Rejoin grace period), opponent-left notifications, auto-purge stale sessions
 4. **Deck Builder & Analytics**
-   - Search/filter across official dataset (Set 1–2, 3,242 cards), ink-curve analyzer via SQS async pipeline
+   - Search/filter across official dataset (Set 1–13 + Q1/Q2, 3,242 cards), ink-curve analyzer via SQS async pipeline
 5. **Official Rule Engine & Sandbox Playmat**
    - Single-ink-per-turn validation, dry/wet turn cycles, lore counter, rulebook guide
 
@@ -141,7 +141,7 @@ DISNEY_LORCANA_PLAYLAB_CLOUD/
 │   ├── package.json           # Express, ws, cors, dotenv
 │   └── tsconfig.json          # TypeScript build config
 ├── 📁 src/                    # React 19 SPA frontend
-├── 📁 public/dataset/         # Official card dataset (lorcana_set1_set2.json)
+├── 📁 src/assets/             # Official card dataset (lorcana_cards.json, built to a hashed /assets/ file)
 ├── 📁 docs/                   # Reports (Stage 2), Slides, QA Test Plans, References & Archive
 │   ├── README.md              # Master Documentation Index & architecture guide
 │   ├── 01_Reports/            # Stage 2 comprehensive report (Markdown), progress summary & evidence

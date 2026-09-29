@@ -53,13 +53,13 @@ switch ($Action) {
         $wsApi = aws apigatewayv2 get-apis --region $Region --query "Items[?Name=='LorcanaPlayLabWebSocketApi'].ApiEndpoint | [0]" --output text
         if (-not $wsApi -or $wsApi -eq "None") { Write-Error "LorcanaPlayLabWebSocketApi not found"; exit 1 }
 
-        Write-Host "[1/5] Building frontend (VITE_WS_ENDPOINT=$wsApi/prod)..." -ForegroundColor Green
+        Write-Host "[1/6] Building frontend (VITE_WS_ENDPOINT=$wsApi/prod)..." -ForegroundColor Green
         Push-Location $root
         try {
             # Process env beats .env files in Vite; API stays same-origin behind the ALB
             $env:VITE_WS_ENDPOINT = "$wsApi/prod"; $env:VITE_API_BASE_URL = "/api"
             npm run build; if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
-            Write-Host "[2/5] Bundling backend -> backend/dist_bundle/server.cjs..." -ForegroundColor Green
+            Write-Host "[2/6] Bundling backend -> backend/dist_bundle/server.cjs..." -ForegroundColor Green
             npx esbuild backend/cluster.ts --bundle --platform=node --target=node18 --format=cjs --outfile=backend/dist_bundle/server.cjs --log-level=warning
             if ($LASTEXITCODE -ne 0) { throw "backend bundle failed" }
         } finally {
@@ -67,14 +67,14 @@ switch ($Action) {
             Pop-Location
         }
 
-        Write-Host "[3/5] Uploading to S3..." -ForegroundColor Green
+        Write-Host "[3/6] Uploading to S3..." -ForegroundColor Green
         $acct = aws sts get-caller-identity --query Account --output text
         aws s3 sync (Join-Path $root "dist") "s3://lorcana-playlab-static-$acct" --region $Region --only-show-errors
         if ($LASTEXITCODE -ne 0) { Write-Error "s3 sync failed"; exit 1 }
         aws s3 cp (Join-Path $root "backend/dist_bundle/server.cjs") "s3://lorcana-playlab-assets-$acct/server.cjs" --region $Region --only-show-errors
         if ($LASTEXITCODE -ne 0) { Write-Error "s3 cp server.cjs failed"; exit 1 }
 
-        Write-Host "[4/5] Syncing JWT secret from SSM to legacy Lambdas..." -ForegroundColor Green
+        Write-Host "[4/6] Syncing JWT secret from SSM to legacy Lambdas..." -ForegroundColor Green
         $jwt = aws ssm get-parameter --name /lorcana/jwt-secret --with-decryption --region $Region --query Parameter.Value --output text
         if ($LASTEXITCODE -ne 0 -or -not $jwt) { Write-Error "SSM /lorcana/jwt-secret missing (run deploy first)"; exit 1 }
         foreach ($fn in @("lorcana-auth-login", "lorcana-deck")) {
@@ -89,8 +89,26 @@ switch ($Action) {
         }
         Remove-Variable jwt
 
+        # nginx/systemd config lives in the launch template's user_data and the ASG launches from $Latest,
+        # so a changed ec2_user_data.sh only reaches new instances if we push a new template version
+        Write-Host "[5/6] Syncing launch template user_data..." -ForegroundColor Green
+        $ud = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Content (Join-Path $PSScriptRoot "ec2_user_data.sh") -Raw)))
+        $curUd = aws ec2 describe-launch-template-versions --launch-template-name $ltName --versions '$Latest' --region $Region --query "LaunchTemplateVersions[0].LaunchTemplateData.UserData" --output text
+        if ($LASTEXITCODE -ne 0) { Write-Error "cannot read launch template $ltName (run deploy first)"; exit 1 }
+        if ($curUd -eq $ud) {
+            Write-Host "  user_data unchanged" -ForegroundColor Gray
+        } else {
+            $tmp = [System.IO.Path]::GetTempFileName()
+            try {
+                @{ UserData = $ud } | ConvertTo-Json -Compress | Set-Content -Path $tmp -Encoding Ascii
+                $ver = aws ec2 create-launch-template-version --launch-template-name $ltName --source-version '$Latest' --launch-template-data "file://$tmp" --version-description ("publish " + (Get-Date -Format s)) --region $Region --query "LaunchTemplateVersion.VersionNumber" --output text
+                if ($LASTEXITCODE -ne 0) { Write-Error "create-launch-template-version failed"; exit 1 }
+                Write-Host "  new launch template version $ver" -ForegroundColor Gray
+            } finally { Remove-Item $tmp -Force }
+        }
+
         # Learner Lab SCP denies StartInstanceRefresh, so replace instances one at a time instead
-        Write-Host "[5/5] Rolling replace (one instance at a time)..." -ForegroundColor Green
+        Write-Host "[6/6] Rolling replace (one instance at a time)..." -ForegroundColor Green
         $group = (aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --output json | ConvertFrom-Json).AutoScalingGroups[0]
         if (-not $group) { Write-Host "  ASG not deployed; new instances will pull this build on boot." -ForegroundColor Yellow; break }
         $tgArn = $group.TargetGroupARNs[0]

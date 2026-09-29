@@ -10,6 +10,7 @@ import { InkSymbol } from './InkSymbol';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '../data/recommendedDecks';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { translateCardType, translateInkColor, translateRarity } from '../utils/cardTranslator';
+import { fetchRawDataset } from '../data/cardPool';
 
 const INK_COLORS: (InkColor | 'All')[] = ['All', 'Amber', 'Amethyst', 'Emerald', 'Ruby', 'Sapphire', 'Steel'];
 
@@ -55,12 +56,9 @@ export const DeckBuilder: React.FC = () => {
   const CARDS_PER_PAGE = 24;
 
   React.useEffect(() => {
-    fetch('/dataset/lorcana_set1_set2.json')
-      .then((res) => res.json())
+    fetchRawDataset()
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setCardsDatabase(data);
-        }
+        if (data.length > 0) setCardsDatabase(data as LorcanaCard[]);
       })
       .catch(() => {});
   }, []);
