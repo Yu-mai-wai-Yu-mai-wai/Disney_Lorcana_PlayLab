@@ -18,6 +18,7 @@ import {
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { analyzeDeck } from './shared/deckAnalysis';
+import { getRedisClient, getCachedLeaderboard, setCachedLeaderboard } from './shared/cache';
 
 dotenv.config();
 
@@ -645,6 +646,85 @@ router.get('/users/:username/stats', async (req: Request, res: Response): Promis
   } catch (err: any) {
     console.error('[Get Stats Error]', err);
     res.status(200).json({ stats: { userId: username, wins: 0, losses: 0, games: 0 } });
+  }
+});
+
+// ==============================================================================
+// Leaderboard & Cache-Aside with ElastiCache (T05)
+// ==============================================================================
+router.get('/leaderboard', async (req: Request, res: Response): Promise<void> => {
+  const startTime = Date.now();
+  const redis = getRedisClient();
+
+  // 1. Try reading from ElastiCache (Valkey / Redis)
+  try {
+    const cached = await getCachedLeaderboard(redis);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.status(200).json({
+        leaderboard: cached,
+        source: 'cache',
+        count: cached.length,
+        durationMs: Date.now() - startTime,
+      });
+      return;
+    }
+  } catch (cacheErr: any) {
+    console.warn('[Leaderboard Cache Read Warning]', cacheErr?.message);
+  }
+
+  // 2. Cache MISS: query DynamoDB LorcanaPlayerStats
+  try {
+    const ddbRes = await docClient.send(
+      new ScanCommand({
+        TableName: PLAYER_STATS_TABLE,
+        Limit: 100,
+      })
+    );
+
+    const items = (ddbRes.Items || [])
+      .filter((it: any) => typeof it.userId === 'string' && !it.userId.startsWith('DEDUPE#'))
+      .map((it: any) => {
+        const wins = Number(it.wins) || 0;
+        const losses = Number(it.losses) || 0;
+        const games = Number(it.games) || (wins + losses);
+        const winRate = games > 0 ? Math.round((wins / games) * 100) : 0;
+        return {
+          userId: it.userId,
+          wins,
+          losses,
+          games,
+          winRate,
+        };
+      })
+      .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate)
+      .slice(0, 25)
+      .map((entry, idx) => ({
+        rank: idx + 1,
+        ...entry,
+      }));
+
+    // 3. Populate ElastiCache asynchronously with TTL 60 seconds
+    setCachedLeaderboard(redis, items, 60).catch((setErr) => {
+      console.warn('[Leaderboard Cache Set Warning]', setErr?.message);
+    });
+
+    res.setHeader('X-Cache', 'MISS');
+    res.status(200).json({
+      leaderboard: items,
+      source: 'dynamodb',
+      count: items.length,
+      durationMs: Date.now() - startTime,
+    });
+  } catch (err: any) {
+    console.error('[Get Leaderboard Error]', err);
+    res.setHeader('X-Cache', 'MISS');
+    res.status(200).json({
+      leaderboard: [],
+      source: 'fallback',
+      error: 'Failed to fetch leaderboard from database',
+      durationMs: Date.now() - startTime,
+    });
   }
 });
 

@@ -226,6 +226,38 @@ test('TC-E2E-23: match finish publishes to SNS and fan-out records to match hist
   expect(p1StatsAgain.wins).toBe(1); // Still 1, not 2
 });
 
+// Leaderboard & ElastiCache Cache-Aside Verification (T05)
+test('TC-E2E-24: leaderboard cache-aside returns MISS then HIT with valid ranking schema (ALB only)', async ({ request, baseURL }) => {
+  test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
+
+  // First request: MISS (or HIT if previously queried)
+  const req1 = await request.get(`${baseURL}/api/leaderboard`);
+  expect(req1.status()).toBe(200);
+  const cacheHeader1 = req1.headers()['x-cache'];
+  expect(['HIT', 'MISS']).toContain(cacheHeader1);
+
+  const body1 = await req1.json();
+  expect(Array.isArray(body1.leaderboard)).toBe(true);
+
+  // Second request within 60s: MUST be cache HIT
+  const req2 = await request.get(`${baseURL}/api/leaderboard`);
+  expect(req2.status()).toBe(200);
+  expect(req2.headers()['x-cache']).toBe('HIT');
+  const body2 = await req2.json();
+  expect(body2.source).toBe('cache');
+  expect(Array.isArray(body2.leaderboard)).toBe(true);
+
+  if (body2.leaderboard.length > 0) {
+    const top = body2.leaderboard[0];
+    expect(top.rank).toBe(1);
+    expect(typeof top.userId).toBe('string');
+    expect(typeof top.wins).toBe('number');
+    expect(typeof top.losses).toBe('number');
+    expect(typeof top.games).toBe('number');
+    expect(typeof top.winRate).toBe('number');
+  }
+});
+
 test.describe('5. Real-time Multi-Client Match Sync & WebSockets QA Suite', () => {
   test('TC-E2E-13: should open 2 independent player sessions and navigate to Match Lobby', async ({ browser }) => {
     // 1. Create Context for Player 1

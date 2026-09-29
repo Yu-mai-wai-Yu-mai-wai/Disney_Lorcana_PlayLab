@@ -246,6 +246,27 @@ switch ($Action) {
         }
         aws ssm delete-parameter --name "/lorcana/match-events-topic-arn" --region $Region 2>$null
 
+        Write-Host "[ElastiCache] Deleting cache cluster, subnet group, SG, and parameter..." -ForegroundColor Gray
+        $clusterStatus = aws elasticache describe-cache-clusters --cache-cluster-id "lorcana-cache" --region $Region --query "CacheClusters[0].CacheClusterStatus" --output text 2>$null
+        if ($clusterStatus -and $clusterStatus -ne "None") {
+            Invoke-Aws "delete cache cluster" { aws elasticache delete-cache-cluster --cache-cluster-id "lorcana-cache" --region $Region }
+            Write-Host "  Waiting for cache cluster to delete..." -ForegroundColor Gray
+            for ($i = 0; $i -lt 40; $i++) {
+                $c = aws elasticache describe-cache-clusters --cache-cluster-id "lorcana-cache" --region $Region 2>$null
+                if ($LASTEXITCODE -ne 0) { break }
+                Start-Sleep -Seconds 10
+            }
+        }
+        $subG = aws elasticache describe-cache-subnet-groups --cache-subnet-group-name "lorcana-cache-subnets" --region $Region --query "CacheSubnetGroups[0].CacheSubnetGroupName" --output text 2>$null
+        if ($subG -and $subG -ne "None") {
+            Invoke-Aws "delete cache subnet group" { aws elasticache delete-cache-subnet-group --cache-subnet-group-name "lorcana-cache-subnets" --region $Region }
+        }
+        $cacheSg = aws ec2 describe-security-groups --filters "Name=group-name,Values=lorcana-cache-sg" --region $Region --query "SecurityGroups[0].GroupId" --output text 2>$null
+        if ($cacheSg -and $cacheSg -ne "None") {
+            Invoke-Aws "delete cache SG" { aws ec2 delete-security-group --group-id $cacheSg --region $Region }
+        }
+        aws ssm delete-parameter --name "/lorcana/cache-endpoint" --region $Region 2>$null
+
 
         if ($failed.Count -gt 0) {
             Write-Host "[INCOMPLETE] $($failed.Count) step(s) failed; state file kept. Fix and re-run destroy:" -ForegroundColor Red

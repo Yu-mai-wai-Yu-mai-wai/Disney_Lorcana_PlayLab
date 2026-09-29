@@ -15,11 +15,12 @@ ssm() { aws ssm get-parameter --region us-east-1 --name "$1" --with-decryption -
 umask 077
 if JWT=$(ssm /lorcana/jwt-secret) && ADMIN=$(ssm /lorcana/admin-passcode) && SQS=$(ssm /lorcana/sqs-url); then
   TOPIC=$(ssm /lorcana/match-events-topic-arn 2>/dev/null || echo "")
-  printf 'JWT_SECRET=%s\nADMIN_PASSCODE=%s\nLORCANA_SQS_URL=%s\nMATCH_EVENTS_TOPIC_ARN=%s\n' "$JWT" "$ADMIN" "$SQS" "$TOPIC" > /etc/lorcana.env
+  CACHE=$(ssm /lorcana/cache-endpoint 2>/dev/null || echo "")
+  printf 'JWT_SECRET=%s\nADMIN_PASSCODE=%s\nLORCANA_SQS_URL=%s\nMATCH_EVENTS_TOPIC_ARN=%s\nCACHE_ENDPOINT=%s\n' "$JWT" "$ADMIN" "$SQS" "$TOPIC" "$CACHE" > /etc/lorcana.env
 else
   echo "[FATAL] Could not read /lorcana/* from SSM; backend will not start" >&2
 fi
-unset JWT ADMIN SQS TOPIC
+unset JWT ADMIN SQS TOPIC CACHE
 umask 022
 
 # Create systemd service for Lorcana Backend

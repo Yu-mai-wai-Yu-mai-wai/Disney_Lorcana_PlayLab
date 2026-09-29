@@ -245,5 +245,28 @@ export const apiService = {
       return { stats: { userId: username, wins: 0, losses: 0, games: 0 }, error: err.message || 'Network error' };
     }
   },
+
+  async getLeaderboard(): Promise<{
+    leaderboard: Array<{
+      rank: number;
+      userId: string;
+      wins: number;
+      losses: number;
+      games: number;
+      winRate: number;
+    }>;
+    source?: string;
+    durationMs?: number;
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/leaderboard`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch leaderboard');
+      return data;
+    } catch (err: any) {
+      return { leaderboard: [], error: err.message || 'Network error' };
+    }
+  },
 };
 

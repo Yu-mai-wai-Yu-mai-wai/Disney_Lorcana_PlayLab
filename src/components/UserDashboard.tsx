@@ -39,7 +39,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   const [stats, setStats] = useState<{ wins: number; losses: number; games: number } | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
-  const [dashboardTab, setDashboardTab] = useState<'decks' | 'matches'>('decks');
+  const [dashboardTab, setDashboardTab] = useState<'decks' | 'matches' | 'leaderboard'>('decks');
+
+  // Leaderboard & ElastiCache Cache-Aside (T05)
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardMeta, setLeaderboardMeta] = useState<{ source?: string; durationMs?: number }>({});
+
+  const loadLeaderboard = React.useCallback(async () => {
+    setLeaderboardLoading(true);
+    try {
+      const res = await apiService.getLeaderboard();
+      setLeaderboard(res.leaderboard || []);
+      setLeaderboardMeta({ source: res.source, durationMs: res.durationMs });
+    } catch (err: any) {
+      console.error('Failed to load leaderboard', err);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, []);
 
   // Load real decks from the cloud when authenticated
   const loadUserDecks = React.useCallback(async () => {
@@ -481,6 +499,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                     </span>
                   )}
                 </button>
+                <span className="text-[#30363d] font-thin">|</span>
+                <button
+                  onClick={() => {
+                    setDashboardTab('leaderboard');
+                    loadLeaderboard();
+                  }}
+                  data-testid="tab-leaderboard"
+                  className={`font-cinzel text-xl sm:text-2xl font-bold tracking-wide transition-colors cursor-pointer flex items-center gap-2 ${
+                    dashboardTab === 'leaderboard' ? 'text-[#F59E0B]' : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  <Trophy className="w-5 h-5" />
+                  <span>{language === 'th' ? 'กระดานผู้นำ' : 'Leaderboard'}</span>
+                </button>
               </div>
 
               {dashboardTab === 'decks' && (
@@ -680,6 +712,90 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                       </div>
                     );
                   })
+                )}
+              </div>
+            )}
+
+            {/* Leaderboard Table (T05 ElastiCache Cache-Aside) */}
+            {dashboardTab === 'leaderboard' && (
+              <div className="flex flex-col gap-3 mt-2" data-testid="leaderboard-view">
+                <div className="flex items-center justify-between px-2 py-1 text-xs font-mono text-[#94A3B8]">
+                  <span>
+                    {language === 'th' ? 'จัดอันดับผู้เล่นตามจำนวนชัยชนะ (Top Illumineers)' : 'Player rankings sorted by total wins (Top Illumineers)'}
+                  </span>
+                  {leaderboardMeta.source && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#141a26] border border-[#30363d] text-[#F59E0B] text-[11px]">
+                      Source: {leaderboardMeta.source === 'cache' ? 'ElastiCache Redis [HIT]' : 'DynamoDB [MISS]'} {leaderboardMeta.durationMs ? `(${leaderboardMeta.durationMs}ms)` : ''}
+                    </span>
+                  )}
+                </div>
+
+                {leaderboardLoading ? (
+                  <div className="p-12 text-center text-[#94A3B8] flex flex-col items-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#F59E0B]" />
+                    <p className="text-xs font-mono">{language === 'th' ? 'กำลังดึงข้อมูลอันดับจาก ElastiCache...' : 'Fetching leaderboard ranking from cloud cache...'}</p>
+                  </div>
+                ) : leaderboard.length === 0 ? (
+                  <div className="p-12 rounded-2xl bg-[#141a26]/60 border border-[#30363d] text-center flex flex-col items-center gap-3" data-testid="leaderboard-empty">
+                    <Trophy className="w-8 h-8 text-[#94A3B8]" />
+                    <h3 className="font-cinzel font-bold text-base text-white">
+                      {language === 'th' ? 'ยังไม่มีข้อมูลการจัดอันดับ' : 'No Leaderboard Records Yet'}
+                    </h3>
+                    <p className="text-xs text-[#94A3B8] max-w-sm">
+                      {language === 'th' ? 'แข่งขันให้ชนะในแมตช์ 2 ผู้เล่นเพื่อขึ้นสู่กระดานผู้นำ' : 'Win 2-player matches to claim your spot on the cloud leaderboard.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-[#30363d] bg-[#141a26]">
+                    <table className="w-full text-left text-xs font-mono">
+                      <thead className="bg-[#0B0F19] text-[#94A3B8] border-b border-[#30363d] uppercase tracking-wider">
+                        <tr>
+                          <th className="py-3 px-4"># Rank</th>
+                          <th className="py-3 px-4">Illumineer</th>
+                          <th className="py-3 px-4 text-center">Wins</th>
+                          <th className="py-3 px-4 text-center">Losses</th>
+                          <th className="py-3 px-4 text-center">Games</th>
+                          <th className="py-3 px-4 text-right">Win Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#30363d]/60">
+                        {leaderboard.map((player: any) => {
+                          const isTop3 = player.rank <= 3;
+                          const rankColor =
+                            player.rank === 1
+                              ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30'
+                              : player.rank === 2
+                              ? 'text-slate-300 bg-slate-300/10 border-slate-300/30'
+                              : player.rank === 3
+                              ? 'text-amber-600 bg-amber-600/10 border-amber-600/30'
+                              : 'text-[#94A3B8] bg-[#0B0F19] border-[#30363d]';
+                          return (
+                            <tr key={player.userId || player.rank} className="hover:bg-[#1e2638]/50 transition-colors">
+                              <td className="py-3.5 px-4 font-bold">
+                                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border text-xs ${rankColor}`}>
+                                  {player.rank}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 font-cinzel font-bold text-white text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span>{player.userId}</span>
+                                  {player.userId === user?.username && (
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/40">
+                                      YOU
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 text-center text-emerald-400 font-bold">{player.wins}</td>
+                              <td className="py-3.5 px-4 text-center text-rose-400">{player.losses}</td>
+                              <td className="py-3.5 px-4 text-center text-[#94A3B8]">{player.games}</td>
+                              <td className="py-3.5 px-4 text-right font-bold text-[#F59E0B]">{player.winRate}%</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )}
