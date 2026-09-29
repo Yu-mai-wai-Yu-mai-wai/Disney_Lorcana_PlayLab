@@ -68,3 +68,4 @@ qa/*.tmp
 *.session
 *.token
 *.jwt
+scripts/infrastructure_state.json

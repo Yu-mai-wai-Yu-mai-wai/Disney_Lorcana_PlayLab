@@ -44,6 +44,8 @@ function New-SsmParam([string]$Name, [string]$Type, [string]$Value) {
     if ($LASTEXITCODE -ne 0 -and "$out" -notmatch "ParameterAlreadyExists") { throw "SSM put-parameter $Name failed: $out" }
 }
 function New-Secret { $b = New-Object byte[] 48; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b) }
+# Queues, DLQs and Lambda wiring (idempotent, account-level)
+& (Join-Path $PSScriptRoot "ensure_pipeline.ps1") -Region $Region
 $SqsUrl = aws sqs get-queue-url --queue-name lorcana-deck-analyzer --region $Region --query QueueUrl --output text
 New-SsmParam "/lorcana/jwt-secret" "SecureString" (New-Secret)
 New-SsmParam "/lorcana/admin-passcode" "SecureString" (New-Secret)

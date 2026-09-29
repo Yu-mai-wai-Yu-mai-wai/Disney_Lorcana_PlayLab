@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("start", "stop", "status", "publish", "destroy")]
+    [ValidateSet("start", "stop", "status", "publish", "lambdas", "destroy")]
     [string]$Action = "status",
     [string]$Region = "us-east-1"
 )
@@ -19,6 +19,32 @@ if ($state -and $state.Region) { $Region = $state.Region }
 $asg = if ($state -and $state.AsgName) { $state.AsgName } elseif ($state -and $state.AutoScalingGroupName) { $state.AutoScalingGroupName } else { "lorcana-asg" }
 $albDns = if ($state) { $state.AlbDnsName } else { $null }
 $ltName = if ($state -and $state.LaunchTemplateName) { $state.LaunchTemplateName } else { "lorcana-lt" }
+
+# Lambda functions whose source lives in this repo: bundle with esbuild, zip, update-function-code.
+# @aws-sdk/* ships with the nodejs20.x runtime, so it stays external.
+$lambdaFns = @(
+    @{ Name = "lorcana-analyzer"; Entry = "backend/serverless/analyzer/handler.ts"; Out = "analyzer/handler.js" }
+)
+function Publish-Lambdas {
+    $root = Split-Path $PSScriptRoot -Parent
+    foreach ($fn in $lambdaFns) {
+        $work = Join-Path ([System.IO.Path]::GetTempPath()) ("lorcana_lambda_" + [guid]::NewGuid().ToString("N"))
+        New-Item -ItemType Directory -Path $work | Out-Null
+        try {
+            Push-Location $root
+            try {
+                npx esbuild $fn.Entry --bundle --platform=node --target=node20 --format=cjs "--external:@aws-sdk/*" "--outfile=$(Join-Path $work $fn.Out)" --log-level=warning
+                if ($LASTEXITCODE -ne 0) { throw "esbuild failed for $($fn.Name)" }
+            } finally { Pop-Location }
+            $zip = Join-Path $work "code.zip"
+            Compress-Archive -Path (Join-Path $work (Split-Path $fn.Out -Parent)) -DestinationPath $zip
+            aws lambda update-function-code --function-name $fn.Name --zip-file "fileb://$zip" --region $Region --query LastUpdateStatus --output text
+            if ($LASTEXITCODE -ne 0) { throw "update-function-code failed for $($fn.Name)" }
+            aws lambda wait function-updated --function-name $fn.Name --region $Region
+            Write-Host "  [OK] $($fn.Name) code updated" -ForegroundColor Gray
+        } finally { Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
 
 switch ($Action) {
     "start" {
@@ -47,19 +73,23 @@ switch ($Action) {
             }
         }
     }
+    "lambdas" {
+        Write-Host "[LAMBDAS] Bundling and deploying Lambda code..." -ForegroundColor Green
+        Publish-Lambdas
+    }
     "publish" {
         # Build SPA (realtime -> API Gateway WebSocket) + backend bundle, upload to S3, sync Lambda secret, rolling refresh
         $root = Split-Path $PSScriptRoot -Parent
         $wsApi = aws apigatewayv2 get-apis --region $Region --query "Items[?Name=='LorcanaPlayLabWebSocketApi'].ApiEndpoint | [0]" --output text
         if (-not $wsApi -or $wsApi -eq "None") { Write-Error "LorcanaPlayLabWebSocketApi not found"; exit 1 }
 
-        Write-Host "[1/6] Building frontend (VITE_WS_ENDPOINT=$wsApi/prod)..." -ForegroundColor Green
+        Write-Host "[1/7] Building frontend (VITE_WS_ENDPOINT=$wsApi/prod)..." -ForegroundColor Green
         Push-Location $root
         try {
             # Process env beats .env files in Vite; API stays same-origin behind the ALB
             $env:VITE_WS_ENDPOINT = "$wsApi/prod"; $env:VITE_API_BASE_URL = "/api"
             npm run build; if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
-            Write-Host "[2/6] Bundling backend -> backend/dist_bundle/server.cjs..." -ForegroundColor Green
+            Write-Host "[2/7] Bundling backend -> backend/dist_bundle/server.cjs..." -ForegroundColor Green
             npx esbuild backend/cluster.ts --bundle --platform=node --target=node18 --format=cjs --outfile=backend/dist_bundle/server.cjs --log-level=warning
             if ($LASTEXITCODE -ne 0) { throw "backend bundle failed" }
         } finally {
@@ -67,14 +97,14 @@ switch ($Action) {
             Pop-Location
         }
 
-        Write-Host "[3/6] Uploading to S3..." -ForegroundColor Green
+        Write-Host "[3/7] Uploading to S3..." -ForegroundColor Green
         $acct = aws sts get-caller-identity --query Account --output text
         aws s3 sync (Join-Path $root "dist") "s3://lorcana-playlab-static-$acct" --region $Region --only-show-errors
         if ($LASTEXITCODE -ne 0) { Write-Error "s3 sync failed"; exit 1 }
         aws s3 cp (Join-Path $root "backend/dist_bundle/server.cjs") "s3://lorcana-playlab-assets-$acct/server.cjs" --region $Region --only-show-errors
         if ($LASTEXITCODE -ne 0) { Write-Error "s3 cp server.cjs failed"; exit 1 }
 
-        Write-Host "[4/6] Syncing JWT secret from SSM to legacy Lambdas..." -ForegroundColor Green
+        Write-Host "[4/7] Syncing JWT secret from SSM to legacy Lambdas..." -ForegroundColor Green
         $jwt = aws ssm get-parameter --name /lorcana/jwt-secret --with-decryption --region $Region --query Parameter.Value --output text
         if ($LASTEXITCODE -ne 0 -or -not $jwt) { Write-Error "SSM /lorcana/jwt-secret missing (run deploy first)"; exit 1 }
         foreach ($fn in @("lorcana-auth-login", "lorcana-deck")) {
@@ -89,9 +119,12 @@ switch ($Action) {
         }
         Remove-Variable jwt
 
+        Write-Host "[5/7] Deploying Lambda code..." -ForegroundColor Green
+        Publish-Lambdas
+
         # nginx/systemd config lives in the launch template's user_data and the ASG launches from $Latest,
         # so a changed ec2_user_data.sh only reaches new instances if we push a new template version
-        Write-Host "[5/6] Syncing launch template user_data..." -ForegroundColor Green
+        Write-Host "[6/7] Syncing launch template user_data..." -ForegroundColor Green
         $ud = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Content (Join-Path $PSScriptRoot "ec2_user_data.sh") -Raw)))
         $curUd = aws ec2 describe-launch-template-versions --launch-template-name $ltName --versions '$Latest' --region $Region --query "LaunchTemplateVersions[0].LaunchTemplateData.UserData" --output text
         if ($LASTEXITCODE -ne 0) { Write-Error "cannot read launch template $ltName (run deploy first)"; exit 1 }
@@ -108,7 +141,7 @@ switch ($Action) {
         }
 
         # Learner Lab SCP denies StartInstanceRefresh, so replace instances one at a time instead
-        Write-Host "[6/6] Rolling replace (one instance at a time)..." -ForegroundColor Green
+        Write-Host "[7/7] Rolling replace (one instance at a time)..." -ForegroundColor Green
         $group = (aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --output json | ConvertFrom-Json).AutoScalingGroups[0]
         if (-not $group) { Write-Host "  ASG not deployed; new instances will pull this build on boot." -ForegroundColor Yellow; break }
         $tgArn = $group.TargetGroupARNs[0]
