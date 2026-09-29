@@ -18,7 +18,7 @@ import {
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { analyzeDeck } from './shared/deckAnalysis';
-import { getRedisClient, getCachedLeaderboard, setCachedLeaderboard } from './shared/cache';
+import { getRedisClient, getCachedLeaderboard, setCachedLeaderboard, warmCache } from './shared/cache';
 
 dotenv.config();
 
@@ -1166,6 +1166,7 @@ wss.on('connection', (ws: WebSocket) => {
 });
 
 server.listen(PORT, () => {
+  warmCache();
   console.log('=======================================================');
   console.log(`🚀 Disney Lorcana Backend Server Running on Port ${PORT}`);
   console.log(`📡 REST API: http://localhost:${PORT}`);

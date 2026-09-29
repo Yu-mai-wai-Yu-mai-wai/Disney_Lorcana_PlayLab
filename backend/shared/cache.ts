@@ -59,6 +59,12 @@ export function getRedisClient(): Redis | null {
   }
 }
 
+// Call once at process start. The client has enableOfflineQueue=false, so a connection that is only opened
+// on the first request makes that first request (in every worker of every instance) miss silently.
+export function warmCache(): void {
+  getRedisClient();
+}
+
 export async function getCachedLeaderboard(client: Redis | null): Promise<LeaderboardEntry[] | null> {
   if (!client) return null;
   try {

@@ -147,7 +147,8 @@ switch ($Action) {
         $group = (aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --output json | ConvertFrom-Json).AutoScalingGroups[0]
         if (-not $group) { Write-Host "  ASG not deployed; new instances will pull this build on boot." -ForegroundColor Yellow; break }
         $tgArn = $group.TargetGroupARNs[0]
-        foreach ($old in $group.Instances.InstanceId) {
+        # only instances that are serving: a Terminating one from an earlier replacement cannot be terminated again
+        foreach ($old in ($group.Instances | Where-Object { $_.LifecycleState -eq 'InService' }).InstanceId) {
             Write-Host "  Replacing $old..." -ForegroundColor Gray
             aws autoscaling terminate-instance-in-auto-scaling-group --instance-id $old --no-should-decrement-desired-capacity --region $Region | Out-Null
             if ($LASTEXITCODE -ne 0) { Write-Error "terminate $old failed"; exit 1 }
