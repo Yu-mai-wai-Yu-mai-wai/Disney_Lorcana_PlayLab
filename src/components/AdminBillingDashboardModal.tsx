@@ -38,6 +38,7 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
   const { language } = useLanguageStore();
 
   const [billing, setBilling] = useState<AdminBillingData | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
@@ -50,9 +51,8 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
     setLoading(true);
     try {
       const res = await apiService.getAdminBilling(token || undefined);
-      if (res.data) {
-        setBilling(res.data);
-      }
+      setBilling(res.data);
+      setBillingError(res.data ? null : res.error || 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                 </span>
               </div>
               <p className="text-xs text-[#94A3B8] font-mono">
-                AWS Academy Learner Lab • Account: 953899323223 • us-east-1
+                AWS Academy Learner Lab • Account: {billing ? billing.accountId : '—'} • us-east-1
               </p>
             </div>
           </div>
@@ -183,9 +183,6 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                       className="w-full bg-[#0B0F19] text-white font-mono text-sm rounded-xl py-3 pl-11 pr-4 border border-[#30363d] focus:border-[#F59E0B] outline-none"
                     />
                   </div>
-                  <p className="text-[11px] font-mono text-slate-500">
-                    💡 Master Key: <code className="text-[#F59E0B]">LORCANA_ADMIN_2026</code>
-                  </p>
                 </div>
 
                 <button
@@ -198,38 +195,43 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                 </button>
               </form>
             </div>
+          ) : !billing ? (
+            billingError ? (
+              <div role="alert" data-testid="billing-error" className="p-6 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 text-sm font-mono space-y-2">
+                <p className="font-bold">{language === 'th' ? 'โหลดข้อมูลค่าใช้จ่ายไม่สำเร็จ' : 'Could not load billing data'}</p>
+                <p className="text-xs opacity-80">{billingError}</p>
+                <p className="text-xs opacity-80">
+                  {language === 'th' ? 'กดรีเฟรชเพื่อลองใหม่ ระบบไม่แสดงตัวเลขสำรอง' : 'Press Refresh to retry. No placeholder numbers are shown.'}
+                </p>
+              </div>
+            ) : (
+              <div role="status" data-testid="billing-loading" className="p-6 text-slate-400 text-sm font-mono">
+                {language === 'th' ? 'กำลังโหลด...' : 'Loading...'}
+              </div>
+            )
           ) : (
             /* Unlocked Admin Dashboard */
             <>
-              {/* Top Banner Status Bar */}
-              <div className="p-4 rounded-2xl bg-[#141a26]/90 border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex items-center justify-center">
-                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping absolute" />
-                    <div className="w-3 h-3 rounded-full bg-emerald-400 relative shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-emerald-400 font-mono">
-                        {language === 'th' ? 'สถานะค่าใช้จ่าย: ปิดพักเซิร์ฟเวอร์ ($0.00/hr)' : 'BILLING GUARD: IDLE / SAFE ($0.00/hr)'}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                        ZERO-COST STANDBY
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5 font-mono">
-                      {language === 'th'
-                        ? 'ทรัพยากรที่กินเงิน (ALB, ASG, EC2, NAT) ถูกรันคำสั่ง lab.ps1 destroy เรียบร้อยแล้ว ไม่มีค่าใช้จ่ายรายชั่วโมง'
-                        : 'Billable resources (ALB, ASG, EC2, NAT) have been terminated via lab.ps1 destroy. Zero hourly leakage.'}
-                    </p>
+              {/* Data provenance and status: everything below comes from `billing` */}
+              {billing.source === 'static-snapshot' ? (
+                <div data-testid="billing-snapshot-note" className="p-4 rounded-2xl bg-[#141a26]/90 border border-amber-500/40 text-xs font-mono text-amber-200">
+                  {language === 'th'
+                    ? `ตัวเลขชุดนี้เป็น snapshot ณ ${billing.asOf} ไม่ใช่ข้อมูลสดจาก AWS ตรวจสถานะจริงด้วย .\scripts\lab.ps1 status`
+                    : `These numbers are a snapshot as of ${billing.asOf}, not live AWS data. Check the real state with .\scripts\lab.ps1 status`}
+                </div>
+              ) : (
+                <div className={`p-4 rounded-2xl bg-[#141a26]/90 border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${billing.cloudStatus === 'running' ? 'border-amber-500/40' : 'border-emerald-500/30'}`}>
+                  <span className={`font-bold text-sm font-mono ${billing.cloudStatus === 'running' ? 'text-amber-300' : 'text-emerald-400'}`}>
+                    {billing.cloudStatus === 'running'
+                      ? (language === 'th' ? `กำลังรัน: ค่าใช้จ่าย $${billing.currentHourlyBurnRate.toFixed(4)}/ชม.` : `RUNNING: $${billing.currentHourlyBurnRate.toFixed(4)}/hr`)
+                      : (language === 'th' ? `ไม่มีทรัพยากรที่คิดเงินรายชั่วโมง ($${billing.currentHourlyBurnRate.toFixed(4)}/ชม.)` : `No hourly-billed resources ($${billing.currentHourlyBurnRate.toFixed(4)}/hr)`)}
+                  </span>
+                  <div className="text-xs font-mono text-[#94A3B8] shrink-0">
+                    {language === 'th' ? 'อัปเดตล่าสุด: ' : 'Telemetry: '}
+                    <span className="text-white font-bold">{billing.lastUpdated}</span>
                   </div>
                 </div>
-
-                <div className="text-xs font-mono text-[#94A3B8] shrink-0">
-                  {language === 'th' ? 'อัปเดตล่าสุด: ' : 'Telemetry: '}
-                  <span className="text-white font-bold">{billing?.lastUpdated || 'Live'}</span>
-                </div>
-              </div>
+              )}
 
               {/* KPI Cards (4 Grid) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -241,7 +243,7 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                   </div>
                   <div className="mt-3">
                     <div className="font-cinzel text-3xl font-bold text-white">
-                      ${billing?.budgetTotal.toFixed(2) || '100.00'}
+                      ${billing.budgetTotal.toFixed(2)}
                     </div>
                     <p className="text-[11px] text-slate-400 font-mono mt-1">
                       AWS Learner Lab Ceiling
@@ -257,10 +259,10 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                   </div>
                   <div className="mt-3">
                     <div className="font-cinzel text-3xl font-bold text-amber-400">
-                      ${billing?.monthToDateSpend.toFixed(2) || '9.77'}
+                      ${billing.monthToDateSpend.toFixed(2)}
                     </div>
                     <p className="text-[11px] text-amber-300/80 font-mono mt-1">
-                      {billing?.budgetUsagePercent.toFixed(1) || '9.8'}% of $100 budget
+                      {billing.budgetUsagePercent.toFixed(1)}% of ${billing.budgetTotal.toFixed(0)} budget
                     </p>
                   </div>
                 </div>
@@ -273,10 +275,10 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                   </div>
                   <div className="mt-3">
                     <div className="font-cinzel text-3xl font-bold text-emerald-400">
-                      ${billing?.remainingBudget.toFixed(2) || '90.23'}
+                      ${billing.remainingBudget.toFixed(2)}
                     </div>
                     <p className="text-[11px] text-emerald-300/80 font-mono mt-1">
-                      90.2% Remaining Available
+                      {(100 - billing.budgetUsagePercent).toFixed(1)}% Remaining Available
                     </p>
                   </div>
                 </div>
@@ -289,11 +291,11 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                   </div>
                   <div className="mt-3">
                     <div className="font-cinzel text-3xl font-bold text-sky-400">
-                      ${billing?.currentHourlyBurnRate.toFixed(4) || '0.0000'}
+                      ${billing.currentHourlyBurnRate.toFixed(4)}
                       <span className="text-xs font-mono font-normal text-slate-400">/hr</span>
                     </div>
                     <p className="text-[11px] text-slate-400 font-mono mt-1">
-                      Stopped: $0.00 | Active: ~$0.046/hr
+                      Forecast this month: ${billing.forecastSpend.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -303,23 +305,23 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
               <div className="p-5 rounded-2xl bg-[#141a26] border border-white/10 space-y-3">
                 <div className="flex justify-between items-center text-xs font-mono">
                   <span className="text-slate-300">
-                    {language === 'th' ? 'การใช้งบประมาณ ($9.77 / $100.00)' : 'Budget Consumption ($9.77 / $100.00)'}
+                    {language === 'th' ? `การใช้งบประมาณ ($${billing.monthToDateSpend.toFixed(2)} / $${billing.budgetTotal.toFixed(2)})` : `Budget Consumption ($${billing.monthToDateSpend.toFixed(2)} / $${billing.budgetTotal.toFixed(2)})`}
                   </span>
                   <span className="text-emerald-400 font-bold">
-                    9.77% (Green Safety Zone)
+                    {billing.budgetUsagePercent.toFixed(2)}%
                   </span>
                 </div>
                 <div className="w-full h-3 rounded-full bg-[#0B0F19] overflow-hidden p-0.5 border border-white/10">
                   <div 
                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-[#F59E0B] to-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-1000"
-                    style={{ width: `${Math.min(100, Math.max(5, billing?.budgetUsagePercent || 9.77))}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, billing.budgetUsagePercent))}%` }}
                   />
                 </div>
                 <div className="flex justify-between text-[11px] font-mono text-slate-500">
                   <span>$0 (Start)</span>
-                  <span>$50 (Halfway Alert)</span>
-                  <span>$85 (Warning Threshold)</span>
-                  <span>$100 (Lab Cutoff)</span>
+                  <span>${Number((billing.budgetTotal * 0.5).toFixed(2))} (50%)</span>
+                  <span>${Number((billing.budgetTotal * 0.85).toFixed(2))} (85%)</span>
+                  <span>${billing.budgetTotal.toFixed(0)} (Lab Cutoff)</span>
                 </div>
               </div>
 
@@ -331,7 +333,7 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                     <span>{language === 'th' ? 'สัดส่วนค่าบริการแยกตาม Service ของ AWS' : 'AWS Service Cost Breakdown (MTD)'}</span>
                   </h3>
                   <span className="text-xs text-slate-400 font-mono">
-                    Official AWS Cost Explorer Source
+                    {billing.source === 'static-snapshot' ? 'Snapshot of the September bill' : 'AWS Cost Explorer'}
                   </span>
                 </div>
 
@@ -347,7 +349,7 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 text-slate-200">
-                      {(billing?.services || []).map((srv, idx) => (
+                      {billing.services.map((srv, idx) => (
                         <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3 px-4 font-bold flex items-center gap-2 text-white">
                             {srv.name.includes('Load') ? <Network className="w-4 h-4 text-amber-400 shrink-0" /> :
@@ -391,25 +393,25 @@ export const AdminBillingDashboardModal: React.FC<AdminBillingDashboardModalProp
                 <div className="p-5 rounded-2xl bg-[#141a26] border border-white/10 space-y-4">
                   <h4 className="font-cinzel text-sm font-bold text-white flex items-center gap-2">
                     <Server className="w-4 h-4 text-[#F59E0B]" />
-                    <span>{language === 'th' ? 'ทรัพยากรบน AWS ณ ปัจจุบัน' : 'Live AWS Cloud Telemetry'}</span>
+                    <span>{billing.source === 'static-snapshot' ? (language === 'th' ? 'ทรัพยากรบน AWS (snapshot)' : 'AWS Resource Snapshot') : (language === 'th' ? 'ทรัพยากรบน AWS ณ ปัจจุบัน' : 'Live AWS Cloud Telemetry')}</span>
                   </h4>
 
                   <div className="grid grid-cols-2 gap-3 text-xs font-mono">
                     <div className="p-3 rounded-xl bg-[#0B0F19] border border-white/5 flex items-center justify-between">
                       <span className="text-slate-400">EC2 Instances</span>
-                      <span className="text-emerald-400 font-bold">{billing?.resourceTelemetry.ec2Running} Running</span>
+                      <span className="text-emerald-400 font-bold">{billing.resourceTelemetry.ec2Running} Running</span>
                     </div>
                     <div className="p-3 rounded-xl bg-[#0B0F19] border border-white/5 flex items-center justify-between">
                       <span className="text-slate-400">Auto Scaling Group</span>
-                      <span className="text-white font-bold">{billing?.resourceTelemetry.asgCurrent} / {billing?.resourceTelemetry.asgDesired} Desired</span>
+                      <span className="text-white font-bold">{billing.resourceTelemetry.asgCurrent} / {billing.resourceTelemetry.asgDesired} Desired</span>
                     </div>
                     <div className="p-3 rounded-xl bg-[#0B0F19] border border-white/5 flex items-center justify-between">
                       <span className="text-slate-400">ALB Load Balancer</span>
-                      <span className="text-slate-400 font-bold">{billing?.resourceTelemetry.albCount} (Destroyed)</span>
+                      <span className="text-white font-bold">{billing.resourceTelemetry.albCount}</span>
                     </div>
                     <div className="p-3 rounded-xl bg-[#0B0F19] border border-white/5 flex items-center justify-between">
                       <span className="text-slate-400">DynamoDB Tables</span>
-                      <span className="text-purple-400 font-bold">{billing?.resourceTelemetry.dynamoTables} Active</span>
+                      <span className="text-purple-400 font-bold">{billing.resourceTelemetry.dynamoTables} Active</span>
                     </div>
                   </div>
                 </div>

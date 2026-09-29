@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
-  Wifi,
   Skull,
   Library,
   Droplets,
@@ -428,9 +427,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [notice, setNotice] = useState<{ msg: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // SPRINT 3: AWS WEBSOCKETS REAL-TIME ROOM SYNC STATE
-  const [inputRoomId, setInputRoomId] = useState(roomId || '108249');
-  const [, setActiveRoomId] = useState(roomId || '108249');
-  const [isWsConnected] = useState(false);
 
   // CHAT STATE
   const [chatMessages, setChatMessages] = useState<{username: string, message: string, time: string}[]>([]);
@@ -767,7 +763,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   React.useEffect(() => {
     if (roomId) {
       webSocketService.setRoomId(roomId);
-      setActiveRoomId(roomId);
     }
     if (playerRole) {
       webSocketService.setRole(playerRole);
@@ -1085,17 +1080,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       if (checkFromMe(data)) return;
       showNotice('Opponent disconnected! Grace period started (60s)...', 'warning');
       setIsOpponentDisconnected(true);
-      setDisconnectCountdown(60);
+      let secondsLeft = 60;
+      setDisconnectCountdown(secondsLeft);
 
       if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
       disconnectTimerRef.current = setInterval(() => {
-        setDisconnectCountdown((prev) => {
-          if (prev <= 1) {
-            if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
+        secondsLeft -= 1;
+        setDisconnectCountdown(Math.max(secondsLeft, 0));
+        if (secondsLeft <= 0 && disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
       }, 1000);
     });
 
@@ -1110,50 +1102,8 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       setOpponentLeftName(data.username || opponentName || 'Opponent');
     });
 
-    const unsubReconnected = webSocketService.subscribe('PLAYER_RECONNECTED', (data: any) => {
-      if (data.isSelf) {
-        // Lambda confirmed our new connection is registered: now a sync answer can reach us
-        if (awaitingSyncRef.current) {
-          webSocketService.sendAction('REQUEST_STATE_SYNC' as any, { roomId, role: playerRoleRef.current, username: myUsername });
-        }
-        return;
-      }
-      markOpponentActive(data.username);
-      if (!awaitingSyncRef.current) {
-        showNotice(`🎉 ${data.username || 'Opponent'} reconnected to the match!`, 'success');
-        setLogMessages(prev => [`Opponent reconnected to the room. Match resumed.`, ...prev]);
-
-        // Send current full match state so rejoining opponent gets updated instantly
-        const bs = boardStateRef.current;
-        const isP1 = playerRoleRef.current === 'player1';
-        webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
-          roomId,
-          role: playerRoleRef.current,
-          username: myUsername,
-          payload: {
-            loreP1: isP1 ? bs.playerLore : bs.opponentLore,
-            loreP2: isP1 ? bs.opponentLore : bs.playerLore,
-            inkP1: isP1 ? bs.availableInk : bs.opponentInk,
-            inkP2: isP1 ? bs.opponentInk : bs.availableInk,
-            inkCapP1: isP1 ? bs.inkwellCapacity : bs.opponentInkCapacity,
-            inkCapP2: isP1 ? bs.opponentInkCapacity : bs.inkwellCapacity,
-            turnNumber: turnNumberRef.current,
-            isTurnP1: isP1 ? bs.isMyTurn : !bs.isMyTurn,
-            p1FieldCards: isP1 ? bs.fieldCards : bs.opponentFieldCards,
-            p2FieldCards: isP1 ? bs.opponentFieldCards : bs.fieldCards,
-            damage: bs.damage,
-            p1Exerted: isP1 ? bs.exertedCards : bs.opponentExerted,
-            p2Exerted: isP1 ? bs.opponentExerted : bs.exertedCards,
-          },
-        });
-      }
-    });
-
-    // Request State Sync (When a rejoining player asks for current board status)
-    const unsubSyncRequest = webSocketService.subscribe('REQUEST_STATE_SYNC', (data: any) => {
-      if (checkFromMe(data)) return;
-      markOpponentActive(data.username);
-      if (awaitingSyncRef.current) return; // our board may be stale; don't hand it out
+    // Full board snapshot for a peer that is (re)joining. Single builder for both reply paths.
+    const sendStateSnapshot = () => {
       const bs = boardStateRef.current;
       const isP1 = playerRoleRef.current === 'player1';
       webSocketService.sendAction('STATE_SYNC_RESPONSE' as any, {
@@ -1176,6 +1126,32 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           p2Exerted: isP1 ? bs.opponentExerted : bs.exertedCards,
         },
       });
+    };
+
+    const unsubReconnected = webSocketService.subscribe('PLAYER_RECONNECTED', (data: any) => {
+      if (data.isSelf) {
+        // Lambda confirmed our new connection is registered: now a sync answer can reach us
+        if (awaitingSyncRef.current) {
+          webSocketService.sendAction('REQUEST_STATE_SYNC' as any, { roomId, role: playerRoleRef.current, username: myUsername });
+        }
+        return;
+      }
+      markOpponentActive(data.username);
+      if (!awaitingSyncRef.current) {
+        showNotice(`🎉 ${data.username || 'Opponent'} reconnected to the match!`, 'success');
+        setLogMessages(prev => [`Opponent reconnected to the room. Match resumed.`, ...prev]);
+
+        // Send current full match state so rejoining opponent gets updated instantly
+        sendStateSnapshot();
+      }
+    });
+
+    // Request State Sync (When a rejoining player asks for current board status)
+    const unsubSyncRequest = webSocketService.subscribe('REQUEST_STATE_SYNC', (data: any) => {
+      if (checkFromMe(data)) return;
+      markOpponentActive(data.username);
+      if (awaitingSyncRef.current) return; // our board may be stale; don't hand it out
+      sendStateSnapshot();
     });
 
     // State Sync Response (Apply full board status from active peer)
@@ -1241,18 +1217,17 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         requesterUsername: fromUsername || 'Opponent',
         previousState: p.previousState || data.previousState,
       });
-      setUndoVoteTimer(15);
+      let secondsLeft = 15;
+      setUndoVoteTimer(secondsLeft);
       if (undoTimerRef.current) clearInterval(undoTimerRef.current);
       undoTimerRef.current = setInterval(() => {
-        setUndoVoteTimer((prev) => {
-          if (prev <= 1) {
-            if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-            // Auto decline on timer expiry
-            handleRespondUndoVote(false);
-            return 0;
-          }
-          return prev - 1;
-        });
+        secondsLeft -= 1;
+        setUndoVoteTimer(Math.max(secondsLeft, 0));
+        if (secondsLeft <= 0) {
+          if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+          // Auto decline on timer expiry (runs once: it is outside the state updater)
+          handleRespondUndoVote(false);
+        }
       }, 1000);
     };
 
@@ -1391,14 +1366,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
     };
   }, [matchMode, playerRole, myUsername, roomId, isRejoin]);
-
-  const handleJoinRoomSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputRoomId.trim()) return;
-    setActiveRoomId(inputRoomId.trim());
-    webSocketService.joinRoom(inputRoomId.trim(), 'Illumineer_Player');
-    showNotice(`Joined Match Room #${inputRoomId.trim()}`, 'success');
-  };
 
   const showNotice = (msg: string, type: 'success' | 'warning' | 'error') => {
     setNotice({ msg, type });
@@ -2188,25 +2155,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
           </motion.div>
 
           <div className="flex items-center gap-2 font-mono text-xs">
-            {!matchMode && (
-              <form onSubmit={handleJoinRoomSubmit} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#141a26]">
-                <Wifi className={`w-3.5 h-3.5 ${isWsConnected ? 'text-emerald-400' : 'text-[#F59E0B]'}`} />
-                <span className="hidden sm:inline text-[9px] font-bold text-[#94A3B8] uppercase">Room:</span>
-                <input
-                  type="text"
-                  value={inputRoomId}
-                  onChange={(e) => setInputRoomId(e.target.value)}
-                  className="w-14 bg-[#0B0F19] border border-[#30363d] text-[#F59E0B] px-1 py-0.5 rounded text-xs font-mono font-bold outline-none text-center"
-                />
-                <button
-                  type="submit"
-                  className="bg-[#F59E0B] hover:bg-[#D97706] text-black px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-colors"
-                >
-                  Join
-                </button>
-              </form>
-            )}
-            
             {onExitMatch && (
               <button
                 onClick={onExitMatch}

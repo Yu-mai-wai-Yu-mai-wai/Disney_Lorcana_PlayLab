@@ -61,6 +61,8 @@ export interface AdminBillingData {
     sqsQueues: number;
   };
   lastUpdated: string;
+  source?: 'static-snapshot'; // set by the server when the numbers are not read live from AWS
+  asOf?: string;
 }
 
 export interface AuthState {

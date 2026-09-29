@@ -176,50 +176,19 @@ export const apiService = {
     return { success: false, error: 'รหัส Admin ไม่ถูกต้อง (Invalid Admin Passcode)' };
   },
 
-  async getAdminBilling(token?: string): Promise<{ data: AdminBillingData; error?: string }> {
-    const fallbackBilling: AdminBillingData = {
-      accountId: '953899323223',
-      budgetTotal: 100.00,
-      monthToDateSpend: 9.77,
-      forecastSpend: 10.50,
-      remainingBudget: 90.23,
-      budgetUsagePercent: 9.77,
-      currentHourlyBurnRate: 0.0000,
-      cloudStatus: 'stopped',
-      services: [
-        { name: 'AWS Elastic Load Balancing (ALB)', category: 'Network', cost: 6.95, percentage: 71.1, status: 'Stopped ($0.00/hr)' },
-        { name: 'Amazon Virtual Private Cloud (VPC / NAT / Endpoints)', category: 'Network', cost: 1.91, percentage: 19.5, status: 'Stopped ($0.00/hr)' },
-        { name: 'Amazon EC2-Instances (t3.micro ASG Nodes)', category: 'Compute', cost: 0.42, percentage: 4.3, status: '0 Running ($0.00/hr)' },
-        { name: 'Amazon EC2-Other (EBS gp3 Root Volumes)', category: 'Storage', cost: 0.30, percentage: 3.1, status: 'Idle ($0.00/hr)' },
-        { name: 'Amazon CloudWatch (Metrics & Alarms)', category: 'Monitoring', cost: 0.19, percentage: 2.0, status: 'Active (Free Tier)' },
-        { name: 'Amazon DynamoDB (Users, Decks, Rooms Tables)', category: 'Database', cost: 0.00, percentage: 0.0, status: 'Active (Pay-Per-Request)' },
-        { name: 'Amazon Simple Queue Service (SQS Matchmaking)', category: 'Messaging', cost: 0.00, percentage: 0.0, status: 'Active (Free Tier)' },
-      ],
-      resourceTelemetry: {
-        asgDesired: 0,
-        asgCurrent: 0,
-        albCount: 0,
-        ec2Running: 0,
-        dynamoTables: 3,
-        sqsQueues: 1,
-      },
-      lastUpdated: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    };
-
+  async getAdminBilling(token?: string): Promise<{ data: AdminBillingData | null; error?: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/admin/billing`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      if (response.ok) {
-        const json = await response.json();
-        return { data: json.data || fallbackBilling };
-      }
-    } catch (e) {
-      // Return offline fallback
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) return { data: null, error: json.error || `HTTP ${response.status}` };
+      if (!json.data) return { data: null, error: 'Empty billing response' };
+      return { data: json.data };
+    } catch (e: any) {
+      return { data: null, error: e?.message || 'Network error' };
     }
-
-    return { data: fallbackBilling };
   },
 };

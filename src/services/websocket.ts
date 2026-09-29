@@ -9,10 +9,8 @@ function getWsEndpoint(): string {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/ws`;
   }
-  return 'wss://demo.execute-api.us-east-1.amazonaws.com/prod';
+  return '';
 }
-
-const WS_ENDPOINT = getWsEndpoint();
 
 type MessageCallback = (data: WebSocketMessagePayload) => void;
 
@@ -103,12 +101,10 @@ class WebSocketService {
         }
 
         const endpoint = getWsEndpoint();
-        // Mock socket mode for offline testing / sandbox fallback
-        if (endpoint.includes('demo.execute-api')) {
-          console.log('[WebSocket] Sandbox Mock Active (AWS Ready)');
-          this.setConnectionStatus('connected');
-          this.emitMockState();
-          resolve(true);
+        if (!endpoint) {
+          console.error('[WebSocket] No endpoint: set VITE_WS_ENDPOINT');
+          this.setConnectionStatus('disconnected');
+          resolve(false);
           return;
         }
 
@@ -197,29 +193,6 @@ class WebSocketService {
     };
 
     this.send(payload);
-
-    // Mock fallback trigger for instantaneous local feedback
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        this.handleIncomingMessage({
-          action: 'ROOM_STATE',
-          roomId,
-          role: 'player1',
-          username: this.currentUsername,
-          payload: {
-            roomId,
-            players: [
-              { connectionId: 'conn-1', username: this.currentUsername, role: 'player1' },
-              { connectionId: 'conn-2', username: 'Opponent_Illumineer', role: 'player2' },
-            ],
-            loreP1: 0,
-            loreP2: 0,
-            inkP1: 0,
-            inkP2: 0,
-          },
-        });
-      }, 150);
-    }
   }
 
   // --- SPRINT 3 Match Lobby Methods ---
@@ -233,20 +206,6 @@ class WebSocketService {
       deckName,
     };
     this.send(payload);
-
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-        this.currentRoomId = roomId;
-        this.handleIncomingMessage({
-          action: 'ROOM_CREATED',
-          roomId,
-          username: this.currentUsername,
-          role: 'player1',
-          payload: { deckId, deckName },
-        });
-      }, 500);
-    }
   }
 
   public joinRoomWithDeck(roomId: string, deckId: string, deckName: string): void {
@@ -262,28 +221,6 @@ class WebSocketService {
       deckName,
     };
     this.send(payload);
-
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        this.handleIncomingMessage({
-          action: 'ROOM_STATE',
-          roomId,
-          role: 'player2',
-          username: this.currentUsername,
-          payload: {
-            roomId,
-            players: [
-              { connectionId: 'conn-1', username: 'Host_Illumineer', role: 'player1' },
-              { connectionId: 'conn-2', username: this.currentUsername, role: 'player2' },
-            ],
-            loreP1: 0, loreP2: 0, inkP1: 0, inkP2: 0,
-          },
-        });
-        setTimeout(() => {
-          this.handleIncomingMessage({ action: 'GAME_START', roomId });
-        }, 500);
-      }, 600);
-    }
   }
 
   public findMatch(deckId: string, deckName: string): void {
@@ -296,23 +233,6 @@ class WebSocketService {
       deckName,
     };
     this.send(payload);
-
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        this.handleIncomingMessage({ action: 'WAITING', username: this.currentUsername });
-      }, 200);
-
-      setTimeout(() => {
-        const roomId = 'MATCH1';
-        this.currentRoomId = roomId;
-        this.handleIncomingMessage({
-          action: 'MATCH_FOUND',
-          roomId,
-          role: 'player1',
-          username: this.currentUsername,
-        });
-      }, 3200);
-    }
   }
 
   public cancelMatchmaking(): void {
@@ -365,23 +285,11 @@ class WebSocketService {
       username: this.currentUsername,
       isSelf: false,
     });
-
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        this.handleIncomingMessage({
-          action: 'PLAYER_RECONNECTED',
-          gameAction: 'PLAYER_RECONNECTED',
-          roomId,
-          role: this.currentRole,
-          username: this.currentUsername,
-          isSelf: true,
-        });
-      }, 300);
-    }
   }
 
   public requestUndo(previousState: any, roomId?: string): void {
-    const targetRoomId = roomId || this.currentRoomId || '108249';
+    const targetRoomId = roomId || this.currentRoomId;
+    if (!targetRoomId) return;
     // Send single canonical UNDO_REQUESTED envelope to avoid duplicate handling
     this.sendAction('UNDO_REQUESTED' as any, {
       roomId: targetRoomId,
@@ -391,23 +299,11 @@ class WebSocketService {
       requesterRole: this.currentRole,
       previousState,
     });
-
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        this.handleIncomingMessage({
-          action: 'UNDO_REQUESTED',
-          gameAction: 'UNDO_REQUESTED',
-          roomId: targetRoomId,
-          requesterUsername: this.currentUsername,
-          requesterRole: this.currentRole,
-          previousState,
-        });
-      }, 300);
-    }
   }
 
   public respondUndo(voteAccepted: boolean, previousState?: any, roomId?: string): void {
-    const targetRoomId = roomId || this.currentRoomId || '108249';
+    const targetRoomId = roomId || this.currentRoomId;
+    if (!targetRoomId) return;
     // Send single canonical UNDO_RESOLVED envelope to avoid duplicate handling
     this.sendAction('UNDO_RESOLVED' as any, {
       roomId: targetRoomId,
@@ -417,19 +313,6 @@ class WebSocketService {
       previousState,
       respondedBy: this.currentUsername,
     });
-
-    if (WS_ENDPOINT.includes('demo.execute-api')) {
-      setTimeout(() => {
-        this.handleIncomingMessage({
-          action: 'UNDO_RESOLVED',
-          gameAction: 'UNDO_RESOLVED',
-          roomId: targetRoomId,
-          voteAccepted,
-          previousState,
-          respondedBy: this.currentUsername,
-        });
-      }, 300);
-    }
   }
 
   public sendChat(message: string, roomId?: string, role?: 'player1' | 'player2'): void {
@@ -444,7 +327,11 @@ class WebSocketService {
 
   // Send action to opponent in <100ms
   public sendAction(action: WebSocketActionType, payloadData: Partial<WebSocketMessagePayload>): void {
-    const roomId = payloadData.roomId || this.currentRoomId || '108249';
+    const roomId = payloadData.roomId || this.currentRoomId;
+    if (!roomId) {
+      console.warn('[WebSocket] sendAction without a room, dropped:', action);
+      return;
+    }
     const role = payloadData.role || this.currentRole;
     const username = payloadData.username || this.currentUsername;
 
@@ -540,19 +427,6 @@ class WebSocketService {
     if (allListeners) {
       allListeners.forEach((cb) => cb(data));
     }
-  }
-
-  // Initial Mock State for Sandbox Testing
-  private emitMockState(): void {
-    setTimeout(() => {
-      this.handleIncomingMessage({
-        action: 'ROOM_STATE',
-        gameAction: 'ROOM_STATE',
-        roomId: '108249',
-        role: 'player1',
-        username: this.currentUsername,
-      });
-    }, 100);
   }
 
   public getIsConnected(): boolean {

@@ -340,6 +340,9 @@ router.get('/admin/billing', authenticateToken, requireAdmin, async (_req: Reque
         sqsQueues: 1,
       },
       lastUpdated: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      // ponytail: static numbers copied from the September bill, not read from AWS. Upgrade: Cost Explorer + EC2/ASG/ELB describe calls.
+      source: 'static-snapshot',
+      asOf: '2026-09-27',
     },
   });
 });
