@@ -45,6 +45,7 @@ import { GameOverModal } from './GameOverModal';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { usePlaymatStore } from '../store/usePlaymatStore';
+import { apiService } from '../services/api';
 import { translateCardAbilityText, translateAbilityName, translateCardType, translateInkColor } from '../utils/cardTranslator';
 
 import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
@@ -110,7 +111,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   onExitMatch,
   onReturnToLobby,
 }) => {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { t, language, toggleLanguage } = useLanguageStore();
   const { getCurrentPlaymat } = usePlaymatStore();
   const currentPlaymat = getCurrentPlaymat();
@@ -118,6 +119,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   const [isRulesQuickModalOpen, setIsRulesQuickModalOpen] = useState(false);
   const [rulesActiveTab, setRulesActiveTab] = useState<'steps' | 'actions' | 'keywords' | 'win'>('steps');
   const myUsername = user?.username || webSocketService.getUsername() || 'Illumineer';
+  const matchReportedRef = useRef(false);
 
   // Load saved active board state for this room (if available, recent, and explicitly in isRejoin mode)
   const savedBoard: SavedBoardState | null = React.useMemo(() => {
@@ -275,6 +277,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         loserLore: lLore,
         turnNumber: turnNumberRef.current,
       });
+
+      if (token && roomId && !matchReportedRef.current) {
+        matchReportedRef.current = true;
+        const matchId = `${roomId}-${Math.floor(Date.now() / 1000)}`;
+        apiService.recordMatch(
+          {
+            matchId,
+            winner: myName,
+            loser: oppName,
+            winnerLore: Math.max(20, wLore),
+            loserLore: lLore,
+            turns: turnNumberRef.current,
+          },
+          token
+        ).catch((err) => console.error('[Record Match Error]', err));
+      }
     }
   };
 
@@ -994,6 +1012,22 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         showNotice(`VICTORY! You reached 20 Lore and won the match!`, 'success');
       } else {
         showNotice(`DEFEAT! ${wName} reached 20 Lore and won the match.`, 'error');
+      }
+
+      if (isMeWinner && matchMode && token && roomId && !matchReportedRef.current) {
+        matchReportedRef.current = true;
+        const matchId = `${roomId}-${Math.floor(Date.now() / 1000)}`;
+        apiService.recordMatch(
+          {
+            matchId,
+            winner: wName,
+            loser: lName,
+            winnerLore: wLore,
+            loserLore: lLore,
+            turns: p.turnNumber || turnNumberRef.current,
+          },
+          token
+        ).catch((err) => console.error('[Record Match Error]', err));
       }
     });
 

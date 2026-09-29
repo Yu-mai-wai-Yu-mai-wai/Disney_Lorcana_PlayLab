@@ -108,6 +108,124 @@ test('TC-E2E-17: deck save, analyze and read analysis through the ALB (ALB only)
   expect((await got.json()).analysis).not.toBeNull();
 });
 
+// Decoupled Match Results: Client -> EC2 -> SNS -> SQS -> Lambda -> DynamoDB (T04)
+test('TC-E2E-23: match finish publishes to SNS and fan-out records to match history & player stats (ALB only)', async ({ request, baseURL }) => {
+  test.skip(!process.env.E2E_BASE_URL, 'needs deployed stack: set E2E_BASE_URL=http://<alb-dns>');
+  test.setTimeout(45000);
+
+  const password = 'E2e-pass-2026';
+  const run = Date.now().toString(36);
+  const p1Name = `e2e_p1_${run}`;
+  const p2Name = `e2e_p2_${run}`;
+
+  // Register and login both players
+  await request.post(`${baseURL}/api/auth/register`, { data: { username: p1Name, email: `${p1Name}@e2e.test`, password } });
+  const p1Login = await request.post(`${baseURL}/api/auth/login`, { data: { username: p1Name, password } });
+  const { token: p1Token } = await p1Login.json();
+  const p1Auth = { Authorization: `Bearer ${p1Token}` };
+
+  await request.post(`${baseURL}/api/auth/register`, { data: { username: p2Name, email: `${p2Name}@e2e.test`, password } });
+  const p2Login = await request.post(`${baseURL}/api/auth/login`, { data: { username: p2Name, password } });
+  const { token: p2Token } = await p2Login.json();
+  const p2Auth = { Authorization: `Bearer ${p2Token}` };
+
+  // Negative checks
+  // 1. Missing token -> 401
+  const noAuth = await request.post(`${baseURL}/api/matches`, {
+    data: { matchId: `m_${run}`, winner: p1Name, loser: p2Name, winnerLore: 20, loserLore: 10 },
+  });
+  expect(noAuth.status()).toBe(401);
+
+  // 2. Non-participant submission -> 403
+  const p3Name = `e2e_intruder_${run}`;
+  await request.post(`${baseURL}/api/auth/register`, { data: { username: p3Name, email: `${p3Name}@e2e.test`, password } });
+  const p3Login = await request.post(`${baseURL}/api/auth/login`, { data: { username: p3Name, password } });
+  const { token: p3Token } = await p3Login.json();
+  const intruderAuth = { Authorization: `Bearer ${p3Token}` };
+  const intruderRes = await request.post(`${baseURL}/api/matches`, {
+    headers: intruderAuth,
+    data: { matchId: `m_${run}`, winner: p1Name, loser: p2Name, winnerLore: 20, loserLore: 10 },
+  });
+  expect(intruderRes.status()).toBe(403);
+
+  // 3. Positive submission by Winner
+  const matchId = `match_${run}`;
+  const recordRes = await request.post(`${baseURL}/api/matches`, {
+    headers: p1Auth,
+    data: {
+      matchId,
+      winner: p1Name,
+      loser: p2Name,
+      winnerLore: 20,
+      loserLore: 12,
+      turns: 8,
+    },
+  });
+  expect(recordRes.status()).toBe(200);
+  const recordJson = await recordRes.json();
+  expect(recordJson.ok).toBe(true);
+
+  // Wait for async fan-out via SNS -> SQS -> Lambda -> DynamoDB (within 10-15s)
+  let p1MatchFound = false;
+  let p2MatchFound = false;
+  for (let attempt = 0; attempt < 25; attempt++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    if (!p1MatchFound) {
+      const res = await request.get(`${baseURL}/api/matches`, { headers: p1Auth });
+      if (res.ok()) {
+        const body = await res.json();
+        const found = (body.matches || []).find((m: any) => m.matchId === matchId);
+        if (found) {
+          expect(found.result).toBe('WIN');
+          expect(found.opponent).toBe(p2Name);
+          expect(found.myLore).toBe(20);
+          expect(found.opponentLore).toBe(12);
+          p1MatchFound = true;
+        }
+      }
+    }
+    if (!p2MatchFound) {
+      const res = await request.get(`${baseURL}/api/matches`, { headers: p2Auth });
+      if (res.ok()) {
+        const body = await res.json();
+        const found = (body.matches || []).find((m: any) => m.matchId === matchId);
+        if (found) {
+          expect(found.result).toBe('LOSS');
+          expect(found.opponent).toBe(p1Name);
+          expect(found.myLore).toBe(12);
+          expect(found.opponentLore).toBe(20);
+          p2MatchFound = true;
+        }
+      }
+    }
+    if (p1MatchFound && p2MatchFound) break;
+  }
+  expect(p1MatchFound).toBe(true);
+  expect(p2MatchFound).toBe(true);
+
+  // Verify Player Stats
+  const p1StatsRes = await request.get(`${baseURL}/api/users/${p1Name}/stats`);
+  expect(p1StatsRes.ok()).toBe(true);
+  const p1Stats = (await p1StatsRes.json()).stats;
+  expect(p1Stats.wins).toBe(1);
+  expect(p1Stats.games).toBe(1);
+
+  const p2StatsRes = await request.get(`${baseURL}/api/users/${p2Name}/stats`);
+  expect(p2StatsRes.ok()).toBe(true);
+  const p2Stats = (await p2StatsRes.json()).stats;
+  expect(p2Stats.losses).toBe(1);
+  expect(p2Stats.games).toBe(1);
+
+  // Deduplication / Idempotency test: resend same matchId
+  await request.post(`${baseURL}/api/matches`, {
+    headers: p1Auth,
+    data: { matchId, winner: p1Name, loser: p2Name, winnerLore: 20, loserLore: 12, turns: 8 },
+  });
+  await new Promise((r) => setTimeout(r, 2000));
+  const p1StatsAgain = (await (await request.get(`${baseURL}/api/users/${p1Name}/stats`)).json()).stats;
+  expect(p1StatsAgain.wins).toBe(1); // Still 1, not 2
+});
+
 test.describe('5. Real-time Multi-Client Match Sync & WebSockets QA Suite', () => {
   test('TC-E2E-13: should open 2 independent player sessions and navigate to Match Lobby', async ({ browser }) => {
     // 1. Create Context for Player 1

@@ -23,7 +23,9 @@ $ltName = if ($state -and $state.LaunchTemplateName) { $state.LaunchTemplateName
 # Lambda functions whose source lives in this repo: bundle with esbuild, zip, update-function-code.
 # @aws-sdk/* ships with the nodejs20.x runtime, so it stays external.
 $lambdaFns = @(
-    @{ Name = "lorcana-analyzer"; Entry = "backend/serverless/analyzer/handler.ts"; Out = "analyzer/handler.js" }
+    @{ Name = "lorcana-analyzer"; Entry = "backend/serverless/analyzer/handler.ts"; Out = "analyzer/handler.js" },
+    @{ Name = "lorcana-match-history"; Entry = "backend/serverless/match-history/handler.ts"; Out = "match-history/handler.js" },
+    @{ Name = "lorcana-player-stats"; Entry = "backend/serverless/player-stats/handler.ts"; Out = "player-stats/handler.js" }
 )
 function Publish-Lambdas {
     $root = Split-Path $PSScriptRoot -Parent
@@ -226,6 +228,24 @@ switch ($Action) {
             Write-Host "[6/6] VPC..." -ForegroundColor Gray
             Invoke-Aws "delete VPC $vpc" { aws ec2 delete-vpc --vpc-id $vpc --region $Region }
         }
+
+        Write-Host "[Decoupling] Deleting match events queues, topics, lambdas, tables..." -ForegroundColor Gray
+        foreach ($q in @("lorcana-match-history", "lorcana-match-history-dlq", "lorcana-player-stats", "lorcana-player-stats-dlq")) {
+            $u = aws sqs get-queue-url --queue-name $q --region $Region --query QueueUrl --output text 2>$null
+            if ($u -and $u -ne "None") { Invoke-Aws "delete queue $q" { aws sqs delete-queue --queue-url $u --region $Region } }
+        }
+        $topArn = aws sns list-topics --region $Region --query "Topics[?ends_with(TopicArn, ':lorcana-match-events')].TopicArn | [0]" --output text 2>$null
+        if ($topArn -and $topArn -ne "None") { Invoke-Aws "delete SNS topic" { aws sns delete-topic --topic-arn $topArn --region $Region } }
+        foreach ($fn in @("lorcana-match-history", "lorcana-player-stats")) {
+            $fnExists = aws lambda get-function --function-name $fn --region $Region 2>$null
+            if ($LASTEXITCODE -eq 0) { Invoke-Aws "delete Lambda $fn" { aws lambda delete-function --function-name $fn --region $Region } }
+        }
+        foreach ($tbl in @("LorcanaMatchHistory", "LorcanaPlayerStats")) {
+            $tblExists = aws dynamodb describe-table --table-name $tbl --region $Region 2>$null
+            if ($LASTEXITCODE -eq 0) { Invoke-Aws "delete table $tbl" { aws dynamodb delete-table --table-name $tbl --region $Region } }
+        }
+        aws ssm delete-parameter --name "/lorcana/match-events-topic-arn" --region $Region 2>$null
+
 
         if ($failed.Count -gt 0) {
             Write-Host "[INCOMPLETE] $($failed.Count) step(s) failed; state file kept. Fix and re-run destroy:" -ForegroundColor Red

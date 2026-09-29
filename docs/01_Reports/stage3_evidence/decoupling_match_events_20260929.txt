@@ -1,0 +1,38 @@
+# Evidence: T04 Decoupling (Match Events SNS -> SQS -> Lambda -> DynamoDB)
+Date: 2026-09-29T21:06:04+07:00
+Environment: AWS Learner Lab (Region: us-east-1, Account: 953899323223)
+Target: http://lorcana-alb-1300232797.us-east-1.elb.amazonaws.com
+
+## Architecture Components Verified:
+1. SNS Topic: arn:aws:sns:us-east-1:953899323223:lorcana-match-events
+2. SQS Queues & DLQs:
+   - lorcana-match-history (VisibilityTimeout: 30s) -> DLQ: lorcana-match-history-dlq (maxReceiveCount: 3)
+   - lorcana-player-stats (VisibilityTimeout: 30s) -> DLQ: lorcana-player-stats-dlq (maxReceiveCount: 3)
+3. Lambda Consumers:
+   - lorcana-match-history (Timeout: 5s, EventSourceMapping with ReportBatchItemFailures)
+   - lorcana-player-stats (Timeout: 5s, EventSourceMapping with ReportBatchItemFailures)
+4. DynamoDB Tables:
+   - LorcanaMatchHistory (PK: userId, SK: finishedAt#matchId)
+   - LorcanaPlayerStats (PK: userId, with atomic ADD operations & DEDUPE#<matchId> conditional write)
+
+## Test Execution Results:
+Command: $env:E2E_BASE_URL="http://lorcana-alb-1300232797.us-east-1.elb.amazonaws.com"; npx playwright test e2e/05-match-realtime-sync.spec.ts
+
+Test Output:
+Running 8 tests using 1 worker
+  ✓ 1 [Desktop Chrome] › TC-E2E-16: deployed API rejects tokens signed with public dev secret + security headers (218ms)
+  ✓ 2 [Desktop Chrome] › TC-E2E-18: playmat follows account across devices (1.4s)
+  ✓ 3 [Desktop Chrome] › TC-E2E-19: rejoin carrying foreign role keeps seats (3.9s)
+  ✓ 4 [Desktop Chrome] › TC-E2E-17: deck save, analyze and read analysis (1.6s)
+  ✓ 5 [Desktop Chrome] › TC-E2E-23: match finish publishes to SNS and fan-out records to match history & player stats (4.9s)
+  ✓ 6 [Desktop Chrome] › TC-E2E-13: open 2 independent player sessions (2.1s)
+  ✓ 7 [Desktop Chrome] › TC-E2E-15: P2 joins P1 room across instances (2.8s)
+  ✓ 8 [Desktop Chrome] › TC-E2E-14: isolated session state between players (1.7s)
+
+Duration: 21.7s
+Result: 8 passed (100%)
+
+## Key Verifications:
+- OWASP A01 Access Control: Non-participant match submission rejected with 403 Forbidden. Missing JWT rejected with 401 Unauthorized.
+- End-to-End Fan-out Latency: Match recorded and available in match history / stats for both players in < 5 seconds.
+- Idempotent De-duplication: Re-submitting the exact same matchId did not increment win/loss/games counters.

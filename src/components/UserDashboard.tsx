@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { apiService } from '../services/api';
 import { translateInkColor } from '../utils/cardTranslator';
-import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye, Palette, ShieldAlert } from 'lucide-react';
+import { Mail, Key, Lock, Cloud, Plus, Edit, Gamepad2, BarChart3, Trash2, UserCheck, Sparkles, Loader2, AlertCircle, CheckCircle2, Eye, Palette, ShieldAlert, Trophy, Swords, History } from 'lucide-react';
 import { DeckViewerModal } from './DeckViewerModal';
 import { PlaymatSelectorModal } from './PlaymatSelectorModal';
 import { AdminBillingDashboardModal } from './AdminBillingDashboardModal';
@@ -35,6 +35,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
   const [decksLoading, setDecksLoading] = useState(false);
   const [viewingDeck, setViewingDeck] = useState<any | null>(null);
 
+  // Match History & Player Stats (T04 Decoupling)
+  const [stats, setStats] = useState<{ wins: number; losses: number; games: number } | null>(null);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState<'decks' | 'matches'>('decks');
+
   // Load real decks from the cloud when authenticated
   const loadUserDecks = React.useCallback(async () => {
     if (!token) return;
@@ -63,14 +69,35 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
     }
   }, [token]);
 
-  // Reload decks whenever auth state changes (login / re-open page)
+  // Load player stats and match history from DynamoDB
+  const loadUserStatsAndMatches = React.useCallback(async () => {
+    if (!token || !user?.username) return;
+    setMatchesLoading(true);
+    try {
+      const [statsRes, matchesRes] = await Promise.all([
+        apiService.getPlayerStats(user.username),
+        apiService.getMatches(token),
+      ]);
+      if (statsRes?.stats) setStats(statsRes.stats);
+      if (matchesRes?.matches) setMatches(matchesRes.matches);
+    } catch (err: any) {
+      console.error('Failed to load player stats or match history', err);
+    } finally {
+      setMatchesLoading(false);
+    }
+  }, [token, user?.username]);
+
+  // Reload decks and stats whenever auth state changes (login / re-open page)
   React.useEffect(() => {
     if (isAuthenticated && token) {
       loadUserDecks();
+      loadUserStatsAndMatches();
     } else {
       setSavedDecks([]);
+      setStats(null);
+      setMatches([]);
     }
-  }, [isAuthenticated, token, loadUserDecks]);
+  }, [isAuthenticated, token, loadUserDecks, loadUserStatsAndMatches]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -343,6 +370,38 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
               </div>
             </div>
 
+            {/* Player Stats Card (T04) */}
+            <div className="glass-panel p-6 rounded-2xl border border-[#30363d] relative overflow-hidden shadow-xl" data-testid="player-stats-card">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#30363d]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center text-[#F59E0B]">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                  <span className="font-cinzel text-sm font-bold text-[#F1F5F9]">
+                    {language === 'th' ? 'สถิติการแข่งขัน' : 'PLAYER STATS'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                  {stats ? `${stats.games > 0 ? Math.round((stats.wins / stats.games) * 100) : 0}% WIN` : '0% WIN'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-3 rounded-xl bg-[#0B0F19] border border-[#30363d]">
+                  <p className="text-[10px] font-mono text-[#94A3B8] uppercase">{language === 'th' ? 'ชนะ' : 'Wins'}</p>
+                  <p className="font-cinzel font-bold text-lg text-emerald-400 mt-0.5">{stats?.wins ?? 0}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#0B0F19] border border-[#30363d]">
+                  <p className="text-[10px] font-mono text-[#94A3B8] uppercase">{language === 'th' ? 'แพ้' : 'Losses'}</p>
+                  <p className="font-cinzel font-bold text-lg text-rose-400 mt-0.5">{stats?.losses ?? 0}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#0B0F19] border border-[#30363d]">
+                  <p className="text-[10px] font-mono text-[#94A3B8] uppercase">{language === 'th' ? 'รวม' : 'Games'}</p>
+                  <p className="font-cinzel font-bold text-lg text-[#F59E0B] mt-0.5">{stats?.games ?? 0}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Playmat Skin Customizer Card */}
             <div className="glass-panel p-6 rounded-2xl relative overflow-hidden shadow-xl">
               <div
@@ -396,26 +455,47 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
           {/* Right Column: Deck Library (Span 8) */}
           <section className="lg:col-span-8 flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-[#30363d] pb-4">
-              <div>
-                <h1 className="font-cinzel text-3xl font-bold text-[#F1F5F9] tracking-wide">
-                  {t.mySavedDecks}
-                </h1>
-                <p className="text-sm text-[#94A3B8] flex items-center gap-2 mt-1">
-                  <Cloud className="w-4 h-4 text-[#F59E0B]" />
-                  <span>({savedDecks.length} / 10 {language === 'th' ? 'ช่องเก็บที่ใช้ไป' : 'Storage Slots Used'})</span>
-                </p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setDashboardTab('decks')}
+                  data-testid="tab-decks"
+                  className={`font-cinzel text-xl sm:text-2xl font-bold tracking-wide transition-colors cursor-pointer ${
+                    dashboardTab === 'decks' ? 'text-[#F59E0B]' : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  {t.mySavedDecks} ({savedDecks.length}/10)
+                </button>
+                <span className="text-[#30363d] font-thin">|</span>
+                <button
+                  onClick={() => setDashboardTab('matches')}
+                  data-testid="tab-matches"
+                  className={`font-cinzel text-xl sm:text-2xl font-bold tracking-wide transition-colors cursor-pointer flex items-center gap-2 ${
+                    dashboardTab === 'matches' ? 'text-[#F59E0B]' : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  <History className="w-5 h-5" />
+                  <span>{language === 'th' ? 'ประวัติการแข่ง' : 'Match History'}</span>
+                  {matches.length > 0 && (
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/40">
+                      {matches.length}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              <button
-                onClick={() => setActiveTab('deckbuilder')}
-                className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4 text-black" />
-                {t.createNewDeck}
-              </button>
+              {dashboardTab === 'decks' && (
+                <button
+                  onClick={() => setActiveTab('deckbuilder')}
+                  className="flex items-center gap-2 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-black" />
+                  {t.createNewDeck}
+                </button>
+              )}
             </div>
 
             {/* Deck Grid */}
+            {dashboardTab === 'decks' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
               {savedDecks.map((deck) => (
                 <div
@@ -529,6 +609,80 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ setActiveTab }) =>
                 <span className="font-mono text-xs text-[#94A3B8]/70 mt-1.5">{language === 'th' ? `เหลือ ${Math.max(0, 10 - savedDecks.length)} ช่องเก็บเด็ค` : `${Math.max(0, 10 - savedDecks.length)} Slots Remaining`}</span>
               </button>
             </div>
+            )}
+
+            {/* Match History List (T04) */}
+            {dashboardTab === 'matches' && (
+              <div className="flex flex-col gap-3 mt-2" data-testid="match-history-list">
+                {matchesLoading ? (
+                  <div className="p-12 text-center text-[#94A3B8] flex flex-col items-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#F59E0B]" />
+                    <p className="text-xs font-mono">{language === 'th' ? 'กำลังโหลดประวัติการแข่งขันจาก DynamoDB...' : 'Loading match records from cloud...'}</p>
+                  </div>
+                ) : matches.length === 0 ? (
+                  <div className="p-12 rounded-2xl bg-[#141a26]/60 border border-[#30363d] text-center flex flex-col items-center gap-3" data-testid="match-history-empty">
+                    <Swords className="w-8 h-8 text-[#94A3B8]" />
+                    <h3 className="font-cinzel font-bold text-base text-white">
+                      {language === 'th' ? 'ยังไม่มีประวัติการแข่งขัน' : 'No Match History Yet'}
+                    </h3>
+                    <p className="text-xs text-[#94A3B8] max-w-sm">
+                      {language === 'th' ? 'เข้าร่วมประลอง 2 ผู้เล่นใน Game Lobby เพื่อบันทึกประวัติการแข่งขันบน AWS Cloud' : 'Compete in 2-player matches via Game Lobby to log records onto AWS Cloud.'}
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('board')}
+                      className="mt-2 px-4 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-black font-cinzel font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md"
+                    >
+                      {language === 'th' ? 'เริ่มเล่นใน LOBBY' : 'PLAY IN LOBBY'}
+                    </button>
+                  </div>
+                ) : (
+                  matches.map((m: any, idx: number) => {
+                    const isWin = m.result === 'WIN';
+                    const dateStr = m.finishedAt ? new Date(m.finishedAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+                    return (
+                      <div
+                        key={m.matchId || idx}
+                        className={`p-4 rounded-2xl bg-[#141a26] border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md ${
+                          isWin ? 'border-emerald-500/40 hover:border-emerald-500' : 'border-rose-500/40 hover:border-rose-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-cinzel font-bold text-xs shrink-0 ${
+                              isWin
+                                ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                                : 'bg-rose-500/15 border border-rose-500/40 text-rose-400'
+                            }`}
+                          >
+                            {isWin ? 'WIN' : 'LOSS'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-cinzel font-bold text-sm text-white">vs. {m.opponent || 'Illumineer'}</span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0B0F19] text-[#94A3B8] border border-[#30363d]">
+                                {m.turns ? `${m.turns} Turns` : '1 Turn'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-mono text-[#94A3B8] mt-0.5">{dateStr}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 self-end sm:self-center">
+                          <div className="text-right">
+                            <span className="text-[10px] font-mono text-[#94A3B8] uppercase block">Lore Score</span>
+                            <span className="font-cinzel font-bold text-sm text-white">
+                              <span className={isWin ? 'text-emerald-400' : 'text-slate-300'}>{m.myLore ?? 0}</span>
+                              <span className="text-[#94A3B8] mx-1.5">-</span>
+                              <span className={!isWin ? 'text-rose-400' : 'text-slate-300'}>{m.opponentLore ?? 0}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </section>
         </div>
       )}

@@ -191,4 +191,59 @@ export const apiService = {
       return { data: null, error: e?.message || 'Network error' };
     }
   },
+
+  async recordMatch(
+    matchData: {
+      matchId: string;
+      winner: string;
+      loser: string;
+      winnerLore: number;
+      loserLore: number;
+      turns?: number;
+    },
+    token?: string
+  ): Promise<{ ok?: boolean; matchId?: string; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/matches`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(matchData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to record match');
+      return data;
+    } catch (err: any) {
+      return { error: err.message || 'Network error' };
+    }
+  },
+
+  async getMatches(token?: string): Promise<{ matches: any[]; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/matches`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch matches');
+      return data;
+    } catch (err: any) {
+      return { matches: [], error: err.message || 'Network error' };
+    }
+  },
+
+  async getPlayerStats(username: string): Promise<{ stats: { userId: string; wins: number; losses: number; games: number }; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(username)}/stats`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch player stats');
+      return data;
+    } catch (err: any) {
+      return { stats: { userId: username, wins: 0, losses: 0, games: 0 }, error: err.message || 'Network error' };
+    }
+  },
 };
+

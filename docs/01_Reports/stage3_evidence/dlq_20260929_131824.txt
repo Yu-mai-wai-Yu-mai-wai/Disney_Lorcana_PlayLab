@@ -1,0 +1,12 @@
+13:16:38  main queue: https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer
+13:16:38  dlq:        https://sqs.us-east-1.amazonaws.com/953899323223/lorcana-deck-analyzer-dlq
+13:16:40  sent dlq-test-b0713627 (message id e6e67b28-f7b4-458f-a80e-373663263f1f)
+13:16:54  waiting... 15s
+13:17:07  waiting... 29s
+13:17:20  waiting... 42s
+13:17:54  waiting... 76s
+13:18:07  waiting... 89s
+13:18:20  waiting... 102s
+13:18:20  reached the DLQ after ~102 s
+13:18:22  removed the test message from the DLQ
+13:18:24  main queue messages left: 0

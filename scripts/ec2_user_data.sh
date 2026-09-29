@@ -14,11 +14,12 @@ aws s3 cp s3://lorcana-playlab-assets-953899323223/server.cjs /var/www/lorcana-b
 ssm() { aws ssm get-parameter --region us-east-1 --name "$1" --with-decryption --query Parameter.Value --output text; }
 umask 077
 if JWT=$(ssm /lorcana/jwt-secret) && ADMIN=$(ssm /lorcana/admin-passcode) && SQS=$(ssm /lorcana/sqs-url); then
-  printf 'JWT_SECRET=%s\nADMIN_PASSCODE=%s\nLORCANA_SQS_URL=%s\n' "$JWT" "$ADMIN" "$SQS" > /etc/lorcana.env
+  TOPIC=$(ssm /lorcana/match-events-topic-arn 2>/dev/null || echo "")
+  printf 'JWT_SECRET=%s\nADMIN_PASSCODE=%s\nLORCANA_SQS_URL=%s\nMATCH_EVENTS_TOPIC_ARN=%s\n' "$JWT" "$ADMIN" "$SQS" "$TOPIC" > /etc/lorcana.env
 else
   echo "[FATAL] Could not read /lorcana/* from SSM; backend will not start" >&2
 fi
-unset JWT ADMIN SQS
+unset JWT ADMIN SQS TOPIC
 umask 022
 
 # Create systemd service for Lorcana Backend
@@ -42,6 +43,8 @@ Environment=USERS_TABLE=UsersTable
 Environment=DECKS_TABLE=DecksTable
 Environment=ROOM_TABLE=LorcanaRoomStateV2
 Environment=MATCHMAKING_TABLE=LorcanaMatchmaking
+Environment=MATCH_HISTORY_TABLE=LorcanaMatchHistory
+Environment=PLAYER_STATS_TABLE=LorcanaPlayerStats
 
 [Install]
 WantedBy=multi-user.target

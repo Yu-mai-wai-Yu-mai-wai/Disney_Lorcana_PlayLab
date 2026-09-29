@@ -16,6 +16,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { analyzeDeck } from './shared/deckAnalysis';
 
 dotenv.config();
@@ -25,12 +26,16 @@ const region = process.env.AWS_REGION || 'us-east-1';
 const ddbClient = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(ddbClient);
 const sqsClient = new SQSClient({ region });
+const snsClient = new SNSClient({ region });
 
 const USERS_TABLE = process.env.USERS_TABLE || 'UsersTable';
 const DECKS_TABLE = process.env.DECKS_TABLE || 'DecksTable';
 const ROOM_TABLE = process.env.ROOM_TABLE || 'LorcanaRoomStateV2';
 const MATCHMAKING_TABLE = process.env.MATCHMAKING_TABLE || 'LorcanaMatchmaking';
+const MATCH_HISTORY_TABLE = process.env.MATCH_HISTORY_TABLE || 'LorcanaMatchHistory';
+const PLAYER_STATS_TABLE = process.env.PLAYER_STATS_TABLE || 'LorcanaPlayerStats';
 const LORCANA_SQS_URL = process.env.LORCANA_SQS_URL || '';
+const MATCH_EVENTS_TOPIC_ARN = process.env.MATCH_EVENTS_TOPIC_ARN || '';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // Fail closed: dev defaults are public in the repo, so production must supply real secrets
 const missingSecrets = ['JWT_SECRET', 'ADMIN_PASSCODE'].filter((k) => !process.env[k]);
@@ -534,6 +539,112 @@ router.put('/users/me/playmat', authenticateToken, async (req: Request, res: Res
     }
     console.error('[Save Playmat Error]', err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ==============================================================================
+// Match Events & Decoupling (T04: SNS fan-out -> SQS -> Lambda -> DynamoDB)
+// ==============================================================================
+router.post('/matches', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  const { matchId, winner, loser, winnerLore, loserLore, turns } = req.body || {};
+
+  if (!matchId || typeof matchId !== 'string' || matchId.trim().length === 0 || matchId.length > 128) {
+    res.status(400).json({ error: 'Invalid or missing matchId' });
+    return;
+  }
+  if (!winner || typeof winner !== 'string' || !loser || typeof loser !== 'string') {
+    res.status(400).json({ error: 'Winner and loser usernames are required' });
+    return;
+  }
+  if (
+    typeof winnerLore !== 'number' ||
+    isNaN(winnerLore) ||
+    winnerLore < 0 ||
+    typeof loserLore !== 'number' ||
+    isNaN(loserLore) ||
+    loserLore < 0
+  ) {
+    res.status(400).json({ error: 'Winner and loser lore scores must be non-negative numbers' });
+    return;
+  }
+
+  // OWASP A01: The authenticated user must be a participant in the match
+  const user = (req as any).user;
+  const me = user?.username;
+  if (me !== winner && me !== loser) {
+    res.status(403).json({ error: 'Forbidden — you are not a participant in this match' });
+    return;
+  }
+
+  const payload = {
+    eventType: 'match.finished',
+    matchId: matchId.trim(),
+    winner: winner.trim(),
+    loser: loser.trim(),
+    winnerLore,
+    loserLore,
+    turns: typeof turns === 'number' && turns > 0 ? turns : 1,
+    submittedBy: me,
+    finishedAt: new Date().toISOString(),
+  };
+
+  if (MATCH_EVENTS_TOPIC_ARN) {
+    try {
+      await snsClient.send(
+        new PublishCommand({
+          TopicArn: MATCH_EVENTS_TOPIC_ARN,
+          Message: JSON.stringify(payload),
+          Subject: 'match.finished',
+          MessageAttributes: {
+            eventType: { DataType: 'String', StringValue: 'match.finished' },
+          },
+        })
+      );
+    } catch (snsErr: any) {
+      console.error('[SNS Publish Error]', snsErr);
+      res.status(500).json({ error: 'Failed to publish match event' });
+      return;
+    }
+  } else {
+    console.log('[Dev SNS] match.finished:', payload.matchId);
+  }
+
+  res.status(200).json({ ok: true, matchId: payload.matchId, status: 'published' });
+});
+
+router.get('/matches', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  const username = (req as any).user?.username;
+  try {
+    const result = await docClient.send(
+      new QueryCommand({
+        TableName: MATCH_HISTORY_TABLE,
+        KeyConditionExpression: 'userId = :u',
+        ExpressionAttributeValues: { ':u': username },
+        ScanIndexForward: false, // Newest matches first
+        Limit: 20,
+      })
+    );
+    res.status(200).json({ matches: result.Items || [] });
+  } catch (err: any) {
+    console.error('[Get Matches Error]', err);
+    res.status(200).json({ matches: [] });
+  }
+});
+
+router.get('/users/:username/stats', async (req: Request, res: Response): Promise<void> => {
+  const { username } = req.params;
+  try {
+    const result = await docClient.send(
+      new GetCommand({
+        TableName: PLAYER_STATS_TABLE,
+        Key: { userId: username },
+      })
+    );
+    const stats = result.Item || { userId: username, wins: 0, losses: 0, games: 0 };
+    res.status(200).json({ stats });
+  } catch (err: any) {
+    console.error('[Get Stats Error]', err);
+    res.status(200).json({ stats: { userId: username, wins: 0, losses: 0, games: 0 } });
   }
 });
 
