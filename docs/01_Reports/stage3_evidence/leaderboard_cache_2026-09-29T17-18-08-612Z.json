@@ -1,0 +1,827 @@
+{
+  "at": "2026-09-29T17:18:08.612Z",
+  "base": "http://lorcana-alb-1300232797.us-east-1.elb.amazonaws.com",
+  "rounds": 8,
+  "hitsPerRound": 13,
+  "non200": 0,
+  "summary": {
+    "MISS": {
+      "serverMs": {
+        "n": 8,
+        "min": 38,
+        "median": 41,
+        "p95": 112,
+        "max": 112
+      },
+      "clientMs": {
+        "n": 8,
+        "min": 544.5,
+        "median": 562.7,
+        "p95": 814.2,
+        "max": 814.2
+      }
+    },
+    "HIT": {
+      "serverMs": {
+        "n": 104,
+        "min": 0,
+        "median": 1,
+        "p95": 2,
+        "max": 28
+      },
+      "clientMs": {
+        "n": 104,
+        "min": 239,
+        "median": 247.5,
+        "p95": 255.9,
+        "max": 300.4
+      }
+    }
+  },
+  "samples": [
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 39,
+      "clientMs": 610.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 251.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 247.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 247.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 255.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 250.5
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 42,
+      "clientMs": 546.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 247.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 246.6
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 247.6
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 246.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 247.1
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.1
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.5
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 42,
+      "clientMs": 565.6
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 247.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 247.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 251.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 253.6
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 248.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 248.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 249.9
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 38,
+      "clientMs": 544.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 248.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 256.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 246.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 247.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 247
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 244.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 247.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.1
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 246.7
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 57,
+      "clientMs": 562.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 247.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 246.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 243.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 243.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 244.1
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 243.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 244.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 248.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 244.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.3
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 112,
+      "clientMs": 609.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 251.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 7,
+      "clientMs": 246
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 16,
+      "clientMs": 260.6
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 28,
+      "clientMs": 300.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 244.1
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 244.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 240.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 253.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 239.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 240.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 239
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 242.1
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 41,
+      "clientMs": 551
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 253.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.3
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 249.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 247.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 254.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.6
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.4
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 2,
+      "clientMs": 249.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 261.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 248.6
+    },
+    {
+      "cache": "MISS",
+      "status": 200,
+      "source": "dynamodb",
+      "serverMs": 40,
+      "clientMs": 814.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 248.8
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 242.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 244.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 246.1
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 250
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 259.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 0,
+      "clientMs": 241.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 241.2
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.9
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 241.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 242.7
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 250.5
+    },
+    {
+      "cache": "HIT",
+      "status": 200,
+      "source": "cache",
+      "serverMs": 1,
+      "clientMs": 245.2
+    }
+  ]
+}

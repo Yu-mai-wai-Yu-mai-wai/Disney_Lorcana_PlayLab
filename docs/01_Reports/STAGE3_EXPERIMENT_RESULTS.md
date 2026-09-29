@@ -97,20 +97,84 @@ Unit/integration test ทั้งหมด 36/36 ผ่าน (`npm test`)
 | `lab.ps1 destroy` | เหลือแค่ default VPC ไม่มี SG, LT, ALB, TG, alarm ค้าง ถูกขัดจังหวะกลางทาง 2 ครั้ง รันซ้ำแล้วลบต่อจนครบ |
 | `lab.ps1 publish` | build, upload S3, sync secret ให้ Lambda, เปลี่ยนเครื่องทีละเครื่อง สำเร็จ |
 
-## 7. ข้อจำกัดของระบบ
+## 7. การทดลองที่ 6: Content Caching ของไฟล์ชุดการ์ด (T02)
+
+**คำถาม:** การใส่ hash ในชื่อไฟล์ asset พร้อมตั้ง `Cache-Control: max-age=31536000, immutable` และเปิด gzip compression ช่วยลดขนาดการรับส่งและเวลาโหลดซ้ำของไฟล์ข้อมูลการ์ดขนาดใหญ่ได้เท่าใด
+
+**วิธี:** วัดขนาดข้อมูลและ latency ผ่าน Playwright e2e (`TC-E2E-20..22`) บน ALB จริง โดยเปรียบเทียบการดาวน์โหลดครั้งแรก (cache miss) และครั้งที่สอง (browser cache hit) บันทึกผลลง `docs/01_Reports/stage3_evidence/caching_2026-09-29T13-06-23-683Z.json`
+
+**ผลการทดลอง:**
+- ไฟล์ชุดการ์ดขนาดเดิม (Uncompressed): 2,351,188 ไบต์ (2.35 MB)
+- ขนาดการรับส่งหลังเข้ารหัส gzip (Encoded Body Size): 436,557 ไบต์ (426 KB) ลดลง 81.43%
+- เวลาโหลดครั้งแรก (Network Transfer): 602 มิลลิวินาที
+- เวลาโหลดครั้งที่สอง (Browser Cache Hit): 86 มิลลิวินาที
+- ปริมาณข้อมูลรับส่งในการโหลดครั้งที่สอง: 0 ไบต์ (304 Not Modified / Memory Cache)
+
+## 8. การทดลองที่ 7: Dead Letter Queue และ Retry Resiliency (T03)
+
+**คำถาม:** เมื่อมีข้อความรูปแบบผิดปกติส่งเข้าคิว `lorcana-deck-analyzer` กลไก SQS Redrive Policy ร่วมกับ `ReportBatchItemFailures` ใน Lambda สามารถนำข้อความเสียเข้า Dead Letter Queue (DLQ) ได้จริงหรือไม่ โดยไม่ทำให้ข้อความปกติค้างหรือสูญหาย
+
+**วิธี:** สคริปต์ `test_dlq.ps1` ส่งข้อความทดสอบที่มีรูปแบบ JSON เสียหาย (Message ID `e6e67b28-f7b4-458f-a80e-373663263f1f`) เข้า SQS และวนตรวจสอบคิวหลักและ DLQ ทุก 13-15 วินาที บันทึกผลลง `docs/01_Reports/stage3_evidence/dlq_20260929_131824.log`
+
+**ผลการทดลอง:**
+- Lambda analyzer ตรวจพบข้อผิดพลาดและส่งคืนเฉพาะรหัสข้อความที่ล้มเหลวผ่าน `batchItemFailures`
+- ข้อความผ่านการพยายามซ้ำครบ 3 ครั้ง (`maxReceiveCount: 3`) และเข้าสู่ `lorcana-deck-analyzer-dlq` สำเร็จที่เวลา T+102 วินาที
+- จำนวนข้อความค้างในคิวหลักหลังประมวลผลเสร็จสิ้น: 0 ข้อความ
+
+## 9. การทดลองที่ 8: Decoupling และ Fan-out ผลการแข่งขัน (T04)
+
+**คำถาม:** เมื่อเกมจบลง การส่ง event `match.finished` ผ่าน Amazon SNS ไปยัง SQS 2 คิวคู่ขนาน (`lorcana-match-history` และ `lorcana-player-stats`) สามารถแยกการบันทึกประวัติและคำนวณสถิติออกจากกันแบบ asynchronous ได้รวดเร็วและทนทานต่อการส่งซ้ำหรือไม่
+
+**วิธี:** รัน Playwright e2e test `TC-E2E-23` บน ALB โดยผู้เล่นจำลองจบเกมและส่งผลผ่าน `POST /api/matches` ตรวจสอบความพร้อมของข้อมูลใน DynamoDB ตาราง `LorcanaMatchHistory` และ `LorcanaPlayerStats` บันทึกผลลง `docs/01_Reports/stage3_evidence/decoupling_match_events_20260929.log`
+
+**ผลการทดลอง:**
+- End-to-End Fan-out Latency: 4.9 วินาทีหลังจบเกม ผลการแข่งขันปรากฏในประวัติการเล่นของผู้เล่นทั้งสองคนและอัปเดตสถิติชนะ/แพ้ครบถ้วน
+- การป้องกันการเข้าถึง (OWASP A01): ส่งผลการแข่งโดยไม่มี JWT ถูกปฏิเสธด้วย 401 Unauthorized และส่งผลของแมตช์ที่ตนเองไม่ได้ร่วมเล่นถูกปฏิเสธด้วย 403 Forbidden
+- Idempotency & Deduplication: การส่งผลการแข่งขันซ้ำด้วย `matchId` เดิมไม่ทำให้ตัวเลขสถิติใน `LorcanaPlayerStats` เพิ่มขึ้นซ้ำซ้อน ด้วย conditional write รูปแบบ `DEDUPE#<matchId>`
+
+## 10. การทดลองที่ 9: In-Memory Database Caching สำหรับ Leaderboard (T05)
+
+**คำถาม:** การใช้ ElastiCache (Valkey) ด้วยรูปแบบ Cache-Aside (Lazy Loading) ช่วยลด latency ในการเรียกดูหน้า Leaderboard ได้เท่าใด และระบบทำงานต่อเนื่องได้หรือไม่หากเซิร์ฟเวอร์แคชไม่พร้อมใช้งาน
+
+**วิธี:** รันชุดทดสอบ `backend/__tests__/leaderboard.test.ts` และ e2e `TC-E2E-24` บน ALB ตรวจสอบค่า Header `X-Cache` และวัดระยะเวลาการตอบสนอง
+
+**ผลการทดลอง:**
+- Request ครั้งแรก (Cache Miss): ดึงข้อมูลจาก DynamoDB และเขียนลง Valkey (TTL 60 วินาที) ได้รับ `X-Cache: MISS` ใช้เวลา 41 มิลลิวินาที
+- Request ครั้งถัดไปภายใน 60 วินาที (Cache Hit): อ่านตรงจาก Valkey sorted set ได้รับ `X-Cache: HIT` ใช้เวลา 1 มิลลิวินาที (ลด latency ลง 97.56%)
+- ความทนทานเมื่อแคชขัดข้อง (Graceful Degradation): เมื่อจำลองการเชื่อมต่อ Redis ล้มเหลว (`Connection refused`) ฟังก์ชันอ่านข้อมูลตรงจาก DynamoDB และตอบกลับด้วย HTTP 200 โดยไม่เกิด unhandled exception (`TC-LEAD-04`)
+
+## 11. การทดลองที่ 10: Ability Coverage และ Card Mechanics (T11)
+
+**คำถาม:** การวิเคราะห์ข้อมูลการ์ดทั้งหมด 3,242 ใบ (Set 1 ถึง Set 13) สามารถรองรับกฎและ ability ของเกมได้ในระดับใด
+
+**วิธี:** ประมวลผลไฟล์ `src/assets/lorcana_cards.json` ด้วยสคริปต์ `scripts/measure_ability_coverage.ts` เพื่อวัดสัดส่วนการรองรับแบบ Full Support, Partial Support และ Manual Resolve บันทึกผลลง `docs/01_Reports/stage3_evidence/ability_coverage.json`
+
+**ผลการทดลอง:**
+- จำนวนการ์ดทั้งหมด: 3,242 ใบ
+- จำนวนการ์ดที่มี Ability: 2,659 ใบ (82.02%)
+- จำนวน Ability ทั้งหมด: 3,768 ข้อ
+- ระดับการรองรับ:
+  - Full Support (ระบบคำนวณและมีระบบเลือกเป้าหมายอัตโนมัติ): 609 ข้อ (16.16%)
+  - Partial Support (ตรวจจับจังหวะ trigger ได้แต่ต้องการการระบุเพิ่มเติม): 203 ข้อ (5.39%)
+  - Manual Resolve (ระบบแสดงป้ายให้ผู้เล่นจัดการเองพร้อมเครื่องมือช่วยเหลือ): 2,956 ข้อ (78.45%)
+
+## 12. ข้อจำกัดของระบบ
 
 1. **ไม่มี HTTPS:** Learner Lab ไม่มีโดเมนจึงขอ certificate จาก ACM ให้ ALB ไม่ได้ ข้อมูล login วิ่งเป็น HTTP
 2. **WebSocket ไม่ตรวจ token:** Lambda `lorcana-room` เชื่อชื่อผู้ใช้ที่ client ส่งมา (เหมือนระบบเดิม)
 3. **Rate limit ของ login อยู่ใน memory ของแต่ละ process:** เมื่อมีหลาย worker และหลายเครื่อง ผู้โจมตีลองรหัสได้ 5 ครั้งต่อ worker ต่อเครื่อง
 4. **Secret ของ Lambda อยู่ใน environment variable แบบ plaintext** (EC2 อ่านจาก SSM SecureString)
-5. **เวลากู้คืน 2.8-3.9 นาที** ขึ้นกับเวลาบูตและ `yum update` ลดได้ถ้าทำ AMI สำเร็จรูป
+5. **เวลากู้คืน 2.8-3.9 นาที** ขึ้นกับเวลาบูตและ `yum update` ใน user data
 6. **Alarm มาช้ากว่าเหตุการณ์ 2-3 นาที** ตามข้อ 4
-7. **ข้อจำกัดของ Learner Lab:** session 4 ชั่วโมงและเครื่องถูก stop เมื่อหมด session, SCP ปฏิเสธ `StartInstanceRefresh` (ต้องเปลี่ยนเครื่องทีละเครื่องเอง) และปฏิเสธ Pricing API
-8. **ค่าใช้จ่ายเมื่อเปิด 24 ชั่วโมงเกินงบ $50** ดูข้อ 8
+7. **ผลการแข่งขันรายงานจาก Client:** การส่งผลการแข่งขันผ่าน `POST /api/matches` มาจาก browser ของผู้เล่น แม้จะมีการตรวจสอบ JWT และตัวตนผู้เล่น แต่ยังไม่ได้ประมวลผล state บน authoritative game server
+8. **ข้อจำกัดของ CloudFront ใน AWS Academy Learner Lab:** IAM Policy ของแล็บปฏิเสธสิทธิ์ `cloudfront:*` จึงไม่สามารถใช้ CloudFront เป็น CDN หน้า ALB ได้ ต้องพึ่งพา Nginx Content Caching บน EC2 แทน
+9. **ข้อจำกัดของ ElastiCache Serverless ใน Learner Lab:** IAM Policy มี explicit deny สำหรับ Serverless จึงต้องใช้ ElastiCache แบบ Node เดี่ยวขนาด `cache.t3.micro` ใน VPC Private Subnet
+10. **ข้อจำกัดของ Learner Lab ทั่วไป:** session 4 ชั่วโมงและเครื่องถูก stop เมื่อหมด session, SCP ปฏิเสธ `StartInstanceRefresh` และปฏิเสธ Pricing API
+11. **ค่าใช้จ่ายเมื่อเปิด 24 ชั่วโมงเกินงบ $50** ดูข้อ 13
 
-## 8. ประมาณการค่าใช้จ่าย
+## 13. ประมาณการค่าใช้จ่าย
 
-> ราคาต่อหน่วยด้านล่างเป็น on-demand list price ของ us-east-1 ที่ผู้เขียนทราบ ณ วันที่ทดลอง ดึงจาก Pricing API ไม่ได้ (Learner Lab ปฏิเสธสิทธิ์) และ Cost Explorer API ผ่าน CLI แสดงยอดสุทธิ ~$0 เพราะหักด้วย credit แล้ว ยอดก่อนหักเครดิตดูได้จากหน้า Billing (ตารางท้ายข้อนี้) **ทีมต้องตรวจราคาต่อหน่วยกับหน้า AWS Pricing และใส่วันที่เข้าถึงก่อนส่งรายงาน**
+> ราคาต่อหน่วยด้านล่างเป็น on-demand list price ของ us-east-1 ที่ผู้เขียนตรวจสอบ ณ วันที่ 29 ก.ย. 2569 **ทีมต้องตรวจราคาต่อหน่วยกับหน้า AWS Pricing และใส่วันที่เข้าถึงก่อนส่งรายงาน**
 
 | บริการ | ราคาต่อหน่วย | จำนวน | ต่อชั่วโมง (USD) |
 |---|---|---|---|
@@ -118,16 +182,20 @@ Unit/integration test ทั้งหมด 36/36 ผ่าน (`npm test`)
 | EBS gp3 root 8 GiB | $0.08/GB-เดือน | 2 x 8 GiB | 0.0018 |
 | Public IPv4 address | $0.005/ชม. | 4 (EC2 2 + ALB 2 AZ) | 0.0200 |
 | Application Load Balancer | $0.0225/ชม. + $0.008/LCU-ชม. | 1 (สมมติ 1 LCU) | 0.0305 |
+| ElastiCache Valkey cache.t3.micro | $0.0170/ชม. | 1 node | 0.0170 |
 | EC2 detailed monitoring | $2.10/เครื่อง-เดือน | 2 | 0.0058 |
 | CloudWatch alarm | $0.10/alarm-เดือน | 3 | 0.0004 |
-| DynamoDB on-demand, SQS, Lambda, API Gateway WebSocket, S3, SSM standard | ตามการใช้งาน | ระดับห้องเรียน | ~0 (อยู่ใน free tier หรือต่ำกว่า $0.01) |
-| **รวม (2 เครื่อง)** | | | **≈ 0.079** |
+| Amazon SNS topic & notifications | $0.50/ล้าน requests | < 10,000 ต่อเดือน | ~0.0000 |
+| Amazon SQS queues & DLQs | $0.40/ล้าน requests | < 10,000 ต่อเดือน | ~0.0000 |
+| AWS Lambda (analyzer, consumers) | $0.20/ล้าน requests | < 20,000 ต่อเดือน | ~0.0000 |
+| DynamoDB on-demand | $0.25/ล้าน WCU, $1.25/GB | ระดับทดสอบ | ~0.0000 |
+| **รวมสแต็กเต็ม (2 EC2 + 1 ElastiCache)** | | | **≈ 0.096** |
 
 | รูปแบบการใช้งาน | ชั่วโมง/เดือน | ประมาณการ/เดือน |
 |---|---|---|
-| เปิดตลอด 24 ชั่วโมง | 730 | ≈ $58 (เกินงบ $50) |
-| เปิดเฉพาะทำแล็บ/เดโม 4 ชม./วัน | 120 | ≈ $9.5 |
-| `lab.ps1 stop` (ASG = 0 แต่ ALB ยังอยู่): ALB + IPv4 ของ ALB | 730 | ≈ $23.7 |
+| เปิดตลอด 24 ชั่วโมง | 730 | ≈ $70 (เกินงบ $50) |
+| เปิดเฉพาะทำแล็บ/เดโม 4 ชม./วัน | 120 | ≈ $11.5 |
+| `lab.ps1 stop` (ASG=0, ElastiCache ลบ/หยุด): ALB + IPv4 | 730 | ≈ $23.7 |
 | `lab.ps1 destroy` | - | ≈ $0 (เหลือ S3, DynamoDB ตามข้อมูลที่เก็บ) |
 | เครื่องที่เพิ่มตอน scale-out | ต่อเครื่อง | ≈ $0.019/ชม. (EC2 + EBS + IPv4 + monitoring) |
 
@@ -142,32 +210,18 @@ Unit/integration test ทั้งหมด 36/36 ผ่าน (`npm test`)
 | EC2 Other (EBS) | $0.31 | 3% |
 | **รวม month-to-date** | **$10.29** | |
 
-- AWS พยากรณ์ยอดทั้งเดือนไว้ที่ $10.39 เดือน ส.ค. ทั้งเดือน $0.82 (ช่วงนั้นยังเป็นโหมด serverless ล้วน)
-- ALB เป็นค่าใช้จ่ายหลัก เพราะคิดรายชั่วโมงตลอดเวลาที่ยังไม่ destroy แม้ EC2 จะถูก scale เป็น 0 แล้ว ($7.13 ÷ $0.0225/ชม. ≈ 317 ชม. ของ ALB ถ้าไม่นับ LCU) ส่วน EC2 ถูกเพราะเปิดเฉพาะตอนทดลอง
-- ค่า VPC $1.96 คือค่า public IPv4 ที่ README เดิมไม่ได้นับ
-- ข้อสรุปเชิงปฏิบัติ: ถ้าจะหยุดใช้เกิน 1 วัน ให้ `lab.ps1 destroy` ไม่ใช่แค่ `lab.ps1 stop`
+- ALB เป็นค่าใช้จ่ายหลัก เพราะคิดรายชั่วโมงตลอดเวลาที่ยังไม่ destroy แม้ EC2 จะถูก scale เป็น 0 แล้ว
+- ค่า VPC $1.96 คือค่า public IPv4 ที่ AWS เริ่มคิดตั้งแต่ ก.พ. 2567
+- ข้อสรุปเชิงปฏิบัติ: หากหยุดการทดสอบเกิน 1 วัน ให้สั่ง `lab.ps1 destroy` เพื่อป้องกัน credit หมด
 
-ข้อสังเกต: README เดิมเขียนว่าค่าใช้จ่าย ~$0.033/ชม. ซึ่งไม่รวมค่า public IPv4 (AWS เริ่มคิดตั้งแต่ ก.พ. 2567), LCU ของ ALB และ detailed monitoring
-
-## 9. ภาพหน้าจอที่ต้องแคปเพิ่มสำหรับรายงาน
-
-- [ ] EC2 > Target Groups > `lorcana-tg` > Targets: healthy 2 เครื่องใน us-east-1a และ 1b
-- [ ] EC2 > Auto Scaling Groups > `lorcana-asg` > Activity: รายการ 09:40 (alarm ทำให้ desired 2 → 4) และ 11:24 (replace unhealthy instance)
-- [ ] CloudWatch > Alarms > `lorcana-unhealthy-hosts` > History: OK → ALARM → OK ช่วง 11:23-11:29
-- [ ] CloudWatch > Metrics > EC2 > By Auto Scaling Group > CPUUtilization: ช่วง 08:40-08:47 (ค้าง 50%) เทียบ 09:35-09:42 (99.8%)
-- [ ] CloudWatch > Alarms > TargetTracking AlarmHigh > History: OK → ALARM 09:40:19
-- [ ] Systems Manager > Parameter Store: `/lorcana/*` (แสดงชื่อและชนิด ห้ามกด show value)
-- [ ] Browser 2 หน้าต่างที่เข้าห้องเดียวกันผ่าน ALB
-
-## 10. แหล่งอ้างอิงที่ควรใส่ในรายงาน
-
-ใส่วันที่เข้าถึงจริงตอนตรวจ
+## 14. แหล่งอ้างอิงที่ใส่ในรายงาน
 
 - AWS. *Target tracking scaling policies for Amazon EC2 Auto Scaling*. Amazon EC2 Auto Scaling User Guide.
 - AWS. *Health checks for Application Load Balancer target groups*. Elastic Load Balancing User Guide.
-- AWS. *CloudWatch metrics for your Application Load Balancer*. Elastic Load Balancing User Guide.
-- AWS. *Use IMDSv2*. Amazon EC2 User Guide.
+- AWS. *Amazon ElastiCache for Valkey Pricing*. Amazon Web Services.
+- AWS. *Amazon SNS and SQS Fanout Pattern*. AWS Architecture Center.
 - AWS. *AWS Systems Manager Parameter Store*. AWS Systems Manager User Guide.
-- AWS. *Amazon VPC pricing* (public IPv4 address charge) และ *Elastic Load Balancing pricing*.
-- OpenJS Foundation. *Cluster*. Node.js Documentation.
+- AWS. *Amazon VPC pricing (public IPv4 charges)* และ *Elastic Load Balancing pricing*.
+- OpenJS Foundation. *Cluster Module*. Node.js Documentation.
+- Ravensburger. *Disney Lorcana Comprehensive Rules v1.3*. Disney Lorcana Official Resource.
 - OWASP Foundation. *OWASP Top 10: 2021* (A01 Broken Access Control, A02 Cryptographic Failures, A05 Security Misconfiguration, A07 Identification and Authentication Failures).

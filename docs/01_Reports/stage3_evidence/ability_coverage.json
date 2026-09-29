@@ -1,0 +1,128 @@
+{
+  "totalCards": 3242,
+  "cardsWithAbilities": 2659,
+  "totalAbilities": 3768,
+  "supportLevel": {
+    "full": 609,
+    "partial": 203,
+    "manual": 2956
+  },
+  "timingBreakdown": {
+    "activated": 412,
+    "manual": 2367,
+    "on_play": 596,
+    "on_quest": 220,
+    "on_banish": 36,
+    "static": 44,
+    "on_challenge": 9,
+    "turn_start": 48,
+    "turn_end": 36
+  },
+  "setBreakdown": {
+    "Set 1": {
+      "totalCards": 244,
+      "totalAbilities": 233,
+      "full": 36,
+      "partial": 10,
+      "manual": 187
+    },
+    "Set 2": {
+      "totalCards": 227,
+      "totalAbilities": 243,
+      "full": 40,
+      "partial": 15,
+      "manual": 188
+    },
+    "Set 3": {
+      "totalCards": 234,
+      "totalAbilities": 262,
+      "full": 30,
+      "partial": 13,
+      "manual": 219
+    },
+    "Set 4": {
+      "totalCards": 236,
+      "totalAbilities": 290,
+      "full": 49,
+      "partial": 13,
+      "manual": 228
+    },
+    "Set Q1": {
+      "totalCards": 31,
+      "totalAbilities": 19,
+      "full": 3,
+      "partial": 0,
+      "manual": 16
+    },
+    "Set 5": {
+      "totalCards": 235,
+      "totalAbilities": 260,
+      "full": 53,
+      "partial": 12,
+      "manual": 195
+    },
+    "Set 6": {
+      "totalCards": 240,
+      "totalAbilities": 267,
+      "full": 45,
+      "partial": 22,
+      "manual": 200
+    },
+    "Set 7": {
+      "totalCards": 239,
+      "totalAbilities": 289,
+      "full": 51,
+      "partial": 21,
+      "manual": 217
+    },
+    "Set 8": {
+      "totalCards": 237,
+      "totalAbilities": 278,
+      "full": 56,
+      "partial": 11,
+      "manual": 211
+    },
+    "Set Q2": {
+      "totalCards": 35,
+      "totalAbilities": 32,
+      "full": 0,
+      "partial": 0,
+      "manual": 32
+    },
+    "Set 9": {
+      "totalCards": 260,
+      "totalAbilities": 313,
+      "full": 63,
+      "partial": 13,
+      "manual": 237
+    },
+    "Set 10": {
+      "totalCards": 253,
+      "totalAbilities": 311,
+      "full": 48,
+      "partial": 20,
+      "manual": 243
+    },
+    "Set 11": {
+      "totalCards": 253,
+      "totalAbilities": 317,
+      "full": 41,
+      "partial": 7,
+      "manual": 269
+    },
+    "Set 12": {
+      "totalCards": 257,
+      "totalAbilities": 321,
+      "full": 53,
+      "partial": 19,
+      "manual": 249
+    },
+    "Set 13": {
+      "totalCards": 261,
+      "totalAbilities": 333,
+      "full": 41,
+      "partial": 27,
+      "manual": 265
+    }
+  }
+}

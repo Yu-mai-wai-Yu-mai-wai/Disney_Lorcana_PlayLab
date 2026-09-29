@@ -1,0 +1,624 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage{fontspec}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{amsmath,amssymb}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tcolorbox}
+
+\geometry{
+    a4paper,
+    top=3.5cm,
+    bottom=2.5cm,
+    left=3.5cm,
+    right=2.5cm
+}
+
+% Fonts
+\setmainfont{TH Sarabun New}[
+    Path = C:/Windows/Fonts/,
+    Extension = .ttf,
+    UprightFont = THSarabunNew,
+    BoldFont = THSarabunNew Bold,
+    ItalicFont = THSarabunNew Italic,
+    BoldItalicFont = THSarabunNew BoldItalic
+]
+\setmonofont{Consolas}[Scale=0.8]
+
+% Thai Word Breaking Configuration
+\XeTeXlinebreaklocale "th"
+\XeTeXlinebreakskip = 0pt plus 0.2pt minus 0.1pt
+\tolerance=1000
+\hfuzz=1pt
+
+\setstretch{1.15}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{6pt}
+
+% Tight lists
+\setlist{nosep, topsep=3pt, itemsep=3pt, parsep=0pt, leftmargin=1.5cm}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering\fontsize{18pt}{22pt}\selectfont}
+  {\chaptertitlename\ \thechapter}{8pt}{\fontsize{18pt}{22pt}\selectfont}
+\titlespacing*{\chapter}{0pt}{-15pt}{16pt}
+
+\titleformat{\section}
+  {\normalfont\bfseries\fontsize{16pt}{20pt}\selectfont}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{15pt}{18pt}\selectfont}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+
+\titleformat{\subsubsection}
+  {\normalfont\bfseries\fontsize{14pt}{16pt}\selectfont}
+  {\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{6pt}{2pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdfauthor={กลุ่ม G21 คณะเทคโนโลยีสารสนเทศ สจล.},
+    pdftitle={Disney Lorcana PlayLab Cloud - Phase 3 Official Report}
+}
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.97}
+\definecolor{codeblue}{rgb}{0.13,0.34,0.67}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegray},
+    keywordstyle=\color{codeblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{red!70!black},
+    basicstyle=\ttfamily\fontsize{9pt}{11pt}\selectfont,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{gray!30},
+    xleftmargin=12pt,
+    xrightmargin=6pt
+}
+\lstset{style=mystyle}
+
+\renewcommand{\chaptername}{บทที่}
+\renewcommand{\contentsname}{สารบัญ}
+\renewcommand{\listfigurename}{สารบัญรูปภาพ}
+\renewcommand{\listtablename}{สารบัญตาราง}
+\renewcommand{\bibname}{บรรณานุกรม}
+\renewcommand{\figurename}{รูปที่}
+\renewcommand{\tablename}{ตารางที่}
+
+\begin{document}
+
+% -------------------------------------------------------------
+% COVER PAGE
+% -------------------------------------------------------------
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+    \vspace*{-1.2cm}
+    \includegraphics[width=3.2cm]{images/IT_KMITL_ICON.png} \\[0.5cm]
+    
+    {\fontsize{18pt}{22pt}\selectfont \textbf{รายงานโครงงานวิชาการเทคโนโลยีกลุ่มเมฆ (Cloud Technology)}}\\[0.2cm]
+    {\fontsize{16pt}{20pt}\selectfont \textbf{ภาคเรียนที่ 1 ปีการศึกษา 2569}}\\[0.5cm]
+    
+    {\fontsize{18pt}{22pt}\selectfont \textbf{โครงงานระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนคลาวด์}}\\[0.2cm]
+    {\fontsize{15pt}{18pt}\selectfont \textbf{ระบบประมวลผลแยกส่วน SNS Fan-out, SQS DLQ, ElastiCache Cache-Aside}}\\[0.1cm]
+    {\fontsize{15pt}{18pt}\selectfont \textbf{และตัวขับเคลื่อนกฎกติกาเกมแบบ Pure Function}}\\[0.2cm]
+    {\fontsize{14pt}{18pt}\selectfont \textbf{(Disney Lorcana PlayLab Cloud: Decoupled Event Processing,}}\\[0.1cm]
+    {\fontsize{14pt}{18pt}\selectfont \textbf{In-Memory Caching \& Pure Game Rule Engine)}}\\[0.3cm]
+    {\fontsize{16pt}{20pt}\selectfont \textbf{กลุ่ม G21}}\\[0.5cm]
+    
+    {\fontsize{15pt}{18pt}\selectfont \textbf{รายงานฉบับสมบูรณ์ (Stage 3: ผลการทดลอง ข้อจำกัด ค่าใช้จ่าย และการขยายระบบ)}}\\[0.8cm]
+    
+    \begin{table}[H]
+    \centering
+    \fontsize{13pt}{16pt}\selectfont
+    \begin{tabular}{p{7.2cm}p{5.5cm}}
+    \textbf{คณะผู้จัดทำ:} & \\
+    1. นายชยุต บุญวัฒน์ & รหัสนักศึกษา 67070032 \\
+    2. นายธนัทภัทร พรหมทอง & รหัสนักศึกษา 67070069 \\
+    3. นายภูริ ประชาสุขสิน & รหัสนักศึกษา 67070137 \\
+    4. นางสาววรรณณิศา อมรวงศ์ไพบูลย์ & รหัสนักศึกษา 67070155 \\
+    5. นายอสิธารา พุ่มดอกไม้ & รหัสนักศึกษา 67070199 \\
+    6. นายวรธิษณ์ คงทอง & รหัสนักศึกษา 67070275 \\
+    & \\
+    \textbf{อาจารย์ประจำวิชา:} & \\
+    1. ดร. ธนานพ ทองถาวร & \\
+    2. ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส & \\
+    3. ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์ & \\
+    \end{tabular}
+    \end{table}
+    
+    \vfill
+    {\fontsize{14pt}{18pt}\selectfont
+    คณะเทคโนโลยีสารสนเทศ\\
+    สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง\\
+    ตุลาคม 2569}
+\end{center}
+\end{titlepage}
+
+% -------------------------------------------------------------
+% PRELIMINARY PAGES
+% -------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\chapter*{บทคัดย่อภาษาไทย}
+\addcontentsline{toc}{chapter}{บทคัดย่อภาษาไทย}
+
+รายงานฉบับนี้นำเสนอผลการทดลอง ข้อจำกัด และค่าใช้จ่ายของระบบ \textbf{Disney Lorcana PlayLab Cloud (กลุ่ม G21)} ในระยะที่ 3 (Stage 3) ซึ่งต่อยอดจากสถาปัตยกรรม Lean Multi-AZ VPC, Application Load Balancer และ EC2 Auto Scaling Group ที่พัฒนาเสร็จในระยะที่ 2 โดยเพิ่มส่วนประกอบใหม่ 5 ส่วน ได้แก่ (1) ระบบ Content Caching ด้วย hash-based immutable assets และ gzip compression ลดขนาดการรับส่งไฟล์ข้อมูลการ์ดลง 81.43\% (2) ระบบ Dead Letter Queue (DLQ) สำหรับจัดการข้อความที่ประมวลผลล้มเหลวใน SQS (3) ระบบกระจายผลการแข่งขันผ่าน Amazon SNS Fan-out ไปยัง SQS 2 คิวคู่ขนานสำหรับบันทึกประวัติและคำนวณสถิติแยกอิสระ (4) ระบบตารางผู้นำพร้อม ElastiCache Valkey แบบ Cache-Aside ที่ลดเวลาประมวลผลฝั่ง server จาก 41 มิลลิวินาทีเหลือ 1 มิลลิวินาที (ค่ามัธยฐาน) และ (5) ตัวขับเคลื่อนกฎกติกาเกมแบบ Pure Function ที่รองรับคีย์เวิร์ดทางการ 14 ชนิด ระบบ Ability 10 ประเภท การ Shift, Location, Song และ Item พร้อมระบบเลือกเป้าหมายผ่าน Prompt
+
+การทดลองทั้ง 10 หัวข้อบน AWS Academy Learner Lab (us-east-1) ครอบคลุมการเล่นข้ามเครื่อง ความปลอดภัย Failover, Auto Scaling, Infrastructure as Code, Content Caching, DLQ Retry, SNS Fan-out, ElastiCache Cache-Aside และ Ability Coverage จากข้อมูลการ์ด 3,242 ใบ ค่าใช้จ่ายจริงจาก AWS Billing ในเดือนกันยายน 2569 อยู่ที่ 10.29 ดอลลาร์สหรัฐ (1-27 กันยายน) โดย Application Load Balancer เป็นค่าใช้จ่ายหลัก (69\%)
+
+\vspace{0.6cm}
+\noindent \textbf{คำสำคัญ:} คลาวด์คอมพิวติง, SNS Fan-out, SQS Dead Letter Queue, ElastiCache Cache-Aside, Game Rule Engine, Multi-AZ VPC, Auto Scaling, AWS Learner Lab
+
+\newpage
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This report presents the experimental results, limitations, and cost analysis of the \textbf{Disney Lorcana PlayLab Cloud (Group G21)} system in Stage 3. Building upon the Lean Multi-AZ VPC, Application Load Balancer, and EC2 Auto Scaling Group architecture delivered in Stage 2, this stage introduces five new subsystems: (1) Content Caching with hash-based immutable assets and gzip compression, reducing card data transfer by 81.43\%; (2) Dead Letter Queue (DLQ) for handling failed SQS messages with a 3-retry redrive policy; (3) Amazon SNS Fan-out for distributing match results to two parallel SQS queues serving independent match history and player statistics consumers; (4) Leaderboard with ElastiCache Valkey using Cache-Aside pattern, reducing the median server-side processing time from 41 ms to 1 ms; and (5) a Pure Function Game Rule Engine supporting 14 official keywords, 10 ability effect types, Shift, Location, Song, and Item mechanics with prompt-based target selection.
+
+Ten experiments were conducted on AWS Academy Learner Lab (us-east-1), covering cross-instance gameplay, security hardening, failover recovery (2.8--3.9 minutes), CPU-based auto scaling with Node.js cluster mode, Infrastructure as Code, content caching, DLQ retry resilience, SNS fan-out decoupling, ElastiCache cache-aside performance, and ability coverage analysis across 3,242 cards (Set 1 through Set 13). Actual AWS billing for September 2569 (1--27 September) totaled \$10.29, with Application Load Balancer accounting for 69\% of the cost.
+
+\vspace{0.6cm}
+\noindent \textbf{Keywords:} Cloud Computing, SNS Fan-out, SQS Dead Letter Queue, ElastiCache Cache-Aside, Game Rule Engine, Multi-AZ VPC, Auto Scaling, AWS Learner Lab
+
+\newpage
+
+\chapter*{กิตติกรรมประกาศ}
+\addcontentsline{toc}{chapter}{กิตติกรรมประกาศ}
+
+โครงงาน \textbf{Disney Lorcana PlayLab Cloud} สำเร็จลุล่วงตามวัตถุประสงค์ของการส่งมอบงานในระยะที่ 3 (Stage 3) ได้ด้วยความอนุเคราะห์ คำแนะนำ และการชี้แนะทางวิชาการจากคณาจารย์ประจำรายวิชาการเทคโนโลยีกลุ่มเมฆ (Cloud Technology) คณะเทคโนโลยีสารสนเทศ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง ได้แก่:
+\begin{enumerate}
+    \item \textbf{ดร. ธนานพ ทองถาวร}
+    \item \textbf{ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส}
+    \item \textbf{ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์}
+\end{enumerate}
+ที่ได้กรุณาถ่ายทอดองค์ความรู้ด้านสถาปัตยกรรมคลาวด์ การออกแบบระบบเครือข่าย Multi-AZ VPC ความปลอดภัย และการบริหารจัดการทรัพยากรอย่างคุ้มค่า ซึ่งเป็นรากฐานสำคัญในการออกแบบและแก้ปัญหาทางวิศวกรรมซอฟต์แวร์ในโครงงานนี้
+
+คณะผู้จัดทำขอขอบพระคุณเพื่อน ๆ นักศึกษาคณะเทคโนโลยีสารสนเทศทุกท่านที่ได้ร่วมทดสอบระบบ ให้ข้อคิดเห็นด้านประสบการณ์การใช้งาน และร่วมตรวจสอบข้อผิดพลาดของระบบ รวมถึงขอขอบคุณครอบครัวที่ให้การสนับสนุนและเป็นกำลังใจในการศึกษาค้นคว้าตลอดมา
+
+\vspace{1.2cm}
+\begin{flushright}
+    คณะผู้จัดทำ โครงงานกลุ่ม G21\\
+    ตุลาคม 2569
+\end{flushright}
+
+\newpage
+
+\tableofcontents
+\newpage
+\listoftables
+\newpage
+
+% -------------------------------------------------------------
+% CHAPTERS
+% -------------------------------------------------------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% =============================================================
+\chapter{บทนำ}
+% =============================================================
+
+\section{ความเป็นมาและความสำคัญ}
+
+Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคชันสำหรับเล่นการ์ดเกม Disney Lorcana แบบออนไลน์ผ่านเบราว์เซอร์ โดยในระยะที่ 2 ได้พัฒนาสถาปัตยกรรมพื้นฐานประกอบด้วย Lean Multi-AZ VPC, Application Load Balancer, EC2 Auto Scaling Group และระบบห้องเล่นแบบเรียลไทม์ผ่าน API Gateway WebSocket ให้สามารถรองรับผู้เล่น 2 คนที่ ALB ส่งไปคนละเครื่องเล่นด้วยกันได้ พร้อมความทนทานต่อการล่มของเครื่องเดี่ยว
+
+ในระยะที่ 3 มุ่งเน้นการขยายระบบใน 3 ด้าน ได้แก่ (1) การแยกส่วนประมวลผลเหตุการณ์ (Event Decoupling) ด้วย Amazon SNS, SQS และ Dead Letter Queue (2) การเพิ่มประสิทธิภาพการตอบสนองด้วย ElastiCache Valkey แบบ Cache-Aside และ Content Caching (3) ตัวขับเคลื่อนกฎกติกาเกมแบบ Pure Function ที่รองรับคีย์เวิร์ด 14 ชนิดตามกฎทางการ Comprehensive Rules v2.2.0 [1]
+
+\section{วัตถุประสงค์}
+
+\begin{enumerate}
+    \item แยกการบันทึกประวัติการแข่งขันและการคำนวณสถิติผู้เล่นออกจากกันด้วย SNS Fan-out และ SQS คู่ขนาน เพื่อให้ส่วนประกอบแต่ละส่วนทำงานและล้มเหลวได้อิสระ
+    \item เพิ่มความทนทานต่อข้อความที่ประมวลผลล้มเหลวด้วย Dead Letter Queue และ Redrive Policy
+    \item ลดเวลาตอบสนองของหน้าตารางผู้นำด้วย ElastiCache Valkey แบบ Cache-Aside
+    \item ลดขนาดการรับส่งไฟล์ข้อมูลการ์ดด้วย hash-based immutable asset และ gzip compression
+    \item สร้างตัวขับเคลื่อนกฎกติกาเกมที่ไม่มีผลข้างเคียง (Pure Function) รองรับคีย์เวิร์ด 14 ชนิดและระบบ Ability
+    \item ทดลองและรวบรวมหลักฐานการทำงานของระบบทุกส่วนบน AWS Academy Learner Lab
+\end{enumerate}
+
+\section{ขอบเขต}
+
+\begin{itemize}
+    \item ทดลองบน AWS Academy Learner Lab (us-east-1) ที่มีข้อจำกัด IAM Policy เฉพาะ (ไม่สามารถใช้ CloudFront, ElastiCache Serverless, Instance Refresh ได้)
+    \item งบประมาณ credit รวม 50 ดอลลาร์สหรัฐ
+    \item ข้อมูลการ์ดครอบคลุม Set 1 ถึง Set 13 จำนวน 3,242 ใบ
+    \item ตัวขับเคลื่อนกฎทำงานฝั่ง client (browser) ไม่ได้ทำ authoritative validation บน server
+\end{itemize}
+
+% =============================================================
+\chapter{ทฤษฎีและเทคโนโลยีที่เกี่ยวข้อง}
+% =============================================================
+
+\section{Amazon Simple Notification Service (SNS)}
+
+Amazon SNS เป็นบริการส่งข้อความแบบ Pub/Sub ที่ช่วยให้ผู้ส่ง (Publisher) ส่งข้อความไปยังหัวข้อ (Topic) เพียงครั้งเดียว แล้วผู้รับ (Subscriber) ทุกรายจะได้รับข้อความนั้นพร้อมกัน [2] ในโครงงานนี้ใช้ SNS เพื่อกระจายผลการแข่งขันไปยังคิว SQS 2 คิวที่ทำหน้าที่ต่างกัน
+
+\section{Amazon Simple Queue Service (SQS) และ Dead Letter Queue}
+
+Amazon SQS เป็นบริการคิวข้อความที่รับประกันว่าข้อความจะถูกส่งอย่างน้อยหนึ่งครั้ง (at-least-once delivery) [3] เมื่อข้อความถูกประมวลผลไม่สำเร็จเกินจำนวนครั้งที่กำหนด (\texttt{maxReceiveCount}) Redrive Policy จะย้ายข้อความไปยัง Dead Letter Queue โดยอัตโนมัติ ป้องกันไม่ให้ข้อความเสียค้างขวางการประมวลผลข้อความอื่น
+
+\section{Amazon ElastiCache และรูปแบบ Cache-Aside}
+
+Amazon ElastiCache รองรับ Valkey (ซอฟต์แวร์ฐานข้อมูลในหน่วยความจำที่เข้ากันได้กับ Redis) [4] รูปแบบ Cache-Aside (Lazy Loading) ทำงานโดยแอปพลิเคชันตรวจสอบแคชก่อน หากไม่พบข้อมูล (Cache Miss) จึงดึงจากฐานข้อมูลหลักแล้วเขียนลงแคชพร้อมกำหนดอายุ (TTL) หากแคชหยุดทำงาน ระบบจะอ่านจากฐานข้อมูลโดยตรง (Graceful Degradation)
+
+\section{Content Caching ด้วย Hash-Based Immutable Assets}
+
+เมื่อ build tool (Vite) สร้างไฟล์ asset จะแทรก content hash ลงในชื่อไฟล์ (เช่น \nolinkurl{lorcana_cards-DHNwgV-K.json}) ทำให้ทุกครั้งที่เนื้อหาเปลี่ยน ชื่อไฟล์จะเปลี่ยนตาม [5] เว็บเซิร์ฟเวอร์จึงตั้ง \texttt{Cache-Control: max-age=31536000, immutable} ให้เบราว์เซอร์เก็บแคชไว้ 1 ปีโดยไม่ต้องตรวจสอบซ้ำ ร่วมกับ gzip compression ที่ลดขนาดการรับส่ง
+
+\section{Node.js Cluster Module}
+
+Node.js รัน JavaScript บน event loop เดี่ยว (single-threaded) [6] บน EC2 t3.micro ที่มี 2 vCPU หาก Node.js ทำงาน 1 process จะใช้ CPU ได้สูงสุดเพียง 50\% ของเครื่อง ทำให้ Auto Scaling Policy ที่ตั้งเป้า 60\% ไม่มีวันถูกกระตุ้น Cluster module แก้ปัญหานี้โดยสร้าง worker process 1 ตัวต่อ vCPU
+
+\section{Pure Function Game Engine}
+
+ตัวขับเคลื่อนกฎกติกาออกแบบเป็นฟังก์ชัน \texttt{applyAction(state, action)} ที่รับสถานะเกมปัจจุบันและการกระทำ แล้วคืนสถานะใหม่พร้อมรายการเหตุการณ์และ Prompt สำหรับเลือกเป้าหมาย โดยไม่เปลี่ยนแปลงสถานะเดิมและไม่เรียกใช้ React, Network หรือ Browser API [7]
+
+% =============================================================
+\chapter{การออกแบบระบบ}
+% =============================================================
+
+\section{สถาปัตยกรรมระบบรวม}
+
+\begin{lstlisting}[caption={แผนภาพสถาปัตยกรรมระบบ Disney Lorcana PlayLab Cloud (Stage 3)}]
+[ Browser ] --HTTP:80--> [ ALB ] --> [ EC2 x2 (ASG Min 2/Max 4) ]
+                                      Nginx + Node.js cluster
+                                        |          |         |
+                                     DynamoDB     SQS    ElastiCache
+                                    Users/Decks  Analyzer   Valkey
+                                                   |
+                                                Lambda Analyzer
+
+[ Browser ] --WSS--> [ API Gateway WebSocket ] --> Lambda lorcana-room --> DynamoDB Room State
+
+[ Match Finish ] --> EC2 POST /api/matches --> SNS lorcana-match-events
+                                                  |                  |
+                                          SQS match-history   SQS player-stats
+                                          (+DLQ)               (+DLQ)
+                                               |                  |
+                                          Lambda history     Lambda stats
+                                               |                  |
+                                       DynamoDB History    DynamoDB Stats
+\end{lstlisting}
+
+\section{เหตุผลในการออกแบบ (Design Rationale)}
+
+\subsection{Multi-AZ โดยไม่ใช้ NAT Gateway}
+
+ระบบใช้ Public Subnet ใน 2 Availability Zones (\texttt{us-east-1a}, \texttt{us-east-1b}) โดยไม่ใช้ NAT Gateway เพื่อประหยัดค่าใช้จ่าย NAT Gateway มีค่าใช้จ่าย 0.045 ดอลลาร์ต่อชั่วโมง (ประมาณ 32.40 ดอลลาร์ต่อเดือน) ซึ่งเกินงบ credit 50 ดอลลาร์เพียงบริการเดียว
+
+\textbf{ข้อแลกเปลี่ยน:} EC2 อยู่ใน Public Subnet จึงมี Public IPv4 (ค่าใช้จ่าย 0.005 ดอลลาร์ต่อชั่วโมงต่อ IP) ใช้ Chained Security Groups ควบคุมการเข้าถึงแทน โดย EC2 Security Group รับทราฟฟิกจาก ALB Security Group เท่านั้น ไม่เปิด inbound จาก \texttt{0.0.0.0/0} ค่า Public IPv4 จริงในเดือนกันยายน 2569 อยู่ที่ 1.96 ดอลลาร์ ซึ่งต่ำกว่า NAT Gateway ที่ประมาณ 32.40 ดอลลาร์ต่อเดือนอย่างมาก
+
+\subsection{Health Check ตรวจเฉพาะ Node.js ไม่ตรวจ DynamoDB}
+
+ALB Health Check (\texttt{GET /api/health}) ตรวจสอบเฉพาะว่า Nginx สามารถส่งต่อคำขอไปยัง Node.js ได้หรือไม่ โดยไม่ตรวจการเชื่อมต่อ DynamoDB เหตุผลคือ DynamoDB เป็นบริการที่แชร์ร่วมกันระหว่างทุกเครื่อง หาก DynamoDB ขัดข้อง EC2 ทุกเครื่องจะถูกมาร์กเป็น unhealthy พร้อมกัน ทำให้ไม่มีเครื่องรับทราฟฟิกเลย ซึ่งเลวร้ายกว่าการให้เครื่องยังรับคำขอได้แต่คืน error เฉพาะคำขอที่ต้องใช้ฐานข้อมูล
+
+\subsection{Node.js Cluster Mode สำหรับ t3.micro}
+
+t3.micro มี 2 vCPU แต่ Node.js single-thread ใช้ CPU ได้สูงสุด 50\% ของเครื่อง Target Tracking Policy ที่ตั้งเป้า 60\% จึงไม่มีวันถูกกระตุ้น การแก้ไขคือใช้ \texttt{cluster} module สร้าง 1 worker ต่อ vCPU (รวม 2 worker ต่อเครื่อง) ทำให้ CPU สามารถถูกใช้ได้เต็ม 100\% และ Policy ทำงานตามที่ออกแบบ [6]
+
+\subsection{SNS Fan-out แทนการเขียน DynamoDB โดยตรง}
+
+เมื่อเกมจบ ระบบต้องบันทึกผลใน 2 ตาราง (ประวัติการแข่งขัน + สถิติผู้เล่น) หากเขียนโดยตรงใน endpoint เดียวกัน ความล้มเหลวของส่วนหนึ่งจะทำให้อีกส่วนไม่ถูกบันทึก การใช้ SNS กระจายข้อความไปยัง SQS 2 คิวคู่ขนาน ทำให้แต่ละส่วนล้มเหลวและ retry ได้อิสระ พร้อม DLQ สำรอง [2]
+
+\subsection{ElastiCache Node แทน Serverless}
+
+IAM Policy ของ AWS Academy Learner Lab มี explicit deny สำหรับ ElastiCache Serverless จึงต้องใช้ ElastiCache แบบ Node เดี่ยว (\texttt{cache.t3.micro}) ใน VPC Private Subnet ข้อจำกัดคือไม่มี automatic scaling และเป็น single point of failure แต่ระบบออกแบบ Graceful Degradation ให้อ่าน DynamoDB โดยตรงเมื่อแคชหยุดทำงาน
+
+\section{ตัวขับเคลื่อนกฎกติกาเกม}
+
+ตัวขับเคลื่อนแยกเป็น 5 module ใน \texttt{src/game/}:
+
+\begin{table}[H]
+\centering
+\caption{โครงสร้าง Module ของตัวขับเคลื่อนกฎกติกาเกม}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{ไฟล์} & \textbf{ขนาด} & \textbf{หน้าที่} \\
+\midrule
+\texttt{types.ts} & 3,262 B & นิยาม Interface: GameState, GameAction, ActionResult, LorcanaCard \\
+\texttt{rules.ts} & 6,601 B & ฟังก์ชันตรวจสอบ: isCardInkable, canPlayCard, canQuest, canChallenge \\
+\texttt{engine.ts} & 35,760 B & ฟังก์ชันหลัก applyAction รองรับ 16 action types \\
+\texttt{keywords.ts} & 4,102 B & parseCardKeywords ด้วย word-boundary regex 14 keywords \\
+\texttt{abilities.ts} & 5,936 B & parseAbility ตามจังหวะ 8 ประเภท, effect 10 ประเภท \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =============================================================
+\chapter{ผลการทดลอง}
+% =============================================================
+
+การทดลองทั้งหมดดำเนินการวันที่ 27 และ 29 กันยายน 2569 บน AWS Academy Learner Lab (us-east-1) ไฟล์หลักฐานดิบอยู่ใน \nolinkurl{docs/01_Reports/stage3_evidence/}
+
+\section{การทดลองที่ 1: การเล่นออนไลน์ข้ามเครื่อง}
+
+\textbf{คำถาม:} เมื่อมี EC2 2 เครื่อง ผู้เล่น 2 คนที่ ALB ส่งไปคนละเครื่องเล่นด้วยกันได้หรือไม่
+
+\textbf{วิธี:} Playwright เปิด browser 2 context ผ่าน ALB ผู้เล่น 1 สร้างห้อง ผู้เล่น 2 เข้าด้วยรหัส 6 หลัก ตรวจว่าผู้เล่น 1 เห็นชื่อผู้เล่น 2 ภายใน 10 วินาที
+
+\textbf{ผล:} ผ่าน 5/5 รอบ ใช้เวลา 9.7--14.1 วินาทีต่อรอบ (รวม register, login, โหลดหน้า)
+
+\textbf{เหตุผลที่ต้องเปลี่ยน:} เดิม WebSocket server บน EC2 เก็บ connection และ state ของห้องใน memory ของแต่ละเครื่อง ผู้เล่นที่อยู่คนละเครื่องจะไม่เห็นการเล่นของกัน ย้าย realtime ไป API Gateway WebSocket + Lambda ที่ใช้ DynamoDB เก็บ state แทน
+
+\section{การทดลองที่ 2: ความปลอดภัยบนระบบจริง}
+
+\begin{table}[H]
+\centering
+\caption{ผลทดสอบความปลอดภัย (OWASP A02, A05, A07)}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Test Case} & \textbf{ผล} \\
+\midrule
+TC-AUTH-00a: backend รันโดยไม่มี secret & ก่อนแก้: รันต่อได้ (FAIL) / หลังแก้: exit 1 (PASS) \\
+TC-AUTH-00c: รหัส admin ที่เขียนไว้ในโค้ด & ถูกปฏิเสธ (PASS) \\
+TC-E2E-16: JWT ที่เซ็นด้วย secret default & ได้ 401 ทุกรอบ (10/10 รอบ) \\
+TC-E2E-16: security headers & X-Frame-Options: DENY, X-Content-Type-Options: nosniff \\
+Launch template & HttpTokens: required, ไม่มี secret ใน user data \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Unit/integration test ทั้งหมด 128/128 ผ่าน (ณ วันที่ 30 กันยายน 2569)
+
+\section{การทดลองที่ 3: Failover เมื่อ Backend ล่ม}
+
+สคริปต์ \texttt{test\_asg\_recovery.ps1} สั่ง \texttt{systemctl stop lorcana-backend} บนเครื่องหนึ่งผ่าน SSM Run Command
+
+\begin{table}[H]
+\centering
+\caption{ผลการทดลอง Failover (หลักฐาน: \texttt{failover\_app\_*.txt})}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{เหตุการณ์} & \textbf{รอบ 1 (08:32:50)} & \textbf{รอบ 2 (11:22:57)} \\
+\midrule
+ASG สั่งเปลี่ยนเครื่อง & T+146 วินาที & T+90 วินาที \\
+เครื่องใหม่ healthy & T+231 วินาที & T+166 วินาที \\
+Alarm เป็น OK & T+428 วินาที & T+354 วินาที \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+ALB หยุดส่งทราฟฟิกไปเครื่องที่ล่มภายในราว 30 วินาที (health check 15 วินาที $\times$ 2 ครั้ง) ช่วง 30 วินาทีแรกนี้ request อาจได้ 502 เวลากู้คืน 2.8--3.9 นาที ส่วนใหญ่เป็นเวลาบูตเครื่องใหม่
+
+\section{การทดลองที่ 4: Auto Scaling}
+
+โหลดด้วย \texttt{POST /api/auth/login} (bcrypt cost 10 ใช้ CPU จริง) 40 worker ต่อเนื่อง
+
+\begin{table}[H]
+\centering
+\caption{ผลการทดลอง Auto Scaling (หลักฐาน: \texttt{stress\_scaling\_*.txt})}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+& \textbf{รอบ 1 (process เดียว)} & \textbf{รอบ 2 (cluster 2 worker)} \\
+\midrule
+CPU เฉลี่ย & 48.7--49.9\% (ค้าง) & 99.8--99.97\% \\
+Scale-out & ไม่เกิด & 2 $\rightarrow$ 4 เครื่อง \\
+Login สำเร็จ/ล้มเหลว & ไม่ได้บันทึก & 9,653/0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{การทดลองที่ 5: Infrastructure as Code}
+
+สคริปต์ \texttt{deploy\_ec2\_vpc\_asg.ps1} สร้าง VPC, subnet 2 AZ, IGW, SG, ALB, TG, LT, ASG, scaling policy, alarm สำเร็จ รัน deploy ซ้ำขณะ stack ยังอยู่หยุดด้วย exit 1 \texttt{lab.ps1 destroy} ลบ resource ทั้งหมดเหลือแค่ default VPC
+
+\section{การทดลองที่ 6: Content Caching (T02)}
+
+\begin{table}[H]
+\centering
+\caption{ผล Content Caching (หลักฐาน: \texttt{caching\_2026-09-29*.json})}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{ตัวชี้วัด} & \textbf{ค่า} \\
+\midrule
+ขนาดเดิม (Uncompressed) & 2,351,188 ไบต์ (2.35 MB) \\
+ขนาดหลัง gzip & 436,557 ไบต์ (426 KB) ลดลง 81.43\% \\
+เวลาโหลดครั้งแรก & 602 มิลลิวินาที \\
+เวลาโหลดครั้งที่สอง (Cache Hit) & 86 มิลลิวินาที \\
+ข้อมูลรับส่งครั้งที่สอง & 0 ไบต์ (Memory Cache) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{การทดลองที่ 7: Dead Letter Queue (T03)}
+
+ข้อความรูปแบบ JSON เสียหายถูกส่งเข้า SQS Lambda analyzer ส่งคืน \texttt{batchItemFailures} ข้อความผ่านการพยายามซ้ำครบ 3 ครั้ง (\texttt{maxReceiveCount: 3}) และเข้าสู่ DLQ สำเร็จที่ T+102 วินาที จำนวนข้อความค้างในคิวหลักหลังประมวลผล: 0 ข้อความ (หลักฐาน: \texttt{dlq\_20260929\_131824.log})
+
+\section{การทดลองที่ 8: SNS Fan-out (T04)}
+
+เวลารวมของเทสต์ TC-E2E-23 (สมัคร, login, สร้างเด็ค, จบเกม แล้วรอจนผลปรากฏในประวัติและสถิติของผู้เล่นทั้งสองคน) คือ 4.9 วินาที จึงสรุปได้ว่า fan-out ใช้เวลาไม่เกิน 5 วินาทีหลังจบเกม (ยังไม่ได้แยกวัดเฉพาะช่วง SNS ถึง DynamoDB) (หลักฐาน: \nolinkurl{decoupling_match_events_20260929.log})
+
+การป้องกันการเข้าถึง (OWASP A01): ส่งผลโดยไม่มี JWT ได้ 401 ส่งผลของแมตช์ที่ตนเองไม่ได้ร่วมเล่นได้ 403 การป้องกันนับซ้ำ (Idempotency): conditional write รูปแบบ \texttt{DEDUPE\#<matchId>}
+
+\section{การทดลองที่ 9: ElastiCache Cache-Aside (T05)}
+
+\textbf{วิธี:} สคริปต์ \texttt{measure\_leaderboard.mjs} เรียก \texttt{GET /api/leaderboard} ผ่าน ALB 8 รอบ แต่ละรอบรอให้ TTL 60 วินาทีหมดก่อน 1 request (ควรได้ MISS) แล้วยิงต่อเนื่อง 13 request (ควรได้ HIT) แยกกลุ่มตามค่า header \texttt{X-Cache} ที่ server ตอบจริง ค่า \texttt{durationMs} วัดภายใน backend ส่วนเวลาฝั่ง client รวมความหน่วงเครือข่ายจากเครื่องทดสอบไปยัง us-east-1
+
+\begin{table}[H]
+\centering
+\caption{ผล ElastiCache Leaderboard เป็นค่ามัธยฐานและ p95 (หลักฐาน: \nolinkurl{leaderboard_cache_2026-09-29T17-18-08-612Z.json})}
+\begin{tabularx}{\textwidth}{Xrrr}
+\toprule
+\textbf{สถานการณ์} & \textbf{ตัวอย่าง} & \textbf{server (p95)} & \textbf{client (p95)} \\
+\midrule
+Cache Miss (อ่าน DynamoDB) & 8 & 41 ms (112) & 562.7 ms (814.2) \\
+Cache Hit (ภายใน TTL 60 วินาที) & 104 & 1 ms (2) & 247.5 ms (255.9) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+เมื่อแคชขัดข้อง (Connection refused) ระบบอ่าน DynamoDB โดยตรงและตอบ HTTP 200 (ทดสอบด้วย unit test TC-LEAD-04 และ TC-CACHE-004) เวลาประมวลผลฝั่ง server ลดจาก 41 เหลือ 1 มิลลิวินาที (ลดลง 97.56\% เทียบค่ามัธยฐาน) เวลาที่ผู้ใช้เห็นลดจาก 562.7 เหลือ 247.5 มิลลิวินาที เพราะความหน่วงเครือข่ายราว 247 มิลลิวินาทีเป็นส่วนที่แคชลดไม่ได้ กลุ่ม MISS มีเพียง 8 ตัวอย่างเพราะ TTL 60 วินาที ทำให้ต้องรอ 62 วินาทีต่อ 1 ตัวอย่าง (ครบกำหนด 100 ตัวอย่างต้องรอราว 100 นาที) และตารางสถิติมีข้อมูลจำนวนน้อย ค่า MISS บนตารางใหญ่กว่านี้จะสูงขึ้น
+
+\textbf{ปัญหาที่พบระหว่างทดลอง:} รอบแรกได้ MISS ตลอดแม้เรียกซ้ำ สาเหตุคือ Redis client เชื่อมต่อตอนมี request แรก และตั้ง \texttt{enableOfflineQueue: false} ทำให้ request แรกของทุก process (2 เครื่อง \texttimes{} 2 worker) ล้มเงียบแล้วไปอ่าน DynamoDB แก้โดยเชื่อมต่อตอน server เริ่มทำงาน (\texttt{warmCache()}) และเพิ่ม unit test TC-CACHE-001 ถึง 004 หลังแก้ e2e TC-E2E-24 ผ่านได้ MISS แล้ว HIT ตามที่ออกแบบ
+
+\section{การทดลองที่ 10: Ability Coverage (T11)}
+
+สคริปต์ \nolinkurl{measure_ability_coverage.ts} วิเคราะห์การ์ด 3,242 ใบ (Set 1--13) พบ ability 3,768 ข้อ (หลักฐาน: \texttt{ability\_coverage.json})
+
+\begin{table}[H]
+\centering
+\caption{ระดับการรองรับ Ability ของตัวขับเคลื่อนกฎกติกา}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{ระดับ} & \textbf{จำนวน (\%)} & \textbf{คำอธิบาย} \\
+\midrule
+Full Support & 609 (16.16\%) & ระบบคำนวณและเลือกเป้าหมายอัตโนมัติ \\
+Partial Support & 203 (5.39\%) & ตรวจจับจังหวะ trigger ได้ ต้องระบุเพิ่มเติม \\
+Manual Resolve & 2,956 (78.45\%) & แสดงป้ายให้ผู้เล่นจัดการเอง \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =============================================================
+\chapter{ข้อจำกัดและค่าใช้จ่าย}
+% =============================================================
+
+\section{ข้อจำกัดของระบบ}
+
+\begin{enumerate}
+    \item \textbf{ไม่มี HTTPS:} Learner Lab ไม่มีโดเมนจึงขอ certificate จาก ACM ให้ ALB ไม่ได้ ข้อมูล login วิ่งเป็น HTTP
+    \item \textbf{WebSocket ไม่ตรวจ token:} Lambda \texttt{lorcana-room} เชื่อชื่อผู้ใช้ที่ client ส่งมา
+    \item \textbf{Rate limiter อยู่ใน memory ของแต่ละ process (OWASP A07):} เมื่อมีหลาย worker และหลายเครื่อง ผู้โจมตีลองรหัสได้ 5 ครั้ง $\times$ จำนวน worker $\times$ จำนวนเครื่อง แก้ไขได้ด้วย DynamoDB + TTL แต่เพิ่มค่าใช้จ่ายต่อ request
+    \item \textbf{Secret ของ Lambda อยู่ใน environment variable แบบ plaintext} (EC2 อ่านจาก SSM SecureString)
+    \item \textbf{เวลากู้คืน 2.8--3.9 นาที} ขึ้นกับเวลาบูตเครื่องใหม่
+    \item \textbf{Alarm มาช้ากว่าเหตุการณ์ 2--3 นาที} เพราะ CloudWatch metric มาถึงช้า
+    \item \textbf{ผลการแข่งขันรายงานจาก Client:} ยังไม่ได้ประมวลผล state บน authoritative game server
+    \item \textbf{CloudFront ใช้ไม่ได้:} IAM Policy ปฏิเสธ \texttt{cloudfront:*}
+    \item \textbf{ElastiCache Serverless ใช้ไม่ได้:} IAM Policy มี explicit deny
+    \item \textbf{Learner Lab session 4 ชั่วโมง:} เครื่องถูก stop เมื่อหมด session
+    \item \textbf{ค่าใช้จ่ายเมื่อเปิด 24 ชั่วโมงเกินงบ:} ดูข้อ~\ref{sec:cost}
+\end{enumerate}
+
+\section{ประมาณการค่าใช้จ่าย}
+\label{sec:cost}
+
+ราคาต่อหน่วยเป็น on-demand list price ของ us-east-1 ตรวจสอบ ณ วันที่ 29 กันยายน 2569
+
+\begin{table}[H]
+\centering
+\caption{ประมาณการค่าใช้จ่ายรายชั่วโมง}
+\begin{tabularx}{\textwidth}{lXrr}
+\toprule
+\textbf{บริการ} & \textbf{ราคาต่อหน่วย} & \textbf{จำนวน} & \textbf{ต่อชม. (USD)} \\
+\midrule
+EC2 t3.micro & \$0.0104/ชม. & 2 & 0.0208 \\
+EBS gp3 root 8 GiB & \$0.08/GB-เดือน & 2 $\times$ 8 GiB & 0.0018 \\
+Public IPv4 & \$0.005/ชม. & 4 (EC2 2 + ALB 2 AZ) & 0.0200 \\
+ALB & \$0.0225/ชม. + LCU & 1 (1 LCU) & 0.0305 \\
+ElastiCache t3.micro & \$0.0170/ชม. & 1 node & 0.0170 \\
+Detailed monitoring & \$2.10/เครื่อง-เดือน & 2 & 0.0058 \\
+CloudWatch alarm & \$0.10/alarm-เดือน & 3 & 0.0004 \\
+SNS, SQS, Lambda, DynamoDB & ระดับทดสอบ & -- & $\approx$ 0.0000 \\
+\midrule
+\textbf{รวม} & & & \textbf{$\approx$ 0.096} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{ค่าใช้จ่ายจริงจาก AWS Billing (1--27 กันยายน 2569)}
+\begin{tabularx}{\textwidth}{lrr}
+\toprule
+\textbf{บริการ} & \textbf{ก.ย. 2569 (USD)} & \textbf{สัดส่วน} \\
+\midrule
+Elastic Load Balancing & 7.13 & 69\% \\
+Amazon VPC (public IPv4) & 1.96 & 19\% \\
+CloudWatch & 0.45 & 4\% \\
+EC2 Compute & 0.44 & 4\% \\
+EC2 Other (EBS) & 0.31 & 3\% \\
+\midrule
+\textbf{รวม month-to-date} & \textbf{10.29} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+ALB เป็นค่าใช้จ่ายหลักเพราะคิดรายชั่วโมงตลอดเวลาที่ยังไม่ลบ แม้ EC2 จะถูก scale เป็น 0 แล้ว หากหยุดทดสอบเกิน 1 วัน ควรสั่ง \texttt{lab.ps1 destroy} เพื่อป้องกัน credit หมด
+
+% =============================================================
+\chapter{สรุปและข้อเสนอแนะ}
+% =============================================================
+
+\section{สรุปผลการดำเนินงาน}
+
+ระบบ Disney Lorcana PlayLab Cloud ในระยะที่ 3 ขยายจากสถาปัตยกรรมพื้นฐานของระยะที่ 2 ด้วยส่วนประกอบ 5 ส่วน:
+
+\begin{enumerate}
+    \item Content Caching ลดขนาดการรับส่งไฟล์ข้อมูลการ์ด 81.43\% และเวลาโหลดซ้ำจาก 602ms เหลือ 86ms
+    \item Dead Letter Queue จัดการข้อความเสียหายได้ภายใน 102 วินาทีโดยไม่ส่งผลกระทบต่อคิวหลัก
+    \item SNS Fan-out กระจายผลการแข่งขันไป 2 คิวคู่ขนานภายใน 5 วินาที พร้อมป้องกันการนับซ้ำ
+    \item ElastiCache Cache-Aside ลดเวลาประมวลผลฝั่ง server ของ Leaderboard จาก 41 ms เหลือ 1 ms (ค่ามัธยฐาน ลดลง 97.56\%) พร้อม Graceful Degradation เมื่อแคชหยุดทำงาน
+    \item ตัวขับเคลื่อนกฎกติกา Pure Function รองรับ 16 action types, 14 keywords, ระบบ Ability 10 ประเภท, Shift, Location, Song และ Item ผ่านชุดทดสอบอัตโนมัติ 128 รายการ
+\end{enumerate}
+
+การทดลอง 10 หัวข้อยืนยันว่าระบบทำงานตามที่ออกแบบภายใต้ข้อจำกัดของ AWS Academy Learner Lab ค่าใช้จ่ายจริง 10.29 ดอลลาร์ (27 วัน) อยู่ภายในงบ 50 ดอลลาร์
+
+\section{ข้อเสนอแนะ}
+
+\begin{enumerate}
+    \item ย้าย rate limiter จาก in-memory ไปใช้ DynamoDB + TTL เพื่อแก้ปัญหา OWASP A07
+    \item เพิ่ม authoritative game state validation บน server เพื่อป้องกันผลการแข่งขันที่ถูกแก้ไขจาก client
+    \item หากมีโดเมนจริง ควรเพิ่ม HTTPS ผ่าน ACM + ALB listener 443
+    \item ขยาย Full Support ของ ability จาก 16.16\% ให้ครอบคลุมกลุ่ม timing ที่พบบ่อย (activated 412 ข้อ, on\_play 596 ข้อ)
+    \item พิจารณาใช้ CloudFront เป็น CDN หาก deploy นอก Learner Lab
+\end{enumerate}
+
+% -------------------------------------------------------------
+% REFERENCES
+% -------------------------------------------------------------
+\chapter*{บรรณานุกรม (References)}
+\addcontentsline{toc}{chapter}{บรรณานุกรม (References)}
+
+\noindent [1] Ravensburger \& Disney. (n.d.). \textit{Disney Lorcana Comprehensive Rules v2.2.0}. [Online]. Available: \url{https://www.disneylorcana.com/resources} (ไฟล์ที่ใช้อยู่ที่ \nolinkurl{docs/Rule/Comprehensive-Rules_2.2.0-EN.pdf})\\[0.3cm]
+\noindent [2] Amazon Web Services. (2026). \textit{Amazon SNS and SQS Fanout Pattern}. AWS Architecture Center. [Online]. Available: \url{https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html}\\[0.3cm]
+\noindent [3] Amazon Web Services. (2026). \textit{Amazon SQS Dead-Letter Queues}. Amazon SQS Developer Guide. [Online]. Available: \url{https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html}\\[0.3cm]
+\noindent [4] Amazon Web Services. (2026). \textit{Amazon ElastiCache for Valkey}. [Online]. Available: \url{https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html}\\[0.3cm]
+\noindent [5] Vite. (2026). \textit{Building for Production: Asset Hashing}. [Online]. Available: \url{https://vite.dev/guide/build}\\[0.3cm]
+\noindent [6] OpenJS Foundation. (2026). \textit{Cluster Module}. Node.js Documentation. [Online]. Available: \url{https://nodejs.org/api/cluster.html}\\[0.3cm]
+\noindent [7] Amazon Web Services. (2026). \textit{Target Tracking Scaling Policies for Amazon EC2 Auto Scaling}. [Online]. Available: \url{https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-scaling-target-tracking.html}\\[0.3cm]
+\noindent [8] Amazon Web Services. (2026). \textit{Health Checks for Application Load Balancer Target Groups}. Elastic Load Balancing User Guide. [Online]. Available: \url{https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html}\\[0.3cm]
+\noindent [9] Amazon Web Services. (2026). \textit{AWS Systems Manager Parameter Store}. [Online]. Available: \url{https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html}\\[0.3cm]
+\noindent [10] OWASP Foundation. (2021). \textit{OWASP Top 10: 2021}. [Online]. Available: \url{https://owasp.org/www-project-top-ten/}\\[0.3cm]
+\noindent [11] Amazon Web Services. (2026). \textit{Amazon VPC Pricing (Public IPv4 Charges)}. [Online]. Available: \url{https://aws.amazon.com/vpc/pricing/}
+
+\end{document}
