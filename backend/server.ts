@@ -16,6 +16,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { analyzeDeck } from './shared/deckAnalysis';
 
 dotenv.config();
 
@@ -343,69 +344,6 @@ router.get('/admin/billing', authenticateToken, requireAdmin, async (_req: Reque
   });
 });
 
-// Helper: Calculate Deck Synergy (Integrated Analyzer)
-function calculateDeckAnalysis(cards: any[]) {
-  let totalCards = 0;
-  let totalCost = 0;
-  let charactersCount = 0;
-  let cardsWithCost = 0;
-
-  const costCurve: Record<string, number> = { '0-2': 0, '3-4': 0, '5-6': 0, '7+': 0 };
-  const inkDistribution: Record<string, number> = {};
-
-  for (const item of cards) {
-    const cardData = item.card || item;
-    const count = item.count || 1;
-    totalCards += count;
-
-    if (cardData.cost !== undefined) {
-      const cost = Number(cardData.cost);
-      totalCost += cost * count;
-      cardsWithCost += count;
-      if (cost <= 2) costCurve['0-2'] += count;
-      else if (cost <= 4) costCurve['3-4'] += count;
-      else if (cost <= 6) costCurve['5-6'] += count;
-      else costCurve['7+'] += count;
-    }
-
-    if (cardData.ink) {
-      inkDistribution[cardData.ink] = (inkDistribution[cardData.ink] || 0) + count;
-    }
-
-    if (cardData.type === 'Character') {
-      charactersCount += count;
-    }
-  }
-
-  const avgCost = cardsWithCost > 0 ? Number((totalCost / cardsWithCost).toFixed(2)) : 0;
-  const characterRatio = totalCards > 0 ? Number((charactersCount / totalCards).toFixed(2)) : 0;
-
-  let synergyScore = 100;
-  const numInks = Object.keys(inkDistribution).length;
-  if (numInks === 0) synergyScore -= 50;
-  if (numInks > 2) synergyScore -= 30;
-  if (characterRatio < 0.6) synergyScore -= 20;
-  else if (characterRatio > 0.8) synergyScore -= 10;
-  if (costCurve['0-2'] < 10) synergyScore -= 15;
-  if (costCurve['3-4'] < 10) synergyScore -= 15;
-
-  synergyScore = Math.max(0, Math.min(100, synergyScore));
-  let summaryText = 'เด็คสมดุลดี พร้อมลุย';
-  if (synergyScore < 50) summaryText = 'เด็คอาจต้องปรับปรุงสมดุลของการ์ดหรือการใช้หมึก';
-  else if (synergyScore < 80) summaryText = 'เด็คค่อนข้างดี แต่อาจเพิ่มการ์ดตัวละครหรือปรับ Cost Curve';
-
-  return {
-    totalCards,
-    costCurve,
-    inkDistribution,
-    characterRatio,
-    avgCost,
-    synergyScore,
-    summaryText,
-    analyzedAt: new Date().toISOString(),
-  };
-}
-
 // 3. POST /decks — Save/Update Deck
 router.post('/decks', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -414,7 +352,7 @@ router.post('/decks', authenticateToken, async (req: Request, res: Response): Pr
     const deckId = `deck_${Date.now()}`;
     const updatedAt = new Date().toISOString();
 
-    const analysis = calculateDeckAnalysis(cards || []);
+    const analysis = analyzeDeck(cards || []);
 
     const item = {
       deckId,
@@ -512,7 +450,7 @@ router.post('/decks/:deckId/analyze', authenticateToken, async (req: Request, re
       return;
     }
 
-    const analysis = calculateDeckAnalysis(deckRes.Item.cards || []);
+    const analysis = analyzeDeck(deckRes.Item.cards || []);
     await docClient.send(
       new UpdateCommand({
         TableName: DECKS_TABLE,
