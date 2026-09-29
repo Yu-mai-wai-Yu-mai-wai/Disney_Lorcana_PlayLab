@@ -30,8 +30,8 @@ describe('T14 ponytail cleanup: nothing in production code pretends to be live (
   });
 
   it('TC-CLEAN-002 STATE_SYNC_RESPONSE payload is built in one place', () => {
-    const board = read('components/LorcanaBoard.tsx');
-    expect(board.match(/sendAction\('STATE_SYNC_RESPONSE'/g)?.length).toBe(1);
+    const ws = read('components/board/useLorcanaWebSocket.ts');
+    expect(ws.match(/sendAction\('STATE_SYNC_RESPONSE'/g)?.length).toBe(1);
   });
 
   it('TC-CLEAN-003 no side effects inside setState updaters for the undo and disconnect timers', () => {
