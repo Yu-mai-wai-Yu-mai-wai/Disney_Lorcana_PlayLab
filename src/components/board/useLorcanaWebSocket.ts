@@ -18,7 +18,6 @@ export interface UseLorcanaWebSocketOptions {
   turnNumberRef: React.MutableRefObject<number>;
   playerRoleRef: React.MutableRefObject<'player1' | 'player2' | undefined>;
   awaitingSyncRef: React.MutableRefObject<boolean>;
-  disconnectTimerRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
   undoTimerRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
   matchReportedRef: React.MutableRefObject<boolean>;
 
@@ -46,7 +45,6 @@ export interface UseLorcanaWebSocketOptions {
   setGameOverData: React.Dispatch<React.SetStateAction<any>>;
   setOpponentName: React.Dispatch<React.SetStateAction<string>>;
   setIsOpponentDisconnected: React.Dispatch<React.SetStateAction<boolean>>;
-  setDisconnectCountdown: React.Dispatch<React.SetStateAction<number>>;
   setOpponentLeftName: React.Dispatch<React.SetStateAction<string | null>>;
   setIncomingUndoRequest: React.Dispatch<React.SetStateAction<any>>;
   setUndoVoteTimer: React.Dispatch<React.SetStateAction<number>>;
@@ -77,7 +75,6 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
     turnNumberRef,
     playerRoleRef,
     awaitingSyncRef,
-    disconnectTimerRef,
     undoTimerRef,
     matchReportedRef,
     playerLore,
@@ -103,7 +100,6 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
     setGameOverData,
     setOpponentName,
     setIsOpponentDisconnected,
-    setDisconnectCountdown,
     setOpponentLeftName,
     setIncomingUndoRequest,
     setUndoVoteTimer,
@@ -176,10 +172,6 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
 
     const markOpponentActive = (username?: string) => {
       setIsOpponentDisconnected(false);
-      if (disconnectTimerRef.current) {
-        clearInterval(disconnectTimerRef.current);
-        disconnectTimerRef.current = null;
-      }
       if (username && username !== myUsername) {
         setOpponentName(username);
       }
@@ -473,24 +465,13 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
     const unsubDisconnect = webSocketService.subscribe('OPPONENT_DISCONNECTED', (data: any) => {
       if (checkFromMe(data)) return;
       showNotice('Opponent disconnected! Grace period started (60s)...', 'warning');
-      setIsOpponentDisconnected(true);
-      let secondsLeft = 60;
-      setDisconnectCountdown(secondsLeft);
-
-      if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
-      disconnectTimerRef.current = setInterval(() => {
-        secondsLeft -= 1;
-        setDisconnectCountdown(Math.max(secondsLeft, 0));
-        if (secondsLeft <= 0 && disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
-      }, 1000);
+      setIsOpponentDisconnected(true); // the overlay runs the countdown
     });
 
     const unsubLeft = webSocketService.subscribe('OPPONENT_LEFT' as any, (data: any) => {
       if (checkFromMe(data)) return;
       showNotice(`${data.username || 'Opponent'} left the match.`, 'warning');
       setIsOpponentDisconnected(false);
-      setDisconnectCountdown(0);
-      if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
       setLogMessages((prev) => [`${data.username || 'Opponent'} exited the match.`, ...prev]);
       setOpponentLeftName(data.username || opponentName || 'Opponent');
     });
@@ -755,7 +736,6 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
       unsubMatchFinished();
       unsubRestart();
       if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-      if (disconnectTimerRef.current) clearInterval(disconnectTimerRef.current);
     };
   }, [
     matchMode,
@@ -773,7 +753,6 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
     turnNumberRef,
     playerRoleRef,
     awaitingSyncRef,
-    disconnectTimerRef,
     undoTimerRef,
     matchReportedRef,
     setPlayerLore,
@@ -796,7 +775,6 @@ export function useLorcanaWebSocket(options: UseLorcanaWebSocketOptions) {
     setGameOverData,
     setOpponentName,
     setIsOpponentDisconnected,
-    setDisconnectCountdown,
     setOpponentLeftName,
     setIncomingUndoRequest,
     setUndoVoteTimer,

@@ -1,24 +1,36 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, LogOut } from 'lucide-react';
 
 export interface OpponentDisconnectOverlayProps {
   isOpponentDisconnected: boolean;
-  disconnectCountdown: number;
   opponentLeftName: string | null;
   language: string;
   onExitMatch?: () => void;
   onReturnToLobby?: () => void;
 }
 
+const GRACE_SECONDS = 60; // matches the 60 s rejoin window in the room Lambda
+
 export const OpponentDisconnectOverlay: React.FC<OpponentDisconnectOverlayProps> = ({
   isOpponentDisconnected,
-  disconnectCountdown,
   opponentLeftName,
   language,
   onExitMatch,
   onReturnToLobby,
 }) => {
+  // The overlay owns its timer. It used to live in the WebSocket effect, whose cleanup killed it on every
+  // dependency change. The value comes from a wall-clock deadline, so background-tab throttling cannot drift it.
+  const [disconnectCountdown, setDisconnectCountdown] = useState(GRACE_SECONDS);
+  useEffect(() => {
+    if (!isOpponentDisconnected) return;
+    const deadline = Date.now() + GRACE_SECONDS * 1000;
+    const tick = () => setDisconnectCountdown(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [isOpponentDisconnected]);
+
   return (
     <>
       {/* OPPONENT DISCONNECTED OVERLAY (60s GRACE PERIOD) */}
@@ -50,13 +62,13 @@ export const OpponentDisconnectOverlay: React.FC<OpponentDisconnectOverlayProps>
                 <span className="text-xs text-slate-400 font-mono uppercase tracking-wider">
                   {language === 'th' ? 'เวลารอเชื่อมต่อคงเหลือ' : 'Grace Period Remaining'}
                 </span>
-                <span className="text-3xl font-mono font-black text-[#F59E0B] tracking-wider">
+                <span data-testid="grace-countdown" className="text-3xl font-mono font-black text-[#F59E0B] tracking-wider">
                   {disconnectCountdown}s
                 </span>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1">
                   <div
                     className="bg-[#F59E0B] h-full transition-all duration-1000"
-                    style={{ width: `${(disconnectCountdown / 60) * 100}%` }}
+                    style={{ width: `${(disconnectCountdown / GRACE_SECONDS) * 100}%` }}
                   />
                 </div>
               </div>

@@ -690,8 +690,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
 
   // OPPONENT DISCONNECT OVERLAY STATE (60s Grace Period)
   const [isOpponentDisconnected, setIsOpponentDisconnected] = useState(false);
-  const [disconnectCountdown, setDisconnectCountdown] = useState(60);
-  const disconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [opponentLeftName, setOpponentLeftName] = useState<string | null>(null);
   // Rejoin: our local board may be stale. Until the opponent answers a sync request we neither
   // broadcast our state nor let anyone overwrite theirs with it.
@@ -1232,7 +1230,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     turnNumberRef,
     playerRoleRef,
     awaitingSyncRef,
-    disconnectTimerRef,
     undoTimerRef,
     matchReportedRef,
     playerLore,
@@ -1258,7 +1255,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     setGameOverData,
     setOpponentName,
     setIsOpponentDisconnected,
-    setDisconnectCountdown,
     setOpponentLeftName,
     setIncomingUndoRequest,
     setUndoVoteTimer,
@@ -1573,7 +1569,6 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       {/* OPPONENT DISCONNECTED & LEFT OVERLAYS */}
       <OpponentDisconnectOverlay
         isOpponentDisconnected={isOpponentDisconnected}
-        disconnectCountdown={disconnectCountdown}
         opponentLeftName={opponentLeftName}
         language={language}
         onExitMatch={onExitMatch}
