@@ -135,7 +135,15 @@ switch ($Action) {
             aws elbv2 wait load-balancers-deleted --load-balancer-arns $albArn --region $Region
         }
         $tgArn = aws elbv2 describe-target-groups --names "lorcana-tg" --region $Region --query "TargetGroups[0].TargetGroupArn" --output text 2>$null
-        if ($tgArn -and $tgArn -ne "None") { Invoke-Aws "delete TG" { aws elbv2 delete-target-group --target-group-arn $tgArn --region $Region } }
+        if ($tgArn -and $tgArn -ne "None") {
+            # Listener release lags ALB deletion, so the TG can report ResourceInUse for a short while
+            for ($i = 0; $i -lt 12; $i++) {
+                aws elbv2 delete-target-group --target-group-arn $tgArn --region $Region 2>$null
+                if ($LASTEXITCODE -eq 0) { break }
+                Start-Sleep -Seconds 10
+            }
+            if ($LASTEXITCODE -ne 0) { Invoke-Aws "delete TG" { aws elbv2 delete-target-group --target-group-arn $tgArn --region $Region } }
+        }
 
         if ($vpc) {
             Write-Host "[3/6] Waiting for EC2/ALB network interfaces in $vpc to disappear..." -ForegroundColor Gray
