@@ -4,6 +4,29 @@ Status: SPEC READY — รอยืนยัน seams แล้วจะแต�
 Deadlines: ผลทดลอง Stage 3 วันที่ 10 ต.ค. 2569, รายงานฉบับสมบูรณ์ + นำเสนอ 20-25 ต.ค. 2569
 Audit ที่เป็นที่มาของสเปกนี้: ดูหัวข้อ "Audit Evidence" ท้ายไฟล์
 
+## ความคืบหน้า (อัปเดต 30 ก.ย. 2569) และงานที่จะทำต่อ
+
+รายละเอียดราย ticket อยู่ท้ายไฟล์ `scratch/tickets.md` (หัวข้อ Progress ledger) unit test 128/128, e2e 05+06 = 12/12 บน AWS จริง
+
+**เสร็จแล้ว**
+- Sprint 6: T01 Analytics ใช้ข้อมูลจริง, T02 caching (ไฟล์การ์ด -81%), T03 DLQ, T04 SNS fan-out, T05 leaderboard + ElastiCache (มีการแก้บั๊ก cache เชื่อมต่อช้า), T14 ลบโค้ดหลอกผู้ใช้ (รวมรหัส admin ที่โชว์ในหน้าล็อก)
+- Sprint 7 (Antigravity): T09-T13 engine `src/game/`, keyword 14 ตัว, ability พร้อมเลือกเป้าหมาย, Shift/Location/Song/Item, UX บนกระดาน
+- รายงาน Stage 3 เป็น PDF + DOCX (`docs/01_Reports/G21_..._Phase3_Report.*`, สร้างด้วย `python scripts/build_stage3_report.py`) และ `docs/HOW_IT_WORKS.md`
+- แก้จากที่ตะวันทดสอบ: ตัวนับถอยหลังตอนคู่แข่งหลุดเดินตามเวลาจริง
+
+**ค้างอยู่ (เรียงลำดับที่จะทำ)**
+1. เขียน `e2e/07-three-turn-game.spec.ts` ใหม่: ต้องจัดการหน้า Dice Duel และ mulligan แล้วเล่น quest, challenge ที่มี keyword และ ability ที่เลือกเป้าหมายจริง (ตอนนี้ล้ม และตอนท้ายเป็น `expect(true)`) DoD ของ T15: ผ่าน 3 รอบติด
+2. ลด `LorcanaBoard.tsx` จาก 1,599 เหลือต่ำกว่า 1,500 บรรทัด (T15)
+3. สไลด์และสคริปต์เดโม 10 นาที มีช่วง failover สดด้วย `test_asg_recovery.ps1` (T15) ซ้อม 1 รอบ
+4. ตะวันตรวจเอง: ราคาในตารางค่าใช้จ่ายกับหน้า AWS Pricing + ใส่วันที่เข้าถึง, แคปภาพ AWS console ตามข้อ 9 ของ `STAGE3_EXPERIMENT_RESULTS.md` (ต้องเปิด stack ก่อนถึงจะแคปได้ครบ), ให้คนนอกทีม 1 คนอ่าน `HOW_IT_WORKS.md`, ลองเล่น Exit Match / rejoin ด้วยมืออีกรอบ
+5. ลบไฟล์ขยะ (ต้องได้รับอนุญาต): `src/components/LorcanaBoard.tsx.bak`, `scripts/refactor_board.py`, ไฟล์ชื่อ `-` ที่ root โปรเจกต์
+6. ให้ Antigravity ตรวจการแก้ที่ยังไม่ commit ใน `src/types/lorcana.ts`
+7. ตัดสินใจ: จะทำหน้า billing ให้อ่านตัวเลขจริงจาก AWS (Cost Explorer + describe) หรือคงเป็น snapshot ที่ติดป้ายไว้
+
+**หลักปฏิบัติตอนกลับมาทำ**: เปิด stack ด้วย `deploy_ec2_vpc_asg.ps1` แล้ว `lab.ps1 publish` (credentials หมดอายุทุก ~4 ชม. ตรวจ `aws sts get-caller-identity` ก่อน) คำสั่ง AWS ที่นานให้รันเบื้องหลัง `destroy` ลบตาราง `LorcanaMatchHistory` / `LorcanaPlayerStats` ด้วย ประวัติและ leaderboard จะเริ่มใหม่หลังเปิดใหม่
+
+---
+
 ## Problem Statement
 
 ทีมจะส่งผลทดลองและนำเสนอ Stage 3 แต่ระบบยังมีปัญหาที่ผู้ประเมินหรือผู้เล่นเจอได้ทันที:

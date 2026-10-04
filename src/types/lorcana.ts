@@ -25,6 +25,8 @@ export interface LorcanaCard {
   img?: string;
   artist?: string;
   setCode?: string;
+  moveCost?: number;
+  isWet?: boolean;
   abilities?: { name: string; text: string }[];
 }
 
