@@ -34,8 +34,8 @@ function Ensure-DynamoTable([string]$Name, [string]$PkName, [string]$SkName = $n
         Invoke-Checked "create table $Name" {
             aws dynamodb create-table `
                 --table-name $Name `
-                --attribute-definitions AttributeName=$PkName,AttributeType=S AttributeName=$SkName,AttributeType=S `
-                --key-schema AttributeName=$PkName,KeyType=HASH AttributeName=$SkName,KeyType=RANGE `
+                --attribute-definitions "AttributeName=$PkName,AttributeType=S" "AttributeName=$SkName,AttributeType=S" `
+                --key-schema "AttributeName=$PkName,KeyType=HASH" "AttributeName=$SkName,KeyType=RANGE" `
                 --billing-mode PAY_PER_REQUEST `
                 --region $Region --query "TableDescription.TableStatus" --output text
         } | Out-Null
@@ -43,8 +43,8 @@ function Ensure-DynamoTable([string]$Name, [string]$PkName, [string]$SkName = $n
         Invoke-Checked "create table $Name" {
             aws dynamodb create-table `
                 --table-name $Name `
-                --attribute-definitions AttributeName=$PkName,AttributeType=S `
-                --key-schema AttributeName=$PkName,KeyType=HASH `
+                --attribute-definitions "AttributeName=$PkName,AttributeType=S" `
+                --key-schema "AttributeName=$PkName,KeyType=HASH" `
                 --billing-mode PAY_PER_REQUEST `
                 --region $Region --query "TableDescription.TableStatus" --output text
         } | Out-Null

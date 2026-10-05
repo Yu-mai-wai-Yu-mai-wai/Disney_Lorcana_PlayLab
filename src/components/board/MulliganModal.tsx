@@ -90,6 +90,7 @@ export const MulliganModal: React.FC<MulliganModalProps> = ({
 
         <div className="flex gap-4">
           <button
+            data-testid="mulligan-keep"
             onClick={onKeepHand}
             className="px-6 py-2.5 sm:py-3 rounded-xl border border-slate-600 hover:border-slate-400 text-white font-cinzel font-bold hover:bg-[#141a26] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400"
           >
