@@ -1054,7 +1054,6 @@ wss.on('connection', (ws: WebSocket) => {
       else if (action === 'REJOIN_ROOM') {
         const roomId = body.roomId;
         const username = body.username;
-        const role = body.role;
 
         const res = await docClient.send(
           new QueryCommand({
@@ -1064,7 +1063,8 @@ wss.on('connection', (ws: WebSocket) => {
           })
         );
 
-        const existing: any = (res.Items || []).find((m: any) => m.username === username || m.role === role);
+        // Seat by username only, same as backend/serverless/room: matching the role too let a stale tab take the opponent's seat
+        const existing: any = (res.Items || []).find((m: any) => m.username === username);
         if (existing) {
           await docClient.send(new DeleteCommand({ TableName: ROOM_TABLE, Key: { roomId, connectionId: existing.connectionId } })).catch(() => {});
           const updated: any = withTtl({ ...existing, connectionId, status: 'active', rejoinedAt: new Date().toISOString() });
