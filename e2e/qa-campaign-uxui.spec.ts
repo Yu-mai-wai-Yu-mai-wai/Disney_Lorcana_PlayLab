@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // UXUI Test Suite — TC-UXUI-001..015 (checklist.design + Nielsen heuristics + state audits)
-const BASE = 'http://localhost:3000';
+const BASE = '/'; // resolved against baseURL in playwright.config.ts
 
 async function login(page: import('@playwright/test').Page, user = 'io5', pass = 'io5io5') {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });

@@ -1,6 +1,6 @@
 import { test, devices } from '@playwright/test';
 
-const BASE = 'http://localhost:4173/';
+const BASE = '/'; // resolved against baseURL in playwright.config.ts
 // Standard viewports, portrait + landscape
 const viewports = [
   { name: 'mobile-360-portrait', width: 360, height: 800 },
