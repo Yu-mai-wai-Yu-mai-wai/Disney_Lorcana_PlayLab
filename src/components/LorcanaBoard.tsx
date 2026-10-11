@@ -67,6 +67,7 @@ import { apiService } from '../services/api';
 import { translateCardAbilityText, translateAbilityName, translateCardType, translateInkColor } from '../utils/cardTranslator';
 
 import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
+import { shuffle } from '../utils/shuffle';
 import { isCardInkable as engineIsCardInkable, parseCardKeywords, canQuest, canChallenge } from '../game';
 import type { GamePrompt } from '../game/types';
 
@@ -219,7 +220,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         });
       }
     }
-    return deck.sort(() => Math.random() - 0.5);
+    return shuffle(deck);
   });
 
   // Deal initial 7 cards to hand, remaining to deckCards (or restore saved hand/deck)
@@ -330,7 +331,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     setOpponentDiscardCount(0);
 
     // Re-deal hand & deck
-    const shuffled = [...initialFullDeck].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(initialFullDeck);
     const initialHand = shuffled.slice(0, 7);
     const initialDeckList = shuffled.slice(7);
     deckCardsRef.current = initialDeckList;
@@ -391,7 +392,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       const newDraws = deckCards.slice(0, replaceCount);
       const remainingDeck = deckCards.slice(replaceCount);
       // Place returned cards at bottom and reshuffle per Lorcana 2.2.2
-      const updatedDeck = [...remainingDeck, ...returnedCards].sort(() => Math.random() - 0.5);
+      const updatedDeck = shuffle([...remainingDeck, ...returnedCards]);
       
       const newHand = [...keepCards, ...newDraws];
       deckCardsRef.current = updatedDeck;
@@ -916,7 +917,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     }
     if (!exertedCards[card.id]) {
       captureSnapshot();
-      const loreGain = card.lore || 1;
+      const loreGain = card.lore ?? 0;
       setExertedCards((prev) => ({ ...prev, [card.id]: true }));
       webSocketService.sendAction('CARD_EXERTED', { roomId: roomId || undefined, role: playerRole, cardId: card.id, isExerted: true });
 

@@ -135,7 +135,7 @@ export const PlayerBattlefield: React.FC<PlayerBattlefieldProps> = ({
                     disabled={isExerted}
                     aria-label="Quest"
                     className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-2 sm:p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center shadow-md"
-                    title={isExerted ? 'Already exerted (exhausted)' : `Quest for +${card.lore || 1} Lore (Auto-exerts)`}
+                    title={isExerted ? 'Already exerted (exhausted)' : `Quest for +${card.lore ?? 0} Lore (Auto-exerts)`}
                   >
                     <Zap className="w-3.5 h-3.5 fill-black" />
                   </button>
