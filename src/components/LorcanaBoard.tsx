@@ -1359,15 +1359,20 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             style={{ background: currentPlaymat.ambientGlow }}
           />
           
-          {/* 0. TURN STATUS BAR (turn number, whose turn, phase) */}
-          <TurnPhaseBar
-            currentPhase={turnPhase === 'beginning' ? 'ready' : turnPhase}
-            turnNumber={turnNumber}
-            isMyTurn={isMyTurn}
-            onPassTurn={handleEndTurn}
-            canPassTurn={isMyTurn}
-            showPassTurn={false}
-          />
+          {/* 0. TURN STATUS BAR (turn number, whose turn, phase)
+              relative z-10: the absolute playmat layers above otherwise paint over it and wash it out.
+              Hidden on short landscape screens, where BoardTopBar already shows the turn and the extra row
+              pushes the opponent's cards out of view. */}
+          <div className="relative z-10 shrink-0 [@media(max-height:500px)]:hidden">
+            <TurnPhaseBar
+              currentPhase={turnPhase === 'beginning' ? 'ready' : turnPhase}
+              turnNumber={turnNumber}
+              isMyTurn={isMyTurn}
+              onPassTurn={handleEndTurn}
+              canPassTurn={isMyTurn}
+              showPassTurn={false}
+            />
+          </div>
 
           {/* 1. OPPONENT BATTLEFIELD ZONE */}
           <OpponentBattlefield
