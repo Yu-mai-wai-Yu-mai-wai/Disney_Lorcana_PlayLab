@@ -394,6 +394,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               <button
+                data-testid="dice-odd"
                 onClick={() => handleSelectChoice('ODD')}
                 disabled={!!myChoice}
                 className={`py-4 px-6 rounded-xl border-2 font-cinzel font-bold text-lg transition-all flex flex-col items-center gap-1 cursor-pointer disabled:cursor-not-allowed ${
@@ -409,6 +410,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
               </button>
 
               <button
+                data-testid="dice-even"
                 onClick={() => handleSelectChoice('EVEN')}
                 disabled={!!myChoice}
                 className={`py-4 px-6 rounded-xl border-2 font-cinzel font-bold text-lg transition-all flex flex-col items-center gap-1 cursor-pointer disabled:cursor-not-allowed ${
@@ -508,6 +510,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
+                    data-testid="dice-play-first"
                     onClick={() => handleChooseTurnOrder(myRole)}
                     className="p-4 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 border-2 border-[#F59E0B] rounded-xl text-left transition-all hover:scale-[1.02] group shadow-md cursor-pointer"
                   >
@@ -521,6 +524,7 @@ export const DiceDuelModal: React.FC<DiceDuelModalProps> = ({
                   </button>
 
                   <button
+                    data-testid="dice-play-second"
                     onClick={() => handleChooseTurnOrder(myRole === 'player1' ? 'player2' : 'player1')}
                     className="p-4 bg-cyan-950/30 hover:bg-cyan-900/40 border-2 border-cyan-500/60 rounded-xl text-left transition-all hover:scale-[1.02] group shadow-md cursor-pointer"
                   >

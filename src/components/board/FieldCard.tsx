@@ -116,8 +116,8 @@ export const FieldCard: React.FC<FieldCardProps> = ({
             if (canQuestNow) onQuest();
           }}
           disabled={!canQuestNow}
-          aria-label={canQuestNow ? `Quest for ${card.lore || 1} Lore` : `Cannot Quest: ${questReason}`}
-          title={canQuestNow ? `Quest for +${card.lore || 1} Lore` : questReason}
+          aria-label={canQuestNow ? `Quest for ${card.lore ?? 0} Lore` : `Cannot Quest: ${questReason}`}
+          title={canQuestNow ? `Quest for +${card.lore ?? 0} Lore` : questReason}
           className={`p-2 sm:p-1.5 rounded-full transition-all flex items-center justify-center shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
             canQuestNow
               ? 'bg-[#F59E0B] hover:bg-amber-300 text-black cursor-pointer shadow-[0_0_10px_rgba(245,158,11,0.5)] ring-1 ring-amber-200'

@@ -13,7 +13,8 @@ test.describe('3. Lorcana Board Interactive Mechanics QA Suite', () => {
     await expect(boardContainer).toBeVisible();
 
     // Verify Lore Counter is visible
-    const loreIndicator = page.locator('text=Lore').or(page.locator('text=แต้มลอร์')).first();
+    // The first text match is BoardTopBar's compact strip, hidden on desktop; take the first visible one
+    const loreIndicator = page.getByText(/Lore|แต้มลอร์/).filter({ visible: true }).first();
     await expect(loreIndicator).toBeVisible();
   });
 

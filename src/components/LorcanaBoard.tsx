@@ -67,6 +67,7 @@ import { apiService } from '../services/api';
 import { translateCardAbilityText, translateAbilityName, translateCardType, translateInkColor } from '../utils/cardTranslator';
 
 import { fetchCardPool, fetchFullDataset, enrichCard, STARTER_POOL, type PoolCard } from '../data/cardPool';
+import { shuffle } from '../utils/shuffle';
 import { isCardInkable as engineIsCardInkable, parseCardKeywords, canQuest, canChallenge } from '../game';
 import type { GamePrompt } from '../game/types';
 
@@ -219,7 +220,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
         });
       }
     }
-    return deck.sort(() => Math.random() - 0.5);
+    return shuffle(deck);
   });
 
   // Deal initial 7 cards to hand, remaining to deckCards (or restore saved hand/deck)
@@ -330,7 +331,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     setOpponentDiscardCount(0);
 
     // Re-deal hand & deck
-    const shuffled = [...initialFullDeck].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(initialFullDeck);
     const initialHand = shuffled.slice(0, 7);
     const initialDeckList = shuffled.slice(7);
     deckCardsRef.current = initialDeckList;
@@ -391,7 +392,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
       const newDraws = deckCards.slice(0, replaceCount);
       const remainingDeck = deckCards.slice(replaceCount);
       // Place returned cards at bottom and reshuffle per Lorcana 2.2.2
-      const updatedDeck = [...remainingDeck, ...returnedCards].sort(() => Math.random() - 0.5);
+      const updatedDeck = shuffle([...remainingDeck, ...returnedCards]);
       
       const newHand = [...keepCards, ...newDraws];
       deckCardsRef.current = updatedDeck;
@@ -580,6 +581,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     ];
   });
   const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>(() => (savedBoard?.opponentExerted ?? {}));
+
+  // A card that leaves the hand or field (played, inked, banished) never fires mouseleave, which left the
+  // quick-glance tooltip stuck over the Pass Turn button. Clear it once the card is gone.
+  React.useEffect(() => {
+    if (hoveredCard && ![...handCards, ...fieldCards, ...opponentFieldCards].some((c) => c.id === hoveredCard.id)) {
+      setHoveredCard(null);
+    }
+  }, [hoveredCard, handCards, fieldCards, opponentFieldCards]);
 
   const boardStateRef = useRef({
     playerLore,
@@ -908,7 +917,7 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
     }
     if (!exertedCards[card.id]) {
       captureSnapshot();
-      const loreGain = card.lore || 1;
+      const loreGain = card.lore ?? 0;
       setExertedCards((prev) => ({ ...prev, [card.id]: true }));
       webSocketService.sendAction('CARD_EXERTED', { roomId: roomId || undefined, role: playerRole, cardId: card.id, isExerted: true });
 
@@ -1351,6 +1360,21 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             style={{ background: currentPlaymat.ambientGlow }}
           />
           
+          {/* 0. TURN STATUS BAR (turn number, whose turn, phase)
+              relative z-10: the absolute playmat layers above otherwise paint over it and wash it out.
+              Hidden on short landscape screens, where BoardTopBar already shows the turn and the extra row
+              pushes the opponent's cards out of view. */}
+          <div className="relative z-10 shrink-0 [@media(max-height:500px)]:hidden">
+            <TurnPhaseBar
+              currentPhase={turnPhase === 'beginning' ? 'ready' : turnPhase}
+              turnNumber={turnNumber}
+              isMyTurn={isMyTurn}
+              onPassTurn={handleEndTurn}
+              canPassTurn={isMyTurn}
+              showPassTurn={false}
+            />
+          </div>
+
           {/* 1. OPPONENT BATTLEFIELD ZONE */}
           <OpponentBattlefield
             opponentFieldCards={opponentFieldCards}

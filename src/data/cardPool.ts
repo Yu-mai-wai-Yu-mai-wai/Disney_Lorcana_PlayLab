@@ -3,6 +3,7 @@
 // All imageUrl verified HTTP 200 via GET (2026-08-14)
 // ------------------------------------------------------------
 import type { LorcanaCard } from '../types/lorcana';
+import { shuffle } from '../utils/shuffle';
 
 // ?url makes Vite emit the file as /assets/lorcana_cards-<hash>.json, so nginx can cache it for a year (immutable)
 import datasetUrl from '../assets/lorcana_cards.json?url';
@@ -153,7 +154,7 @@ export async function fetchCardPool(): Promise<PoolCard[]> {
     const chars = dataset.filter(
       (c) => (c.type || '').toLowerCase() === 'character' && c.inkwell && !pool.some((p) => p.name === c.name)
     );
-    const shuffled = chars.sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(chars);
     for (const c of shuffled) {
       if (pool.length >= 16) break;
       pool.push(c);

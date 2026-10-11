@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
 
-const BASE = 'http://localhost:4173/';
+const BASE = '/'; // resolved against baseURL in playwright.config.ts
 const viewports = [
   { name: 'board-mobile-360-portrait', width: 360, height: 800 },
   { name: 'board-mobile-390-portrait', width: 390, height: 844 },

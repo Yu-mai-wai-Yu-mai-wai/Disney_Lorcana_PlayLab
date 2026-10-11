@@ -167,29 +167,35 @@ router.post('/auth/register', async (req: Request, res: Response): Promise<void>
 
     const hashedPassword = await bcrypt.hash(cleanPassword, 10);
     const createdAt = new Date().toISOString();
-    const userRole = trimmedUsername.toLowerCase() === 'admin' ? 'admin' : 'user';
+    // Every account starts as 'user'; admin is granted only through /admin/elevate (passcode).
+    // Keys are case-sensitive, so a name-based rule let 'Admin', 'ADMIN', ... each register as admin.
     const newUser = {
       username: trimmedUsername,
       email: trimmedEmail,
       password: hashedPassword,
       createdAt,
-      role: userRole,
+      role: 'user',
     };
 
     await docClient.send(
       new PutCommand({
         TableName: USERS_TABLE,
         Item: newUser,
+        ConditionExpression: 'attribute_not_exists(username)', // two concurrent sign-ups must not overwrite each other
       })
     );
 
     res.status(201).json({
       message: 'User registered successfully!',
-      user: { username: trimmedUsername, email: trimmedEmail, role: userRole, createdAt },
+      user: { username: trimmedUsername, email: trimmedEmail, role: 'user', createdAt },
     });
   } catch (error: any) {
+    if (error?.name === 'ConditionalCheckFailedException') {
+      res.status(409).json({ error: 'Username already exists' });
+      return;
+    }
     console.error('[Register Error]', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -247,7 +253,7 @@ router.post('/auth/login', async (req: Request, res: Response): Promise<void> =>
 
     loginAttempts.delete(rateKey);
 
-    const role = user.role || (user.username.toLowerCase() === 'admin' ? 'admin' : 'user');
+    const role = user.role === 'admin' ? 'admin' : 'user';
 
     const token = jwt.sign(
       { username: user.username, email: user.email, role, iss: 'lorcana-playlab-auth' },
@@ -262,7 +268,7 @@ router.post('/auth/login', async (req: Request, res: Response): Promise<void> =>
     });
   } catch (error: any) {
     console.error('[Login Error]', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -312,7 +318,8 @@ router.post('/admin/elevate', authenticateToken, async (req: Request, res: Respo
       token,
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to elevate user' });
+    console.error('[Admin Elevate Error]', err);
+    res.status(500).json({ error: 'Failed to elevate user' });
   }
 });
 
@@ -393,7 +400,7 @@ router.post('/decks', authenticateToken, async (req: Request, res: Response): Pr
     });
   } catch (err: any) {
     console.error('[Save Deck Error]', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -423,7 +430,7 @@ router.get('/decks', authenticateToken, async (req: Request, res: Response): Pro
     res.status(200).json({ decks: queryRes.Items || [] });
   } catch (err: any) {
     console.error('[Get Decks Error]', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -443,7 +450,7 @@ router.delete('/decks/:deckId', authenticateToken, async (req: Request, res: Res
     res.status(200).json({ message: 'Deck deleted successfully' });
   } catch (err: any) {
     console.error('[Delete Deck Error]', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -476,7 +483,7 @@ router.post('/decks/:deckId/analyze', authenticateToken, async (req: Request, re
     });
   } catch (err: any) {
     console.error('[Analyze Deck Error]', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -495,7 +502,7 @@ router.get('/decks/:deckId/analysis', authenticateToken, async (req: Request, re
     res.status(200).json({ analysis: deckRes.Item.analysis || null });
   } catch (err: any) {
     console.error('[Get Analysis Error]', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -673,16 +680,20 @@ router.get('/leaderboard', async (req: Request, res: Response): Promise<void> =>
     console.warn('[Leaderboard Cache Read Warning]', cacheErr?.message);
   }
 
-  // 2. Cache MISS: query DynamoDB LorcanaPlayerStats
+  // 2. Cache MISS: read every LorcanaPlayerStats page. A single Scan with Limit returns items in storage
+  // order, not by wins, so the top players could sit outside the first page and never be ranked.
+  // ponytail: full table scan once per cache miss (60s TTL); switch to a Redis sorted set kept by the
+  // player-stats Lambda when the stats table gets large enough for this scan to show up in latency or cost.
   try {
-    const ddbRes = await docClient.send(
-      new ScanCommand({
-        TableName: PLAYER_STATS_TABLE,
-        Limit: 100,
-      })
-    );
+    const statsItems: any[] = [];
+    let ExclusiveStartKey: Record<string, any> | undefined;
+    do {
+      const page = await docClient.send(new ScanCommand({ TableName: PLAYER_STATS_TABLE, ExclusiveStartKey }));
+      statsItems.push(...(page.Items || []));
+      ExclusiveStartKey = page.LastEvaluatedKey;
+    } while (ExclusiveStartKey);
 
-    const items = (ddbRes.Items || [])
+    const items = statsItems
       .filter((it: any) => typeof it.userId === 'string' && !it.userId.startsWith('DEDUPE#'))
       .map((it: any) => {
         const wins = Number(it.wins) || 0;
@@ -1043,7 +1054,6 @@ wss.on('connection', (ws: WebSocket) => {
       else if (action === 'REJOIN_ROOM') {
         const roomId = body.roomId;
         const username = body.username;
-        const role = body.role;
 
         const res = await docClient.send(
           new QueryCommand({
@@ -1053,7 +1063,8 @@ wss.on('connection', (ws: WebSocket) => {
           })
         );
 
-        const existing: any = (res.Items || []).find((m: any) => m.username === username || m.role === role);
+        // Seat by username only, same as backend/serverless/room: matching the role too let a stale tab take the opponent's seat
+        const existing: any = (res.Items || []).find((m: any) => m.username === username);
         if (existing) {
           await docClient.send(new DeleteCommand({ TableName: ROOM_TABLE, Key: { roomId, connectionId: existing.connectionId } })).catch(() => {});
           const updated: any = withTtl({ ...existing, connectionId, status: 'active', rejoinedAt: new Date().toISOString() });

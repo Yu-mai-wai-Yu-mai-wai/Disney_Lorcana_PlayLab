@@ -6,6 +6,7 @@ import { InkSymbol } from './InkSymbol';
 import { Modal } from './Modal';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { translateCardType, translateRarity, translateInkColor } from '../utils/cardTranslator';
+import { shuffle } from '../utils/shuffle';
 
 interface BoosterPackModalProps {
   isOpen: boolean;
@@ -49,18 +50,9 @@ export const BoosterPackModal: React.FC<BoosterPackModalProps> = ({
   const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Failsafe Fisher-Yates Booster Pack Generator (Guarantees 12 Cards Always)
+  // Failsafe Booster Pack Generator (Fisher-Yates via utils/shuffle) (Guarantees 12 Cards Always)
   const generatePack = () => {
     const db = Array.isArray(cardsDatabase) && cardsDatabase.length > 0 ? cardsDatabase : FALLBACK_DATABASE;
-
-    const shuffle = <T,>(array: T[]): T[] => {
-      const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    };
 
     const commons = shuffle(db.filter((c) => !c.rarity || c.rarity === 'Common'));
     const uncommons = shuffle(db.filter((c) => c.rarity === 'Uncommon'));

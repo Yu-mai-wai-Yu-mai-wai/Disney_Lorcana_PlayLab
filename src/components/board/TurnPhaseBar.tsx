@@ -10,6 +10,8 @@ interface TurnPhaseBarProps {
   onPassTurn: () => void;
   canPassTurn: boolean;
   passTurnDisabledReason?: string;
+  /** false when another control (PlayerControlsBar) already owns the Pass Turn button */
+  showPassTurn?: boolean;
 }
 
 const PHASES: { id: TurnPhase; label: string; description: string }[] = [
@@ -27,6 +29,7 @@ export const TurnPhaseBar: React.FC<TurnPhaseBarProps> = ({
   onPassTurn,
   canPassTurn,
   passTurnDisabledReason,
+  showPassTurn = true,
 }) => {
   return (
     <div
@@ -86,7 +89,7 @@ export const TurnPhaseBar: React.FC<TurnPhaseBarProps> = ({
       </nav>
 
       {/* End Turn Action Button */}
-      {isMyTurn && (
+      {isMyTurn && showPassTurn && (
         <div className="flex items-center gap-2">
           {passTurnDisabledReason && (
             <span

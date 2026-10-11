@@ -53,6 +53,7 @@ export const OpponentBattlefield: React.FC<OpponentBattlefieldProps> = ({
                 layout
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1, rotate: isOpExerted ? 90 : 0 }}
+                data-testid="opp-card"
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 20 }}
                 onMouseEnter={() => onHoverCard(card)}

@@ -11,6 +11,8 @@ Labels used in this document:
 
 Line numbers refer to the file at the commit above.
 
+**Update (same day, after merging `t15-e2e-final-report`):** the follow-up PR fixes S1 (admin role by username), S7 (internal error messages), S9 (register race), the leaderboard 100-item scan, the biased board shuffle, the `lore || 1` quest bug, the dev WebSocket rejoin rule, TC-E2E-08, the stray `-` and `.bak` files, and adds CI. The findings below describe the code before those fixes.
+
 ---
 
 ## Five-minute overview
@@ -567,8 +569,8 @@ Key schemas below are verified where a script or `Key:` expression shows them, a
 | `DecksTable` | `deckId` (S) likely | `userId` (S) likely | GSI `userId-index` (queried, line 408) | Not in repo | Inferred. Code uses `Key: { deckId, userId }`; the GSI query only makes sense if `userId` is not the partition key. The SAM template's `LorcanaDecks` uses the reverse order and no GSI, so it does not describe this table |
 | `LorcanaRoomStateV2` | `roomId` (S) | `connectionId` (S) | none | Not in repo | Verified by `Key: { roomId, connectionId }` and `Query` on `roomId` |
 | `LorcanaMatchmaking` | `connectionId` (S) | none | none | Not in repo | Verified by `Key: { connectionId }` |
-| `LorcanaMatchHistory` | `userId` (S) | `finishedAt#matchId` (S) | none | `ensure_pipeline.ps1` line 57 | Verified |
-| `LorcanaPlayerStats` | `userId` (S) | none | none | `ensure_pipeline.ps1` line 58 | Verified |
+| `LorcanaMatchHistory` | `userId` (S) intended | `finishedAt#matchId` (S) intended | none | `ensure_pipeline.ps1` line 57 | Intended schema only. Commit `7d36af0` found that under PowerShell 7 the unquoted arguments created the table with the literal key name `$PkName`; check the deployed table |
+| `LorcanaPlayerStats` | `userId` (S) intended | none | none | `ensure_pipeline.ps1` line 58 | Same caveat as above |
 
 TTL: room and matchmaking items carry `ttl` = now + 2 h. Dedupe markers carry `ttl` = now + 7 days. Whether TTL is enabled on those tables in AWS is Requires verification (README claims it is).
 

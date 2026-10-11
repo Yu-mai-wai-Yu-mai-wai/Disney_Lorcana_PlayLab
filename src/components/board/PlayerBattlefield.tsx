@@ -78,6 +78,7 @@ export const PlayerBattlefield: React.FC<PlayerBattlefieldProps> = ({
                 e.preventDefault();
                 onInspectCard(card);
               }}
+              data-testid="field-card"
               onClick={() => onCardInteraction(card)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -134,7 +135,7 @@ export const PlayerBattlefield: React.FC<PlayerBattlefieldProps> = ({
                     disabled={isExerted}
                     aria-label="Quest"
                     className="bg-[#F59E0B] hover:bg-[#D97706] disabled:opacity-40 text-black p-2 sm:p-1.5 rounded-full transition-colors cursor-pointer font-bold flex items-center justify-center shadow-md"
-                    title={isExerted ? 'Already exerted (exhausted)' : `Quest for +${card.lore || 1} Lore (Auto-exerts)`}
+                    title={isExerted ? 'Already exerted (exhausted)' : `Quest for +${card.lore ?? 0} Lore (Auto-exerts)`}
                   >
                     <Zap className="w-3.5 h-3.5 fill-black" />
                   </button>
@@ -149,6 +150,7 @@ export const PlayerBattlefield: React.FC<PlayerBattlefieldProps> = ({
                           ? 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]'
                           : 'bg-rose-400 hover:bg-rose-500 text-black'
                       }`}
+                      data-testid="challenge-attacker"
                       title="Challenge Opponent (Auto-exerts upon attack)"
                     >
                       <Sword className="w-3.5 h-3.5" />
