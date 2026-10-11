@@ -11,6 +11,8 @@
 
 เลขบรรทัดอ้างอิงไฟล์ ณ commit ข้างต้น
 
+**อัปเดต (วันเดียวกัน หลัง merge `t15-e2e-final-report`):** PR ถัดมาแก้ S1 (role admin ตามชื่อผู้ใช้), S7 (ข้อความ error ภายใน), S9 (race ตอนสมัคร), ตารางอันดับที่อ่านแค่ 100 รายการ, การสับไพ่ลำเอียงบนกระดาน, บั๊ก quest `lore || 1`, กฎกลับเข้าห้องของ WebSocket ตอน dev, TC-E2E-08, ไฟล์ `-` และ `.bak` ที่หลงมา และเพิ่ม CI สิ่งที่พบด้านล่างบรรยายโค้ดก่อนการแก้เหล่านั้น
+
 ---
 
 ## ภาพรวมแบบอ่านจบใน 5 นาที
@@ -567,8 +569,8 @@ schema ของ key ด้านล่าง ยืนยันแล้วเ�
 | `DecksTable` | น่าจะเป็น `deckId` (S) | น่าจะเป็น `userId` (S) | GSI `userId-index` (ถูก query ที่บรรทัด 408) | ไม่อยู่ในรีโพ | อนุมาน โค้ดใช้ `Key: { deckId, userId }` และการ query GSI จะสมเหตุสมผลก็ต่อเมื่อ `userId` ไม่ใช่ partition key ตาราง `LorcanaDecks` ใน SAM template เรียงกลับกันและไม่มี GSI จึงไม่ได้บรรยายตารางนี้ |
 | `LorcanaRoomStateV2` | `roomId` (S) | `connectionId` (S) | ไม่มี | ไม่อยู่ในรีโพ | ยืนยันจาก `Key: { roomId, connectionId }` และ `Query` ด้วย `roomId` |
 | `LorcanaMatchmaking` | `connectionId` (S) | ไม่มี | ไม่มี | ไม่อยู่ในรีโพ | ยืนยันจาก `Key: { connectionId }` |
-| `LorcanaMatchHistory` | `userId` (S) | `finishedAt#matchId` (S) | ไม่มี | `ensure_pipeline.ps1` บรรทัด 57 | ยืนยันแล้ว |
-| `LorcanaPlayerStats` | `userId` (S) | ไม่มี | ไม่มี | `ensure_pipeline.ps1` บรรทัด 58 | ยืนยันแล้ว |
+| `LorcanaMatchHistory` | `userId` (S) ตามที่ตั้งใจ | `finishedAt#matchId` (S) ตามที่ตั้งใจ | ไม่มี | `ensure_pipeline.ps1` บรรทัด 57 | ยืนยันได้แค่ schema ที่ตั้งใจ commit `7d36af0` พบว่าบน PowerShell 7 argument ที่ไม่ใส่เครื่องหมายคำพูดทำให้ตารางถูกสร้างด้วย key ชื่อ `$PkName` ตรง ๆ ต้องตรวจตารางที่ deploy อยู่ |
+| `LorcanaPlayerStats` | `userId` (S) ตามที่ตั้งใจ | ไม่มี | ไม่มี | `ensure_pipeline.ps1` บรรทัด 58 | ข้อควรระวังเดียวกับแถวบน |
 
 TTL: รายการห้องและคิวจับคู่มี `ttl` = เวลาปัจจุบัน + 2 ชั่วโมง แถวกันซ้ำมี `ttl` = เวลาปัจจุบัน + 7 วัน ส่วนการเปิด TTL บนตารางเหล่านั้นใน AWS ต้องตรวจสอบ (README อ้างว่าเปิดแล้ว)
 
