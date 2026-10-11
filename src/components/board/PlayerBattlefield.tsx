@@ -78,6 +78,7 @@ export const PlayerBattlefield: React.FC<PlayerBattlefieldProps> = ({
                 e.preventDefault();
                 onInspectCard(card);
               }}
+              data-testid="field-card"
               onClick={() => onCardInteraction(card)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -149,6 +150,7 @@ export const PlayerBattlefield: React.FC<PlayerBattlefieldProps> = ({
                           ? 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]'
                           : 'bg-rose-400 hover:bg-rose-500 text-black'
                       }`}
+                      data-testid="challenge-attacker"
                       title="Challenge Opponent (Auto-exerts upon attack)"
                     >
                       <Sword className="w-3.5 h-3.5" />

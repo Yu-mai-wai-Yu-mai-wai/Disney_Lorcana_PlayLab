@@ -77,6 +77,7 @@ export const HandTrayDock: React.FC<HandTrayDockProps> = ({
                   layout
                   role="button"
                   tabIndex={0}
+                  data-testid="hand-card"
                   drag
                   dragMomentum={false}
                   dragTransition={{ power: 0.1, timeConstant: 200 }}

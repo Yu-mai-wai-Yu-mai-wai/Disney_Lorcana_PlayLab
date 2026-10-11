@@ -1,0 +1,230 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage{fontspec}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{amsmath,amssymb}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\geometry{
+    a4paper,
+    top=3.5cm,
+    bottom=2.5cm,
+    left=3.5cm,
+    right=2.5cm
+}
+
+% Fonts (same as the Phase 2 and Phase 3 reports)
+\setmainfont{TH Sarabun New}[
+    Path = C:/Windows/Fonts/,
+    Extension = .ttf,
+    UprightFont = THSarabunNew,
+    BoldFont = THSarabunNew Bold,
+    ItalicFont = THSarabunNew Italic,
+    BoldItalicFont = THSarabunNew BoldItalic
+]
+\setmonofont{Consolas}[Scale=0.9]
+
+\XeTeXlinebreaklocale "th"
+\XeTeXlinebreakskip = 0pt plus 0.2pt minus 0.1pt
+\tolerance=1000
+\hfuzz=1pt
+
+\setstretch{1.15}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{6pt}
+
+\setlist{nosep, topsep=3pt, itemsep=3pt, parsep=0pt, leftmargin=1.5cm}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering\fontsize{18pt}{22pt}\selectfont}
+  {\chaptertitlename\ \thechapter}{8pt}{\fontsize{18pt}{22pt}\selectfont}
+\titlespacing*{\chapter}{0pt}{-15pt}{16pt}
+
+\titleformat{\section}
+  {\normalfont\bfseries\fontsize{16pt}{20pt}\selectfont}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{15pt}{18pt}\selectfont}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdfauthor={กลุ่ม G21 คณะเทคโนโลยีสารสนเทศ สจล.},
+    pdftitle={Disney Lorcana PlayLab Cloud - Final Report}
+}
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.97}
+\definecolor{codeblue}{rgb}{0.13,0.34,0.67}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegray},
+    keywordstyle=\color{codeblue}\bfseries,
+    basicstyle=\ttfamily\fontsize{9pt}{11pt}\selectfont,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{gray!30},
+    xleftmargin=12pt,
+    xrightmargin=6pt
+}
+\lstset{style=mystyle}
+
+\renewcommand{\chaptername}{บทที่}
+\renewcommand{\contentsname}{สารบัญ}
+\renewcommand{\listfigurename}{สารบัญรูปภาพ}
+\renewcommand{\listtablename}{สารบัญตาราง}
+\renewcommand{\bibname}{บรรณานุกรม}
+\renewcommand{\figurename}{รูปที่}
+\renewcommand{\tablename}{ตารางที่}
+
+% Marks a value that must be checked or filled in by the team before submission.
+% Search the .tex files for "\todo{" to list every open item.
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[รอตรวจ: #1]}}}
+
+\begin{document}
+
+% -------------------------------------------------------------
+% COVER PAGE
+% -------------------------------------------------------------
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+    \vspace*{-1.2cm}
+    \includegraphics[width=3.2cm]{images/IT_KMITL_ICON.png} \\[0.5cm]
+
+    {\fontsize{18pt}{22pt}\selectfont \textbf{รายงานโครงงานวิชาการเทคโนโลยีกลุ่มเมฆ (Cloud Technology)}}\\[0.2cm]
+    {\fontsize{16pt}{20pt}\selectfont \textbf{ภาคเรียนที่ 1 ปีการศึกษา 2569}}\\[0.5cm]
+
+    {\fontsize{18pt}{22pt}\selectfont \textbf{โครงงานระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดแบบเรียลไทม์บนคลาวด์}}\\[0.2cm]
+    {\fontsize{15pt}{18pt}\selectfont \textbf{Disney Lorcana PlayLab Cloud}}\\[0.2cm]
+    {\fontsize{14pt}{18pt}\selectfont \textbf{(Real-Time Multi-AZ IaaS \& Serverless Card Game Simulator)}}\\[0.3cm]
+    {\fontsize{16pt}{20pt}\selectfont \textbf{กลุ่ม G21}}\\[0.5cm]
+
+    {\fontsize{15pt}{18pt}\selectfont \textbf{รายงานฉบับสมบูรณ์ (Final Report: Stage 1 ถึง Stage 3)}}\\[0.8cm]
+
+    \begin{tabular}{p{7.2cm}p{5.5cm}}
+    \textbf{คณะผู้จัดทำ:} & \\
+    1. นายชยุต บุญวัฒน์ & รหัสนักศึกษา 67070032 \\
+    2. นายธนัทภัทร พรหมทอง & รหัสนักศึกษา 67070069 \\
+    3. นายภูริ ประชาสุขสิน & รหัสนักศึกษา 67070137 \\
+    4. นางสาววรรณณิศา อมรวงศ์ไพบูลย์ & รหัสนักศึกษา 67070155 \\
+    5. นายอสิธารา พุ่มดอกไม้ & รหัสนักศึกษา 67070199 \\
+    6. นายวรธิษณ์ คงทอง & รหัสนักศึกษา 67070275 \\
+    & \\
+    \textbf{อาจารย์ประจำวิชา:} & \\
+    1. ดร. ธนานพ ทองถาวร & \\
+    2. ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส & \\
+    3. ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์ & \\
+    \end{tabular}
+
+    \vfill
+    {\fontsize{14pt}{18pt}\selectfont
+    คณะเทคโนโลยีสารสนเทศ\\
+    สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง\\
+    ตุลาคม 2569}
+\end{center}
+\end{titlepage}
+
+% -------------------------------------------------------------
+% PRELIMINARY PAGES
+% -------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\chapter*{บทคัดย่อภาษาไทย}
+\addcontentsline{toc}{chapter}{บทคัดย่อภาษาไทย}
+
+โครงงาน \textbf{Disney Lorcana PlayLab Cloud (กลุ่ม G21)} เป็นระบบจำลองห้องเล่นและวิเคราะห์เด็คการ์ดเกม Disney Lorcana แบบเรียลไทม์บนเว็บเบราว์เซอร์ ที่รันบน AWS Academy Learner Lab ภายใต้งบประมาณ 50 ดอลลาร์สหรัฐ ฝั่งหน้าเว็บพัฒนาด้วย React 19, TypeScript, Tailwind CSS v4 และใช้ฐานข้อมูลการ์ด 3,242 ใบ ฝั่งคลาวด์ใช้ Custom VPC แบบ Multi-AZ (\texttt{us-east-1a}, \texttt{us-east-1b}) โดยไม่ใช้ NAT Gateway, Application Load Balancer, EC2 Auto Scaling Group (\texttt{t3.micro}, ขนาด 2 ถึง 4 เครื่อง) ที่รัน Nginx และ Node.js แบบ cluster, API Gateway WebSocket ร่วมกับ AWS Lambda และ DynamoDB สำหรับห้องเล่นเรียลไทม์, Amazon SQS พร้อม Dead Letter Queue สำหรับวิเคราะห์เด็ค, Amazon SNS กระจายผลการแข่งขันไปยัง SQS สองคิว และ Amazon ElastiCache for Valkey สำหรับตารางผู้นำแบบ Cache-Aside นอกจากนี้ตัวขับเคลื่อนกฎเกมเขียนเป็นฟังก์ชันที่ไม่มีผลข้างเคียง รองรับคีย์เวิร์ดทางการ 14 ชนิด
+
+รายงานรวมผลของทั้ง 3 ระยะ ผลการทดลองบน AWS ได้แก่ ลดขนาดการรับส่งไฟล์ข้อมูลการ์ดลง 81.43\% ด้วย gzip และ hashed asset, ข้อความที่ประมวลผลล้มเหลวเข้า Dead Letter Queue ครบ 3 ครั้งภายใน 102 วินาที, เครื่องที่ล่มถูกแทนที่และกลับมา healthy ใน 2.8 ถึง 3.9 นาที, ASG ขยายจาก 2 เป็น 4 เครื่องเมื่อ CPU เฉลี่ยสูงกว่า 60\% (ต้องใช้ Node.js cluster เพื่อให้ CPU ขึ้นถึงเป้า), เวลาประมวลผลฝั่ง server ของตารางผู้นำลดจาก 41 เหลือ 1 มิลลิวินาที (ค่ามัธยฐาน) และชุดทดสอบอัตโนมัติ Vitest ผ่าน 128 จาก 128 รายการ ค่าใช้งานเดือนกันยายน 2569 ทั้งเดือนเท่ากับ 13.49 ดอลลาร์ก่อนหักเครดิตของบัญชี โดย Application Load Balancer คิดเป็น 57\%
+
+\vspace{0.6cm}
+\noindent \textbf{คำสำคัญ:} คลาวด์คอมพิวติง, Multi-AZ VPC, Application Load Balancer, Auto Scaling Group, SNS Fan-out, SQS Dead Letter Queue, ElastiCache, AWS Learner Lab
+
+\newpage
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\textbf{Disney Lorcana PlayLab Cloud (Group G21)} is a browser-based, real-time simulator and deck analyzer for the Disney Lorcana trading card game, deployed on AWS Academy Learner Lab within a 50 USD credit budget. The front end uses React 19, TypeScript and Tailwind CSS v4 with a catalog of 3,242 cards. The cloud side consists of a custom Multi-AZ VPC (\texttt{us-east-1a}, \texttt{us-east-1b}) without a NAT Gateway, an Application Load Balancer, an EC2 Auto Scaling Group (\texttt{t3.micro}, 2 to 4 instances) running Nginx and clustered Node.js, API Gateway WebSocket with AWS Lambda and DynamoDB for real-time rooms, Amazon SQS with a Dead Letter Queue for deck analysis, Amazon SNS fan-out of match results to two SQS queues, and Amazon ElastiCache for Valkey serving a cache-aside leaderboard. The game rule engine is a side-effect-free function that supports the 14 official keywords.
+
+This report covers all three project stages. Measured results on AWS include an 81.43\% reduction in card-data transfer size, failed messages reaching the Dead Letter Queue after three attempts within 102 seconds, failed instances replaced and healthy again within 2.8 to 3.9 minutes, scale-out from 2 to 4 instances when average CPU exceeded 60\% (which required Node.js cluster mode), a median server-side leaderboard time reduced from 41 ms to 1 ms, and 128 of 128 automated Vitest tests passing. Actual AWS usage cost for the whole of September 2026 was 13.49 USD before the account credit was applied, of which the Application Load Balancer accounted for 57\%.
+
+\vspace{0.6cm}
+\noindent \textbf{Keywords:} Cloud Computing, Multi-AZ VPC, Application Load Balancer, Auto Scaling Group, SNS Fan-out, SQS Dead Letter Queue, ElastiCache, AWS Learner Lab
+
+\newpage
+
+\chapter*{กิตติกรรมประกาศ}
+\addcontentsline{toc}{chapter}{กิตติกรรมประกาศ}
+
+โครงงาน \textbf{Disney Lorcana PlayLab Cloud} สำเร็จตามวัตถุประสงค์ได้ด้วยคำแนะนำทางวิชาการจากคณาจารย์ประจำรายวิชาการเทคโนโลยีกลุ่มเมฆ (Cloud Technology) คณะเทคโนโลยีสารสนเทศ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง ได้แก่:
+\begin{enumerate}
+    \item \textbf{ดร. ธนานพ ทองถาวร}
+    \item \textbf{ผศ.ดร. พัฒนพงษ์ ฉันทมิตรโอภาส}
+    \item \textbf{ผศ.ดร. ลภัส ประดิษฐ์ทัศนีย์}
+\end{enumerate}
+ที่ถ่ายทอดความรู้ด้านสถาปัตยกรรมคลาวด์ การออกแบบเครือข่าย Multi-AZ VPC ความปลอดภัย และการบริหารทรัพยากรภายใต้งบประมาณจำกัด คณะผู้จัดทำขอขอบคุณเพื่อนนักศึกษาคณะเทคโนโลยีสารสนเทศที่ร่วมทดสอบระบบ ให้ข้อคิดเห็นด้านการใช้งาน และช่วยตรวจข้อผิดพลาด รวมถึงครอบครัวที่สนับสนุนตลอดการศึกษา
+
+\vspace{1.2cm}
+\begin{flushright}
+    คณะผู้จัดทำ โครงงานกลุ่ม G21\\
+    ตุลาคม 2569
+\end{flushright}
+
+\newpage
+
+\tableofcontents
+\newpage
+\listoftables
+\newpage
+\listoffigures
+\newpage
+
+% -------------------------------------------------------------
+% CHAPTERS
+% -------------------------------------------------------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{final/ch1_intro}
+\input{final/ch2_project}
+\input{final/ch3_design}
+\input{final/ch4_results}
+\input{final/ch5_limits_cost}
+\input{final/ch6_summary}
+\input{final/references_appendix}
+
+\end{document}

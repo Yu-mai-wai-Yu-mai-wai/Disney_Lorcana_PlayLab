@@ -1,0 +1,109 @@
+% =============================================================
+\chapter{การบริหารโครงการและเครื่องมือที่ใช้}
+% =============================================================
+
+\section{ระเบียบวิธีและแผนการพัฒนา}
+
+โครงงานใช้ Agile Scrum แบ่งเป็น Sprint ตารางที่ \ref{tab:sprint_plan} แสดงระยะที่ 1 ถึง 2 ตามแผนที่ส่งในรายงานระยะที่ 2
+
+\begin{table}[H]
+\centering
+\caption{แผนและสถานะ Sprint ของระยะที่ 1 ถึง 2}
+\label{tab:sprint_plan}
+\begin{tabularx}{\textwidth}{lcXc}
+\toprule
+\textbf{Sprint} & \textbf{ระยะเวลา} & \textbf{งานหลัก} & \textbf{สถานะ} \\
+\midrule
+ระยะที่ 1 & 22--31 ก.ค. 2569 & เสนอโครงงานและตั้งค่าเริ่มต้น & เสร็จ \\
+Sprint 1 & 1--15 ส.ค. 2569 & โครงโปรเจกต์ กระดาน UI ฐานข้อมูลการ์ด 3,242 ใบ & เสร็จ \\
+Sprint 2 & 16--25 ส.ค. 2569 & ระบบสมาชิก (bcrypt, JWT) และจัดการเด็คบน DynamoDB & เสร็จ \\
+Sprint 3 & 26 ส.ค. -- 4 ก.ย. 2569 & ห้องเล่นเรียลไทม์ และ VPC, ALB, ASG แบบ Multi-AZ & เสร็จ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+งานระยะที่ 3 แบ่งเป็น ticket T01 ถึง T15 ตารางที่ \ref{tab:stage3_tickets} สรุปสถานะจากบันทึกงานของโครงการ (\texttt{scratch/tickets.md}) \todo{ยืนยันช่วงวันที่ของ Sprint 4--7 กับแผนที่ส่งอาจารย์ เพราะ \texttt{PLAN\_PROJECT.md} และรายงานระยะที่ 2 กำหนดวันไม่ตรงกัน}
+
+\begin{table}[H]
+\centering
+\caption{งานระยะที่ 3 (Stage 3) และสถานะ}
+\label{tab:stage3_tickets}
+\small
+\begin{tabularx}{\textwidth}{lXll}
+\toprule
+\textbf{Ticket} & \textbf{งาน} & \textbf{สถานะ} & \textbf{หลักฐาน} \\
+\midrule
+T01 & รวมสูตรวิเคราะห์เด็คเป็นฟังก์ชัน \texttt{analyzeDeck} เดียว และหน้า Analytics ใช้ข้อมูลจริง & เสร็จ & commit 99e3a96 \\
+T02 & Content Caching ไฟล์ข้อมูลการ์ด & เสร็จ & commit ae2ba24 \\
+T03 & Dead Letter Queue ของคิววิเคราะห์เด็ค & เสร็จ & commit 25ba948 \\
+T04 & SNS Fan-out ไป SQS สำหรับประวัติและสถิติ & เสร็จ & commit a039093 \\
+T05 & ตารางผู้นำกับ ElastiCache แบบ Cache-Aside & เสร็จ & commit c85c3e6 \\
+T06 & บันทึกผลการทดลองและค่าใช้จ่าย & เสร็จ & \texttt{STAGE3\_EXPERIMENT\_RESULTS.md} \\
+T07 & รายงานระยะที่ 3 (PDF, DOCX, TeX) & เสร็จ & commit f195930 \\
+T08 & เอกสารอธิบายระบบสำหรับผู้อ่านทั่วไป & เสร็จ & \texttt{docs/HOW\_IT\_WORKS.md} \\
+T09--T13 & ตัวขับเคลื่อนกฎเกม คีย์เวิร์ด 14 ชนิด Ability Shift/Location/Song/Item และ UX กระดาน & เสร็จ & commit 6f1805d \\
+T14 & ลบโค้ดจำลองและข้อมูลหลอกที่ไม่จำเป็น & เสร็จ & commit dae0c09 \\
+T15 & เตรียมนำเสนอ: e2e 4 เทิร์น สไลด์ สคริปต์เดโม & กำลังทำ & ดูบทที่ \ref{ch:results} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{กำหนดการส่งงานของรายวิชา}
+
+\begin{table}[H]
+\centering
+\caption{กำหนดการประเมินผลรายวิชา Cloud Technology}
+\label{tab:milestones}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{กำหนด} & \textbf{ชิ้นงาน} \\
+\midrule
+10 ก.ย. 2569 & ส่งรายงานความก้าวหน้า Stage 2 \\
+22--26 ก.ย. 2569 & นำเสนอความก้าวหน้า Stage 2 \\
+10 ต.ค. 2569 & ส่งผลการทดลองและรายงาน Stage 3 \\
+20--25 ต.ค. 2569 & นำเสนอโครงงานฉบับสมบูรณ์ Stage 3 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{เครื่องมือและเทคโนโลยีที่ใช้}
+
+\begin{enumerate}
+    \item \textbf{Frontend:}
+    \begin{itemize}
+        \item React 19 และ TypeScript 5 สำหรับ component แบบมี type
+        \item Vite 6 สำหรับ build และตั้งชื่อไฟล์ asset ด้วย content hash [5]
+        \item Tailwind CSS v4 สำหรับสไตล์ และ Framer Motion สำหรับแอนิเมชัน
+        \item Zustand สำหรับ state ส่วนกลาง
+    \end{itemize}
+    \item \textbf{Backend บน EC2:}
+    \begin{itemize}
+        \item Amazon EC2 \texttt{t3.micro} (2 vCPU, RAM 1 GB) ระบบปฏิบัติการ Amazon Linux 2023
+        \item Nginx ทำหน้าที่เสิร์ฟหน้าเว็บ ส่งต่อ \texttt{/api/*} ไปยัง Node.js และตอบ health check
+        \item Node.js 20 กับ Express รันแบบ cluster 1 worker ต่อ vCPU ผ่าน systemd (\texttt{lorcana-backend})
+        \item ไลบรารีหลัก: \texttt{bcryptjs}, \texttt{jsonwebtoken}, \texttt{ioredis}, AWS SDK v3
+    \end{itemize}
+    \item \textbf{บริการ AWS:}
+    \begin{itemize}
+        \item VPC แบบ Multi-AZ, Application Load Balancer, EC2 Auto Scaling Group
+        \item API Gateway WebSocket และ AWS Lambda (Node.js 20) สำหรับห้องเล่นเรียลไทม์
+        \item Amazon DynamoDB (On-demand), Amazon SQS, Amazon SNS
+        \item Amazon ElastiCache for Valkey (\texttt{cache.t3.micro})
+        \item AWS Systems Manager Parameter Store สำหรับ secret ของ EC2
+        \item Amazon CloudWatch และ AWS Systems Manager Run Command (ใช้จำลองเครื่องล่มในการทดลอง)
+    \end{itemize}
+    \item \textbf{เครื่องมือทดสอบ:} Vitest 4 (unit และ integration), Playwright 1.62 (end-to-end), สคริปต์ PowerShell สำหรับ deploy และทดลอง
+\end{enumerate}
+
+\section{โมเดลโดเมนและกติกาเกม Disney Lorcana}
+
+\begin{itemize}
+    \item \textbf{สีหมึก 6 สี:} Amber, Amethyst, Emerald, Ruby, Sapphire, Steel เด็คมีอย่างน้อย 60 ใบ ใช้ได้ไม่เกิน 2 สี และการ์ดชื่อเดียวกันไม่เกิน 4 ใบ
+    \item \textbf{ประเภทการ์ด:} Character, Action (รวม Song), Item, Location
+    \item \textbf{สถานะ:} Ready (ตั้งตรง) และ Exerted (หมุน 90 องศา)
+    \item \textbf{เงื่อนไขชนะ:} สะสม Lore ครบ 20 แต้มก่อน
+    \item \textbf{ลำดับเทิร์น:} Ready, Set, Draw, Main, End ผู้เล่นที่ไปก่อนข้ามการจั่วในเทิร์นแรก
+    \item \textbf{ข้อจำกัดการต่อสู้:} Challenge ได้เฉพาะตัวละครหรือสถานที่ที่ Exerted ตัวละครที่เพิ่งลงสนามยัง Quest หรือ Challenge ไม่ได้ (ยกเว้นตัวที่มี Rush ซึ่ง Challenge ได้)
+    \item \textbf{ฐานข้อมูลการ์ด:} 3,242 ใบ ครอบคลุม Set 1 ถึง Set 13
+    \item \textbf{กฎอ้างอิง:} Comprehensive Rules v2.2.0 [1]
+\end{itemize}

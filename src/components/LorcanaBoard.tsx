@@ -581,6 +581,14 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
   });
   const [opponentExerted, setOpponentExerted] = useState<Record<string, boolean>>(() => (savedBoard?.opponentExerted ?? {}));
 
+  // A card that leaves the hand or field (played, inked, banished) never fires mouseleave, which left the
+  // quick-glance tooltip stuck over the Pass Turn button. Clear it once the card is gone.
+  React.useEffect(() => {
+    if (hoveredCard && ![...handCards, ...fieldCards, ...opponentFieldCards].some((c) => c.id === hoveredCard.id)) {
+      setHoveredCard(null);
+    }
+  }, [hoveredCard, handCards, fieldCards, opponentFieldCards]);
+
   const boardStateRef = useRef({
     playerLore,
     opponentLore,
@@ -1351,6 +1359,16 @@ export const LorcanaBoard: React.FC<LorcanaBoardProps> = ({
             style={{ background: currentPlaymat.ambientGlow }}
           />
           
+          {/* 0. TURN STATUS BAR (turn number, whose turn, phase) */}
+          <TurnPhaseBar
+            currentPhase={turnPhase === 'beginning' ? 'ready' : turnPhase}
+            turnNumber={turnNumber}
+            isMyTurn={isMyTurn}
+            onPassTurn={handleEndTurn}
+            canPassTurn={isMyTurn}
+            showPassTurn={false}
+          />
+
           {/* 1. OPPONENT BATTLEFIELD ZONE */}
           <OpponentBattlefield
             opponentFieldCards={opponentFieldCards}

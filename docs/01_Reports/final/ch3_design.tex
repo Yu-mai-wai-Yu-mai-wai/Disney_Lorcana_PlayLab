@@ -1,0 +1,178 @@
+% =============================================================
+\chapter{การวิเคราะห์และออกแบบระบบ}
+% =============================================================
+
+\section{ข้อกำหนดความต้องการ}
+
+\subsection{ข้อกำหนดเชิงฟังก์ชัน}
+\begin{enumerate}
+    \item \textbf{FR-01 สมาชิก:} ลงทะเบียน เข้าสู่ระบบ และถือ JWT สำหรับเรียก API
+    \item \textbf{FR-02 เด็ค:} สร้าง แก้ไข ลบเด็ค พร้อมตรวจกฎ 60 ใบ ไม่เกิน 2 สี ซ้ำไม่เกิน 4 ใบ
+    \item \textbf{FR-03 เปิดซอง:} สุ่มการ์ด 12 ใบต่อซองด้วยอัลกอริทึม Fisher-Yates
+    \item \textbf{FR-04 ตรวจการ์ด 3 มิติ:} ซูมและเอียงการ์ดตามเมาส์
+    \item \textbf{FR-05 ห้องเล่น:} ผู้เล่น 2 คนสร้างและเข้าห้องด้วยรหัส 6 หลัก
+    \item \textbf{FR-06 เริ่มเกม:} ทอยลูกเต๋าเลือกลำดับ สลับการ์ดเริ่มต้น แล้วเล่นตามเทิร์น (หัวข้อ \ref{sec:game_flow})
+    \item \textbf{FR-07 ซิงค์กระดาน:} การลงการ์ด Exert Ink และแต้ม Lore ของผู้เล่นหนึ่งต้องแสดงบนหน้าจออีกฝ่าย
+    \item \textbf{FR-08 วงจรห้อง:} กลับเข้าห้องได้ภายใน 60 วินาทีหลังหลุด และออกจากห้องเองได้
+    \item \textbf{FR-09 วิเคราะห์เด็ค:} ส่งงานเข้าคิวและรับผลวิเคราะห์ Ink Curve
+    \item \textbf{FR-10 ผลการแข่งขัน:} บันทึกประวัติ สถิติผู้เล่น และแสดงตารางผู้นำ
+\end{enumerate}
+
+\subsection{ข้อกำหนดที่ไม่ใช่เชิงฟังก์ชัน}
+\begin{enumerate}
+    \item \textbf{NFR-01 ความหน่วง:} การซิงค์กระดานควรตอบสนองทันทีต่อผู้เล่น หน้าจอผู้ส่งอัปเดตทันทีแล้วจึงส่งต่อให้อีกฝ่าย ค่า latency ปลายทางถึงปลายทางของ WebSocket ยังไม่ได้วัดเป็นตัวเลขในรายงานนี้ \todo{วัด latency ของ WebSocket หลัง deploy ใหม่ หรือคงเป็นเป้าหมายเชิงคุณภาพ}
+    \item \textbf{NFR-02 ความพร้อมใช้งาน:} กระจายเครื่องข้าม 2 Availability Zones และเครื่องที่ล่มต้องถูกแทนที่อัตโนมัติ (วัดผลในการทดลองที่ 3)
+    \item \textbf{NFR-03 การขยายตัว:} เพิ่มจำนวนเครื่องอัตโนมัติเมื่อ CPU เฉลี่ยสูงกว่า 60\% (วัดผลในการทดลองที่ 4)
+    \item \textbf{NFR-04 ความปลอดภัย:} แฮชรหัสผ่านด้วย bcrypt, บังคับ IMDSv2 บน EC2, จำกัดการเข้าถึง EC2 ผ่าน Security Group ที่รับจาก ALB เท่านั้น, ไม่เก็บ secret ใน user data
+    \item \textbf{NFR-05 ต้นทุน:} อยู่ในงบ 50 ดอลลาร์ของ Learner Lab โดยไม่ใช้ NAT Gateway
+\end{enumerate}
+
+\section{สถาปัตยกรรมระบบ}
+
+\begin{lstlisting}[caption={สถาปัตยกรรมระบบ Disney Lorcana PlayLab Cloud}]
+[ Browser ] --HTTP:80--> [ ALB ] --> [ EC2 x2 (ASG Min 2 / Max 4) ]
+                                      Nginx + Node.js cluster
+                                        |          |         |
+                                     DynamoDB     SQS    ElastiCache
+                                    Users/Decks  Analyzer   Valkey
+                                                   |
+                                                Lambda Analyzer
+
+[ Browser ] --WSS--> [ API Gateway WebSocket ] --> Lambda lorcana-room
+                                                      --> DynamoDB Room State
+
+[ Match Finish ] --> EC2 POST /api/matches --> SNS lorcana-match-events
+                                                  |                  |
+                                          SQS match-history   SQS player-stats
+                                          (+DLQ)               (+DLQ)
+                                               |                  |
+                                          Lambda history     Lambda stats
+                                               |                  |
+                                       DynamoDB History    DynamoDB Stats
+\end{lstlisting}
+
+เส้นทางข้อมูลแบ่งเป็น 3 ทาง ทางแรกคือหน้าเว็บและ REST API ผ่าน ALB ไปยัง EC2 ทางที่สองคือห้องเล่นเรียลไทม์ผ่าน API Gateway WebSocket ซึ่งไม่ผ่าน EC2 จึงไม่ติดปัญหาผู้เล่นอยู่คนละเครื่อง ทางที่สามคือผลการแข่งขันซึ่ง EC2 ส่งเข้า SNS แล้วกระจายไป SQS สองคิว
+
+\textbf{ประวัติการเปลี่ยนแปลง:} ระยะที่ 2 ออกแบบให้ WebSocket รันบน Node.js ของ EC2 และเก็บ connection ใน memory ของแต่ละเครื่อง เมื่อมี 2 เครื่อง ผู้เล่นที่ ALB ส่งไปคนละเครื่องจะไม่เห็นการเล่นของกัน จึงย้ายห้องเล่นไป API Gateway WebSocket ร่วมกับ Lambda และเก็บสถานะห้องใน DynamoDB (การทดลองที่ 1)
+
+\section{เหตุผลในการออกแบบ}
+
+\subsection{Multi-AZ โดยไม่ใช้ NAT Gateway}
+
+ระบบใช้ Public Subnet ใน 2 Availability Zones (\texttt{10.0.1.0/24} บน \texttt{us-east-1a} และ \texttt{10.0.2.0/24} บน \texttt{us-east-1b}) และไม่ใช้ NAT Gateway เพราะ NAT Gateway คิดชั่วโมงละ 0.045 ดอลลาร์ (ประมาณ 32.40 ดอลลาร์ต่อเดือน) เกินงบ 50 ดอลลาร์ได้เร็ว
+
+\textbf{ข้อแลกเปลี่ยน:} EC2 อยู่ใน Public Subnet และมี Public IPv4 (0.005 ดอลลาร์ต่อชั่วโมงต่อ IP [11]) ระบบใช้ Security Group แบบต่อกัน (chained) \texttt{lorcana-alb-sg} รับ HTTP พอร์ต 80 จากอินเทอร์เน็ต ส่วน \texttt{lorcana-ec2-sg} รับพอร์ต 80 จาก \texttt{lorcana-alb-sg} เท่านั้น ค่า Public IPv4 จริงเดือนกันยายน 2569 อยู่ที่ 1.96 ดอลลาร์ (ตารางที่ \ref{tab:billing})
+
+\subsection{ALB และ Auto Scaling Group}
+
+ALB ตรวจสุขภาพเครื่องด้วย \texttt{GET /api/health} ทุก 15 วินาที เกณฑ์ healthy 2 ครั้งและ unhealthy 2 ครั้ง ASG ตั้งขนาด Min 2, Max 4, Desired 2 ตรวจสุขภาพแบบ ELB ช่วงผ่อนผันหลังบูต 120 วินาที และใช้ Target Tracking ที่ \texttt{ASGAverageCPUUtilization} เป้า 60\% [7] การตั้ง Min 2 ทำให้มีเครื่องอย่างน้อยหนึ่งเครื่องในแต่ละ AZ เมื่อทั้งสอง AZ ปกติ
+
+ALB Health Check [8] ตรวจแค่ว่า Nginx ส่งคำขอต่อไปยัง Node.js ได้หรือไม่ ไม่ตรวจ DynamoDB เพราะ DynamoDB ใช้ร่วมกันทุกเครื่อง หากตรวจและ DynamoDB ขัดข้อง ทุกเครื่องจะ unhealthy พร้อมกันและไม่มีเครื่องรับทราฟฟิกเลย ซึ่งแย่กว่าการให้เครื่องยังรับคำขอและตอบ error เฉพาะคำขอที่ต้องใช้ฐานข้อมูล
+
+\subsection{Node.js แบบ cluster}
+
+t3.micro มี 2 vCPU แต่ Node.js ประมวลผล JavaScript บน thread เดียว จึงใช้ CPU ได้สูงสุดประมาณ 50\% ของเครื่อง เป้า 60\% ของ Target Tracking จึงไม่ถูกกระตุ้น ระบบใช้โมดูล \texttt{cluster} [6] สร้าง worker 1 ตัวต่อ vCPU (\texttt{backend/cluster.ts}) ผลการทดลองอยู่ในการทดลองที่ 4
+
+\subsection{SNS Fan-out แทนการเขียน DynamoDB โดยตรง}
+
+เมื่อเกมจบต้องบันทึก 2 ตาราง (ประวัติ และสถิติผู้เล่น) ถ้าเขียนทั้งสองใน endpoint เดียว ความล้มเหลวของตารางหนึ่งทำให้อีกตารางไม่ถูกบันทึก SNS กระจายข้อความไปคิว SQS สองคิว [2] ทำให้แต่ละฝั่ง retry ได้อิสระ และแต่ละคิวมี Dead Letter Queue ของตัวเอง [3]
+
+\subsection{ElastiCache แบบ Node แทน Serverless}
+
+นโยบาย IAM ของ Learner Lab ปฏิเสธ ElastiCache Serverless จึงใช้ Node เดี่ยว \texttt{cache.t3.micro} [4] ข้อจำกัดคือไม่มี automatic scaling และเป็น single point of failure ระบบออกแบบให้อ่านจาก DynamoDB โดยตรงเมื่อแคชใช้ไม่ได้
+
+\section{ฐานข้อมูล DynamoDB}
+
+ทุกตารางใช้โหมด On-demand (\texttt{PAY\_PER\_REQUEST}) ชื่อและ key ในตารางที่ \ref{tab:dynamodb_schema} ตรวจจาก AWS จริงเมื่อ 5 ตุลาคม 2569
+
+\begin{table}[H]
+\centering
+\caption{ตาราง DynamoDB ของระบบ}
+\label{tab:dynamodb_schema}
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{ตาราง} & \textbf{Partition Key} & \textbf{Sort Key} & \textbf{หน้าที่} \\
+\midrule
+\texttt{UsersTable} & \texttt{username} & -- & บัญชีผู้ใช้และรหัสผ่านที่แฮชแล้ว \\
+\texttt{DecksTable} & \texttt{deckId} & \texttt{userId} & เด็คของผู้ใช้ \\
+\texttt{LorcanaRoomStateV2} & \texttt{roomId} & \texttt{connectionId} & สถานะห้องเล่นและการเชื่อมต่อ \\
+\texttt{LorcanaMatchmaking} & \texttt{connectionId} & -- & การจับคู่ห้อง \\
+\texttt{LorcanaMatchHistory} & \texttt{userId} & \texttt{finishedAt\#matchId} & ประวัติการแข่งขันรายผู้ใช้ \\
+\texttt{LorcanaPlayerStats} & \texttt{userId} & -- & สถิติผู้เล่นสะสม \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+ตาราง \texttt{LorcanaMatchHistory} และ \texttt{LorcanaPlayerStats} สร้างโดย \texttt{scripts/ensure\_pipeline.ps1} การป้องกันนับผลซ้ำใช้ conditional write กับ key รูปแบบ \texttt{DEDUPE\#<matchId>}
+
+\section{วงจรเริ่มเกมและการเล่น}
+\label{sec:game_flow}
+
+\begin{enumerate}
+    \item \textbf{Dice Duel:} ผู้เล่นทั้งสองเลือกเลขคี่หรือคู่ภายใน 15 วินาที (หมดเวลาระบบสุ่มให้) ฝั่งผู้สร้างห้องทอยลูกเต๋า D6 ผู้ที่ทายถูกฝ่ายเดียวชนะ ถ้าทายถูกหรือผิดทั้งคู่ถือว่าเสมอและทอยใหม่ ผู้ชนะเลือกเล่นก่อนหรือหลัง
+    \item \textbf{Mulligan:} ผู้เล่นเลือกการ์ดบนมือที่ต้องการสลับ หรือเลือก Keep Hand
+    \item \textbf{เทิร์น:} ลำดับ Ready, Set, Draw, Main, End แถบสถานะแสดง \texttt{TURN n}, \texttt{YOUR TURN} หรือ \texttt{OPPONENT'S TURN} ผู้เล่นที่ไปก่อนข้ามการจั่วในเทิร์นแรก
+    \item \textbf{ในเทิร์น (Main):} ใส่การ์ดเป็นหมึก 1 ใบต่อเทิร์น ลงการ์ดตามค่าร่าย Quest Challenge และร้องเพลง (Song)
+    \item \textbf{การกลับเข้าห้อง:} เมื่อการเชื่อมต่อหลุด ห้องยังคงอยู่ 60 วินาที ผู้เล่นเดิมกลับเข้าได้ด้วย \texttt{REJOIN\_ROOM} และการออกจากห้องเองคืนที่ว่างทันที
+\end{enumerate}
+
+\section{ตัวขับเคลื่อนกฎกติกาเกม}
+
+ตัวขับเคลื่อนเป็นฟังก์ชัน \texttt{applyAction(state, action)} รับสถานะและการกระทำ แล้วคืนสถานะใหม่ พร้อมรายการเหตุการณ์และ Prompt เลือกเป้าหมาย โดยไม่แก้สถานะเดิมและไม่เรียก React, เครือข่าย หรือ Browser API ทำให้ทดสอบด้วย Vitest ได้โดยไม่เปิดเบราว์เซอร์ ตารางที่ \ref{tab:engine_modules} แสดงโมดูลใน \texttt{src/game/}
+
+\begin{table}[H]
+\centering
+\caption{โมดูลของตัวขับเคลื่อนกฎเกม}
+\label{tab:engine_modules}
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{ไฟล์} & \textbf{ขนาด} & \textbf{หน้าที่} \\
+\midrule
+\texttt{types.ts} & 3,262 B & นิยาม GameState, GameAction, ActionResult, LorcanaCard \\
+\texttt{rules.ts} & 6,601 B & ตรวจกติกา: isCardInkable, canPlayCard, canQuest, canChallenge \\
+\texttt{engine.ts} & 35,760 B & ฟังก์ชันหลัก applyAction รองรับ 16 action types \\
+\texttt{keywords.ts} & 4,102 B & parseCardKeywords ด้วย regex แบบ word-boundary สำหรับ 14 คีย์เวิร์ด \\
+\texttt{abilities.ts} & 5,936 B & parseAbility แยกจังหวะ trigger 8 ประเภท และ effect 10 ประเภท \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{ข้อกำหนดการ Challenge ในตัวขับเคลื่อน}
+\label{sec:challenge}
+
+\texttt{rules.ts} บังคับว่าผู้โจมตีต้องไม่ Exerted และต้องไม่อยู่ในสถานะหมึกยังไม่แห้ง (ยกเว้น Rush) และผู้ถูกโจมตีต้อง Exerted ดังนั้นการ Challenge ที่เร็วที่สุดในเกมเกิดที่เทิร์น 4 ตัวอย่างเช่น ผู้เล่น A ลงตัวละครเทิร์น 1 ผู้เล่น B ลงตัวละครเทิร์น 2 ผู้เล่น A Quest เทิร์น 3 (ตัวละครของ A Exerted) แล้ว B จึง Challenge ได้เทิร์น 4 ข้อนี้กำหนดรูปแบบของชุดทดสอบ e2e ในบทที่ \ref{ch:results}
+
+\section{การปฏิบัติตาม AWS Well-Architected Framework}
+
+ระบบตรวจกับ 5 เสาหลักของ AWS Well-Architected Framework [12] ดังนี้
+
+\begin{enumerate}
+    \item \textbf{Reliability:} Multi-AZ, Health Check, ASG แทนเครื่องที่ล่ม และ DLQ ดักข้อความที่ประมวลผลไม่สำเร็จ
+    \item \textbf{Security:} IMDSv2 บังคับ (\texttt{HttpTokens: required}), secret ของ EC2 อยู่ใน SSM Parameter Store แบบ SecureString [9], bcrypt, Security Group แบบต่อกัน ข้อจำกัดด้านความปลอดภัยที่ยังเหลืออยู่อยู่ในบทที่ \ref{ch:limits}
+    \item \textbf{Performance Efficiency:} Content Caching ลดข้อมูลรับส่ง 81.43\% และ ElastiCache ลดเวลาประมวลผลตารางผู้นำ
+    \item \textbf{Cost Optimization:} ไม่ใช้ NAT Gateway, ใช้ \texttt{t3.micro}, สั่ง \texttt{lab.ps1 destroy} เมื่อเลิกใช้งานเพื่อหยุดค่า ALB
+    \item \textbf{Operational Excellence:} สคริปต์ PowerShell สร้าง ลบ และ publish ระบบ (\texttt{deploy\_ec2\_vpc\_asg.ps1}, \texttt{lab.ps1}) และ CloudWatch Alarm \texttt{lorcana-unhealthy-hosts}
+\end{enumerate}
+
+\section{ข้อจำกัดของ AWS Learner Lab และวิธีรับมือ}
+
+\begin{table}[H]
+\centering
+\caption{ข้อจำกัดของ Learner Lab และวิธีรับมือ}
+\label{tab:learner_lab_solutions}
+\small
+\begin{tabularx}{\textwidth}{cX>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{ที่} & \textbf{ข้อจำกัด} & \textbf{วิธีรับมือ} \\
+\midrule
+1 & สร้าง IAM Role ใหม่ไม่ได้ & ใช้ \texttt{LabRole} และ \texttt{LabInstanceProfile} ที่มีอยู่ \\
+2 & NAT Gateway แพงเกินงบ & EC2 อยู่ใน Public Subnet และจำกัดการเข้าถึงด้วย Security Group แบบต่อกัน \\
+3 & ElastiCache Serverless ถูกปฏิเสธ & ใช้ ElastiCache Node เดี่ยว และมี fallback ไป DynamoDB \\
+4 & CloudFront ถูกปฏิเสธ & เสิร์ฟไฟล์ผ่าน Nginx พร้อม \texttt{Cache-Control: immutable} และ gzip \\
+5 & Instance Refresh ถูกบล็อก & เปลี่ยนเครื่องทีละเครื่องด้วยสคริปต์ (\texttt{lab.ps1 publish}) \\
+6 & Session ของ Learner Lab หมดอายุทุกประมาณ 4 ชั่วโมง & ตรวจ \texttt{aws sts get-caller-identity} ก่อนทำงานทุกครั้ง \\
+7 & RAM 1 GB บน t3.micro & รัน Node.js cluster 2 worker และไม่ใช้คอนเทนเนอร์บนเครื่อง \\
+\bottomrule
+\end{tabularx}
+\end{table}

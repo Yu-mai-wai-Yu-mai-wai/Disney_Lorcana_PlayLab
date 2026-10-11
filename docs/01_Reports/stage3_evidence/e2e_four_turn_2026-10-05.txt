@@ -1,0 +1,26 @@
+TC-E2E-25 (e2e/07-four-turn-game.spec.ts) against the deployed stack
+Date: 2026-10-05, run by Tawan from PowerShell on the local machine
+Target: E2E_BASE_URL=http://lorcana-alb-872515101.us-east-1.elb.amazonaws.com
+Flow: register + login 2 players, create/join room, Dice Duel, Mulligan (keep),
+      turn 1 ink + play, turn 2 ink + play, turn 3 quest, turn 4 challenge,
+      cross-screen checks after each step (field cards, opponent lore, banish)
+
+=== รอบที่ 1 ===
+Running 1 test using 1 worker
+  ok 1 …:56:3 › T15: 4-turn two-player game E2E QA suite › TC-E2E-25: 2 players run dice duel, mulligan, ink, play, quest and challenge over 4 turns (54.9s)
+  1 passed (56.9s)
+=== รอบที่ 2 ===
+Running 1 test using 1 worker
+  ok 1 …:56:3 › T15: 4-turn two-player game E2E QA suite › TC-E2E-25: 2 players run dice duel, mulligan, ink, play, quest and challenge over 4 turns (51.5s)
+  1 passed (52.7s)
+=== รอบที่ 3 ===
+Running 1 test using 1 worker
+  ok 1 …:56:3 › T15: 4-turn two-player game E2E QA suite › TC-E2E-25: 2 players run dice duel, mulligan, ink, play, quest and challenge over 4 turns (51.8s)
+  1 passed (52.9s)
+
+Defects found while building this test (fixed and published to the stack the same day):
+1. TurnPhaseBar (T13) was imported in LorcanaBoard.tsx but never rendered, so the board showed
+   no "TURN n / YOUR TURN" bar. Now rendered above the opponent battlefield.
+2. The quick-glance hover tooltip stayed open after the hovered card left the hand (played or
+   inked) and covered the Pass Turn button. Now cleared when the hovered card is no longer in
+   the hand or on either battlefield.

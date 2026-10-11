@@ -1,0 +1,74 @@
+% -------------------------------------------------------------
+% REFERENCES
+% -------------------------------------------------------------
+\chapter*{บรรณานุกรม (References)}
+\addcontentsline{toc}{chapter}{บรรณานุกรม (References)}
+
+\noindent [1] Ravensburger \& Disney. (n.d.). \textit{Disney Lorcana Comprehensive Rules v2.2.0}. [Online]. Available: \url{https://www.disneylorcana.com/resources} (ไฟล์ที่ใช้อยู่ที่ \nolinkurl{docs/Rule/Comprehensive-Rules_2.2.0-EN.pdf})\\[0.3cm]
+\noindent [2] Amazon Web Services. (2026). \textit{Amazon SNS and SQS Fanout Pattern}. [Online]. Available: \url{https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html}\\[0.3cm]
+\noindent [3] Amazon Web Services. (2026). \textit{Amazon SQS Dead-Letter Queues}. Amazon SQS Developer Guide. [Online]. Available: \url{https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html}\\[0.3cm]
+\noindent [4] Amazon Web Services. (2026). \textit{Amazon ElastiCache for Valkey}. [Online]. Available: \url{https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html}\\[0.3cm]
+\noindent [5] Vite. (2026). \textit{Building for Production: Asset Hashing}. [Online]. Available: \url{https://vite.dev/guide/build}\\[0.3cm]
+\noindent [6] OpenJS Foundation. (2026). \textit{Cluster Module}. Node.js Documentation. [Online]. Available: \url{https://nodejs.org/api/cluster.html}\\[0.3cm]
+\noindent [7] Amazon Web Services. (2026). \textit{Target Tracking Scaling Policies for Amazon EC2 Auto Scaling}. [Online]. Available: \url{https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-scaling-target-tracking.html}\\[0.3cm]
+\noindent [8] Amazon Web Services. (2026). \textit{Health Checks for Application Load Balancer Target Groups}. [Online]. Available: \url{https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html}\\[0.3cm]
+\noindent [9] Amazon Web Services. (2026). \textit{AWS Systems Manager Parameter Store}. [Online]. Available: \url{https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html}\\[0.3cm]
+\noindent [10] OWASP Foundation. (2021). \textit{OWASP Top 10: 2021}. [Online]. Available: \url{https://owasp.org/www-project-top-ten/}\\[0.3cm]
+\noindent [11] Amazon Web Services. (2026). \textit{Amazon VPC Pricing (Public IPv4 Charges)}. [Online]. Available: \url{https://aws.amazon.com/vpc/pricing/}\\[0.3cm]
+\noindent [12] Amazon Web Services. (2026). \textit{AWS Well-Architected Framework}. [Online]. Available: \url{https://aws.amazon.com/architecture/well-architected/}
+
+% -------------------------------------------------------------
+% APPENDIX
+% -------------------------------------------------------------
+\chapter*{ภาคผนวก (Appendix)}
+\addcontentsline{toc}{chapter}{ภาคผนวก (Appendix)}
+
+\section*{ภาคผนวก ก: ส่วนสร้าง Launch Template และ Auto Scaling Group ใน \texttt{scripts/deploy\_ec2\_vpc\_asg.ps1}}
+
+\begin{lstlisting}[caption={ส่วนสร้าง ASG และ scaling policy (ตัดตอนจากสคริปต์จริง)}]
+# Create ASG (Min: 2, Max: 4, Desired: 2) - Multi-AZ
+aws autoscaling create-auto-scaling-group `
+    --auto-scaling-group-name "lorcana-asg" `
+    --launch-template "LaunchTemplateName=lorcana-lt,Version=`$Latest" `
+    --min-size 2 `
+    --max-size 4 `
+    --desired-capacity 2 `
+    --target-group-arns $TargetGroupArn `
+    --vpc-zone-identifier "$Subnet1Id,$Subnet2Id" `
+    --health-check-type "ELB" `
+    --health-check-grace-period 120 `
+    --region $Region
+
+# Target Tracking Scaling Policy (CPU > 60%)
+$policyConfig = @{
+    TargetValue = 60.0
+    PredefinedMetricSpecification = @{
+        PredefinedMetricType = "ASGAverageCPUUtilization"
+    }
+    DisableScaleIn = $false
+} | ConvertTo-Json -Compress
+\end{lstlisting}
+
+\section*{ภาคผนวก ข: สคริปต์ที่ใช้ในโครงงาน}
+
+\begin{table}[H]
+\centering
+\caption{สคริปต์ในโฟลเดอร์ \texttt{scripts/}}
+\small
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{สคริปต์} & \textbf{หน้าที่} \\
+\midrule
+\texttt{deploy\_ec2\_vpc\_asg.ps1} & สร้าง VPC, Subnet, Security Group, ALB, Launch Template, ASG, scaling policy และ alarm (หยุดหากมี VPC เดิมอยู่) \\
+\texttt{ensure\_pipeline.ps1} & สร้างคิว SQS, DLQ, SNS topic, ตาราง DynamoDB และ Lambda ของ pipeline แบบ idempotent \\
+\texttt{ensure\_cache.ps1} & สร้างทรัพยากร ElastiCache \\
+\texttt{lab.ps1} & คำสั่ง \texttt{start}, \texttt{stop}, \texttt{status}, \texttt{publish}, \texttt{lambdas}, \texttt{destroy} \\
+\texttt{test\_asg\_recovery.ps1} & จำลองเครื่องล่มและจับเวลากู้คืน (การทดลองที่ 3) \\
+\texttt{test\_dlq.ps1} & ทดสอบ Dead Letter Queue (การทดลองที่ 7) \\
+\texttt{stress\_test.ps1} & สร้างโหลดเพื่อทดสอบ Auto Scaling (การทดลองที่ 4) \\
+\texttt{measure\_leaderboard.mjs} & วัด MISS/HIT ของตารางผู้นำ (การทดลองที่ 9) \\
+\texttt{measure\_ability\_coverage.ts} & วัดการรองรับ Ability ของการ์ด 3,242 ใบ (การทดลองที่ 10) \\
+\texttt{build\_final\_report.py} & สร้างรายงานฉบับนี้เป็น PDF และ DOCX จากไฟล์ \texttt{.tex} \\
+\bottomrule
+\end{tabularx}
+\end{table}
