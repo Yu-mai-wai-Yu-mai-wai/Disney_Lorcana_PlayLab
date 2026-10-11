@@ -1,0 +1,37 @@
+# Typecheck, unit/backend tests and production build on every PR and push to main.
+# No AWS access: backend tests start server.ts against an in-process fake DynamoDB.
+# ponytail: Playwright E2E is not run here (needs browsers and the AWS stack); add a job if a local stack is scripted.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: backend
+      - name: Typecheck (frontend)
+        run: npx tsc --noEmit
+      - name: Typecheck (backend)
+        run: npx tsc --noEmit -p backend
+      - name: Unit and backend tests
+        run: npx vitest run
+      - name: Build
+        run: npm run build
