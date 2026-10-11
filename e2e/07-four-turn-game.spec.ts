@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { randomUUID } from 'crypto';
 
 // Mulberry32 seeded Math.random: the dice duel and the opening hands repeat between runs.
 // ponytail: the hand depends on how often the app calls Math.random; if a run cannot ink/play, change SEED.
@@ -62,7 +63,7 @@ test.describe('T15: 4-turn two-player game E2E QA suite', () => {
 
     const loginAndJoin = async (username: string) => {
       const ctx = await browser.newContext();
-      const password = 'E2e-pass-2026';
+      const password = `E2e-${randomUUID()}`; // fresh per account: no shared known password on the deployed stack
       await ctx.request.post(`${baseURL}/api/auth/register`, {
         data: { username, email: `${username}@e2e.test`, password },
       });
