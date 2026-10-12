@@ -1,0 +1,326 @@
+<mxfile host="app.diagrams.net" modified="2026-10-10T11:20:00.000Z" agent="Antigravity" version="24.0.0">
+  <diagram id="aws_lorcana_arch" name="AWS Architecture - Disney Lorcana PlayLab Cloud">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="Disney Lorcana PlayLab Cloud — Full AWS Architecture Diagram" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="40" y="25" width="700" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Stage 3 Final: Hybrid Multi-AZ EC2 ASG + Event-Driven Serverless Fan-Out + In-Memory Caching (AWS Academy Learner Lab)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#545B64;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="850" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Outer Region Container -->
+        <mxCell id="region_box" value="AWS Region: us-east-1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;strokeColor=#545B64;strokeWidth=2;fillColor=none;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fontColor=#545B64;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="250" y="90" width="1360" height="920" as="geometry"/>
+        </mxCell>
+
+        <!-- Clients Box -->
+        <mxCell id="client_box" value="&lt;b&gt;Clients / Players&lt;/b&gt;&lt;br&gt;Web Browser SPA&lt;br&gt;(React 18 + Vite)&lt;br&gt;&lt;i&gt;Turn Rules Engine v2.2&lt;br&gt;Cached Card DB (Set 1-13)&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ED7100;strokeColor=#D13212;strokeWidth=2;fontColor=#FFFFFF;fontSize=11;align=center;verticalAlign=middle;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="170" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- VPC Container -->
+        <mxCell id="vpc_box" value="VPC: lorcana-lean-vpc (10.0.0.0/16) — Zero NAT Gateway (Learner Lab Budget Guard)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;dashPattern=8 8;strokeColor=#147EBA;strokeWidth=2;fillColor=#F8FBFC;fillOpacity=50;verticalAlign=top;align=left;spacingLeft=15;spacingTop=10;fontColor=#147EBA;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="270" y="130" width="650" height="850" as="geometry"/>
+        </mxCell>
+
+        <!-- Internet Gateway -->
+        <mxCell id="igw" value="Internet Gateway&lt;br&gt;&lt;b&gt;lorcana-igw&lt;/b&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.internet_gateway;" vertex="1" parent="1">
+          <mxGeometry x="300" y="415" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ALB -->
+        <mxCell id="alb" value="Application Load Balancer&lt;br&gt;&lt;b&gt;lorcana-alb&lt;/b&gt;&lt;br&gt;&lt;i&gt;Port 80 (Multi-AZ)&lt;br&gt;Health: /api/health&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.application_load_balancer;" vertex="1" parent="1">
+          <mxGeometry x="400" y="410" width="60" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Subnet 1a -->
+        <mxCell id="sub1a" value="Public Subnet: lorcana-public-1a (10.0.1.0/24) [AZ: us-east-1a]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;strokeColor=#248814;strokeWidth=1.5;fillColor=#F2F9F2;fillOpacity=40;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontColor=#248814;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="180" width="410" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- Subnet 1b -->
+        <mxCell id="sub1b" value="Public Subnet: lorcana-public-1b (10.0.2.0/24) [AZ: us-east-1b]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;strokeColor=#248814;strokeWidth=1.5;fillColor=#F2F9F2;fillOpacity=40;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontColor=#248814;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="440" width="410" height="230" as="geometry"/>
+        </mxCell>
+
+        <!-- ASG Box -->
+        <mxCell id="asg_box" value="Auto Scaling Group: lorcana-asg (Min: 2, Desired: 2, Max: 4)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;dashPattern=6 6;strokeColor=#D13212;strokeWidth=1.5;fillColor=none;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontColor=#D13212;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="210" width="200" height="440" as="geometry"/>
+        </mxCell>
+
+        <!-- EC2 Instance 1 -->
+        <mxCell id="ec2_1" value="EC2 Instance (t3.micro)&lt;br&gt;&lt;b&gt;Node.js App + Nginx&lt;/b&gt;&lt;br&gt;&lt;i&gt;AZ: us-east-1a&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;" vertex="1" parent="1">
+          <mxGeometry x="580" y="245" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- EC2 Instance 2 -->
+        <mxCell id="ec2_2" value="EC2 Instance (t3.micro)&lt;br&gt;&lt;b&gt;Node.js App + Nginx&lt;/b&gt;&lt;br&gt;&lt;i&gt;AZ: us-east-1b&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;" vertex="1" parent="1">
+          <mxGeometry x="580" y="505" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ElastiCache Valkey -->
+        <mxCell id="elasticache" value="Amazon ElastiCache&lt;br&gt;&lt;b&gt;Valkey Node (lorcana-cache)&lt;/b&gt;&lt;br&gt;&lt;i&gt;Port 6379 (EC2 SG Only)&lt;br&gt;Sorted Set Cache (TTL 60s)&lt;br&gt;Hit: 1ms | Miss: 41ms&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elasticache;" vertex="1" parent="1">
+          <mxGeometry x="770" y="380" width="60" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- SSM Parameter Store -->
+        <mxCell id="ssm" value="AWS Systems Manager&lt;br&gt;&lt;b&gt;Parameter Store&lt;/b&gt;&lt;br&gt;&lt;i&gt;/lorcana/jwt-secret&lt;br&gt;/lorcana/cache-endpoint&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.systems_manager;" vertex="1" parent="1">
+          <mxGeometry x="580" y="730" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- SECTION: Realtime WebSocket Gaming -->
+        <mxCell id="ws_box" value="Real-time Multiplayer WebSocket Service (Serverless)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;strokeColor=#8C4FFF;strokeWidth=1.5;fillColor=#F8F5FF;fillOpacity=50;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontColor=#8C4FFF;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="950" y="130" width="630" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="apigw_ws" value="Amazon API Gateway&lt;br&gt;&lt;b&gt;WebSocket API&lt;/b&gt;&lt;br&gt;&lt;i&gt;Routes: $connect, action&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;" vertex="1" parent="1">
+          <mxGeometry x="990" y="170" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lambda_ws" value="AWS Lambda&lt;br&gt;&lt;b&gt;lorcana-room&lt;/b&gt;&lt;br&gt;&lt;i&gt;Room pairing &amp; state sync&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="170" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddb_conn" value="DynamoDB Table&lt;br&gt;&lt;b&gt;LorcanaConnections&lt;/b&gt;&lt;br&gt;&lt;i&gt;PK: connectionId&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="170" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- SECTION: Deck Analyzer Pipeline -->
+        <mxCell id="deck_box" value="Asynchronous Deck Analysis Pipeline (SQS + DLQ + Lambda)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;strokeColor=#E7157B;strokeWidth=1.5;fillColor=#FFF5F8;fillOpacity=50;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontColor=#E7157B;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="950" y="280" width="630" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sqs_analyzer" value="Amazon SQS&lt;br&gt;&lt;b&gt;lorcana-deck-analyzer&lt;/b&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+          <mxGeometry x="990" y="325" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sqs_analyzer_dlq" value="Dead Letter Queue&lt;br&gt;&lt;b&gt;analyzer-dlq&lt;/b&gt;&lt;br&gt;&lt;i&gt;maxReceiveCount: 3&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#D13212;fillColor=#D13212;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="355" width="45" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lambda_analyzer" value="AWS Lambda&lt;br&gt;&lt;b&gt;lorcana-analyzer&lt;/b&gt;&lt;br&gt;&lt;i&gt;Pure Function: Cost curve&lt;br&gt;&amp; inkable ratio calculation&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="325" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddb_decks" value="DynamoDB Table&lt;br&gt;&lt;b&gt;DecksTable&lt;/b&gt;&lt;br&gt;&lt;i&gt;Stores Deck &amp; Analysis&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="325" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- SECTION: Match Decoupling & Fan-Out Pipeline -->
+        <mxCell id="match_box" value="Decoupled Match Event Fan-Out Pipeline (Amazon SNS + SQS + Lambda Workers)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;dashed=1;strokeColor=#147EBA;strokeWidth=1.5;fillColor=#F2F7FA;fillOpacity=50;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontColor=#147EBA;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="950" y="450" width="630" height="370" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sns_topic" value="Amazon SNS Topic&lt;br&gt;&lt;b&gt;lorcana-match-events&lt;/b&gt;&lt;br&gt;&lt;i&gt;Event: match.finished&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;" vertex="1" parent="1">
+          <mxGeometry x="990" y="585" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Branch 1: Match History -->
+        <mxCell id="sqs_history" value="Amazon SQS&lt;br&gt;&lt;b&gt;match-history&lt;/b&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="500" width="50" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sqs_history_dlq" value="DLQ" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#D13212;fillColor=#D13212;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+          <mxGeometry x="1195" y="525" width="35" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lambda_history" value="AWS Lambda&lt;br&gt;&lt;b&gt;match-history&lt;/b&gt;&lt;br&gt;&lt;i&gt;Idempotent save&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="500" width="50" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddb_history" value="DynamoDB Table&lt;br&gt;&lt;b&gt;LorcanaMatchHistory&lt;/b&gt;&lt;br&gt;&lt;i&gt;PK: userId | SK: matchId&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="500" width="50" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Branch 2: Player Stats -->
+        <mxCell id="sqs_stats" value="Amazon SQS&lt;br&gt;&lt;b&gt;player-stats&lt;/b&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="680" width="50" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sqs_stats_dlq" value="DLQ" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#D13212;fillColor=#D13212;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="1">
+          <mxGeometry x="1195" y="705" width="35" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="lambda_stats" value="AWS Lambda&lt;br&gt;&lt;b&gt;player-stats&lt;/b&gt;&lt;br&gt;&lt;i&gt;Atomic wins/lore tally&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="680" width="50" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddb_stats" value="DynamoDB Table&lt;br&gt;&lt;b&gt;LorcanaPlayerStats&lt;/b&gt;&lt;br&gt;&lt;i&gt;Leaderboard data source&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="680" width="50" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Users Table -->
+        <mxCell id="ddb_users" value="DynamoDB Table&lt;br&gt;&lt;b&gt;UsersTable&lt;/b&gt;&lt;br&gt;&lt;i&gt;User credentials &amp; auth&lt;/i&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="990" y="860" width="55" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- EDGES / CONNECTIONS -->
+
+        <!-- Client to IGW (HTTP) -->
+        <mxCell id="e_client_igw" value="HTTP (Port 80)&lt;br&gt;SPA Assets &amp; REST API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#147EBA;strokeWidth=2;fontSize=10;fontColor=#147EBA;" edge="1" parent="1" source="client_box" target="igw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- IGW to ALB -->
+        <mxCell id="e_igw_alb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#147EBA;strokeWidth=2;" edge="1" parent="1" source="igw" target="alb">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ALB to EC2 1 & 2 -->
+        <mxCell id="e_alb_ec2_1" value="Forward" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8C4FFF;strokeWidth=2;fontSize=9;" edge="1" parent="1" source="alb" target="ec2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="440"/>
+              <mxPoint x="470" y="272"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_alb_ec2_2" value="Forward" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8C4FFF;strokeWidth=2;fontSize=9;" edge="1" parent="1" source="alb" target="ec2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="440"/>
+              <mxPoint x="470" y="532"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- EC2 to UsersTable -->
+        <mxCell id="e_ec2_users" value="Auth Check / Register" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=1.5;fontSize=9;fontColor=#C925D1;dashed=1;" edge="1" parent="1" source="ec2_2" target="ddb_users">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="887"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- EC2 to ElastiCache (Cache-Aside) -->
+        <mxCell id="e_ec2_cache1" value="GET /api/leaderboard (TCP 6379)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=2;fontSize=9;fontColor=#C925D1;" edge="1" parent="1" source="ec2_1" target="elasticache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ec2_cache2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=2;" edge="1" parent="1" source="ec2_2" target="elasticache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ElastiCache miss fallback to PlayerStats -->
+        <mxCell id="e_cache_miss" value="Cache MISS (Fallback to DDB)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#545B64;strokeWidth=1.5;dashed=1;fontSize=9;" edge="1" parent="1" source="elasticache" target="ddb_stats">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="330"/>
+              <mxPoint x="930" y="330"/>
+              <mxPoint x="930" y="705"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Client to API Gateway WebSocket -->
+        <mxCell id="e_client_ws" value="WSS (WebSocket)&lt;br&gt;2-Player Realtime" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8C4FFF;strokeWidth=2;fontSize=10;fontColor=#8C4FFF;" edge="1" parent="1" source="client_box" target="apigw_ws">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="125" y="197"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- WebSocket API to Lambda -->
+        <mxCell id="e_ws_lambda" value="Route / Trigger" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8C4FFF;strokeWidth=1.5;fontSize=9;" edge="1" parent="1" source="apigw_ws" target="lambda_ws">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda to DynamoDB Conn -->
+        <mxCell id="e_lambda_conn" value="Save State / Map" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=1.5;fontSize=9;" edge="1" parent="1" source="lambda_ws" target="ddb_conn">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- EC2 to SQS Analyzer -->
+        <mxCell id="e_ec2_sqs" value="POST /api/decks/analyze (Push job)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=2;fontSize=9;fontColor=#E7157B;" edge="1" parent="1" source="ec2_1" target="sqs_analyzer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="272"/>
+              <mxPoint x="750" y="352"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- SQS to DLQ -->
+        <mxCell id="e_sqs_dlq" value="Fail 3x" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D13212;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#D13212;" edge="1" parent="1" source="sqs_analyzer" target="sqs_analyzer_dlq">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- SQS to Lambda Analyzer -->
+        <mxCell id="e_sqs_lambda" value="Event Source Poll" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=1.5;fontSize=9;" edge="1" parent="1" source="sqs_analyzer" target="lambda_analyzer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda Analyzer to DecksTable -->
+        <mxCell id="e_lambda_decks" value="Write Analysis" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=1.5;fontSize=9;" edge="1" parent="1" source="lambda_analyzer" target="ddb_decks">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- EC2 to SNS Match Finished -->
+        <mxCell id="e_ec2_sns" value="POST /api/matches (Publish event)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=2;fontSize=9;fontColor=#E7157B;" edge="1" parent="1" source="ec2_2" target="sns_topic">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="532"/>
+              <mxPoint x="750" y="612"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- SNS Fan-Out to SQS History & Stats -->
+        <mxCell id="e_sns_hist" value="Fan-Out" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=2;fontSize=9;" edge="1" parent="1" source="sns_topic" target="sqs_history">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="612"/>
+              <mxPoint x="1080" y="525"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_sns_stats" value="Fan-Out" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=2;fontSize=9;" edge="1" parent="1" source="sns_topic" target="sqs_stats">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="612"/>
+              <mxPoint x="1080" y="705"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- SQS to DLQ (History & Stats) -->
+        <mxCell id="e_hist_dlq" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D13212;strokeWidth=1;dashed=1;" edge="1" parent="1" source="sqs_history" target="sqs_history_dlq">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_stats_dlq" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#D13212;strokeWidth=1;dashed=1;" edge="1" parent="1" source="sqs_stats" target="sqs_stats_dlq">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- SQS to Lambdas -->
+        <mxCell id="e_sqs_lambda_hist" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=1.5;" edge="1" parent="1" source="sqs_history" target="lambda_history">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_sqs_lambda_stats" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=1.5;" edge="1" parent="1" source="sqs_stats" target="lambda_stats">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambdas to DynamoDB -->
+        <mxCell id="e_lambda_ddb_hist" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=1.5;" edge="1" parent="1" source="lambda_history" target="ddb_history">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_lambda_ddb_stats" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C925D1;strokeWidth=1.5;" edge="1" parent="1" source="lambda_stats" target="ddb_stats">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- SSM to EC2 -->
+        <mxCell id="e_ssm_ec2" value="Config bootstrap" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#545B64;strokeWidth=1.5;dashed=1;fontSize=9;" edge="1" parent="1" source="ssm" target="ec2_2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
