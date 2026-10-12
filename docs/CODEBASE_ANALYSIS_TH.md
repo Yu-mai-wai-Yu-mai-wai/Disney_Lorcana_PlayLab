@@ -11,7 +11,7 @@
 
 เลขบรรทัดอ้างอิงไฟล์ ณ commit ข้างต้น
 
-**อัปเดต (วันเดียวกัน หลัง merge `t15-e2e-final-report`):** PR ถัดมาแก้ S1 (role admin ตามชื่อผู้ใช้), S7 (ข้อความ error ภายใน), S9 (race ตอนสมัคร), ตารางอันดับที่อ่านแค่ 100 รายการ, การสับไพ่ลำเอียงบนกระดาน, บั๊ก quest `lore || 1`, กฎกลับเข้าห้องของ WebSocket ตอน dev, TC-E2E-08, ไฟล์ `-` และ `.bak` ที่หลงมา และเพิ่ม CI สิ่งที่พบด้านล่างบรรยายโค้ดก่อนการแก้เหล่านั้น
+**อัปเดต (วันเดียวกัน หลัง merge `t15-e2e-final-report`):** PR ถัดมาแก้ S1 (role admin ตามชื่อผู้ใช้), S7 (ข้อความ error ภายใน), S9 (race ตอนสมัคร), ตารางอันดับที่อ่านแค่ 100 รายการ, การสับไพ่ลำเอียงบนกระดาน, บั๊ก quest `lore || 1`, กฎกลับเข้าห้องของ WebSocket ตอน dev, TC-E2E-08, ไฟล์ `-` และ `.bak` ที่หลงมา และเพิ่ม CI สิ่งที่พบด้านล่างบรรยายโค้ดก่อนการแก้เหล่านั้น **อัปเดต 2026-10-12:** สร้าง stack ใหม่ด้วยสคริปต์ใน `scripts/` และตรวจจริง: health, cache MISS/HIT, E2E 54 ผ่านและ TC-E2E-23 ผ่านหลังแก้ event source mapping ที่ถูก Disabled (`ensure_pipeline.ps1` เปิดกลับให้อัตโนมัติ, PR #4), Auto Scaling ขยาย 2→3→4 และลดกลับเป็น 2 (`docs/01_Reports/stage3_evidence/`) เลขบรรทัดอ้างอิงใน handler ของกระดานยังไม่ได้ตรวจซ้ำหลังไฟล์ขยายเป็น 1,623 บรรทัด
 
 ---
 
@@ -123,7 +123,7 @@ Lorcana เป็นเกมการ์ดสำหรับสองคน �
 | E2E test                        | Playwright                                                                    | 1.62.1                                                       | เทสต์บนเบราว์เซอร์ ทั้งบนเครื่องและยิงไปที่ ALB                           | `playwright.config.ts`                                         |
 | เครื่องมือ infra                | PowerShell + AWS CLI, esbuild ผ่าน `npx`                                      | n/a                                                          | deploy, publish, destroy                                                  | `scripts/*.ps1`                                                |
 | Container                       | Docker (multi-stage)                                                          | node:20-alpine                                               | มีไฟล์แต่ไม่ใช่เส้นทาง deploy จริง                                        | `Dockerfile`, `docker-compose.yml`                             |
-| CI/CD                           | ไม่มีในรีโพสิทอรี                                                             | n/a                                                          | ไม่มีโฟลเดอร์ `.github/`                                                  | root ของรีโพสิทอรี                                             |
+| CI/CD                           | GitHub Actions (check: tsc, vitest, build)                                                             | n/a                                                          | `.github/workflows/ci.yml` (เพิ่มใน PR #2)                                                  | root ของรีโพสิทอรี                                             |
 
 ชิ้นส่วนเหล่านี้ทำงานร่วมกันอย่างไร: Vite build SPA โดยตั้ง `VITE_WS_ENDPOINT` ชี้ไปที่ API Gateway และ `VITE_API_BASE_URL=/api` (`scripts/lab.ps1` บรรทัด 91-92) esbuild รวม `backend/cluster.ts` เป็น `server.cjs` ทั้งสองถูกอัปโหลดขึ้น S3 ตอนบูต EC2 จะดึงไฟล์ลงมา เขียน `/etc/lorcana.env` จาก SSM แล้วเริ่ม backend ด้วย systemd
 
@@ -174,7 +174,7 @@ Lorcana เป็นเกมการ์ดสำหรับสองคน �
 | `game/keywords.ts` | แยก keyword 14 ตัวจากข้อความการ์ด | `parseCardKeywords`, `getEffectiveStrength`, `getEffectiveDamage` | engine, rules, กระดาน | ไม่มี | regex ที่ใช้ word boundary |
 | `game/abilities.ts` | แยกจังหวะและผลของความสามารถ | `parseAbility`, `parseCardAbilities` | engine, สคริปต์วัด coverage | `keywords.ts` | ฐานของตัวเลข "full support 16.16%" |
 | `game/engine.ts` | reducer บริสุทธิ์ `applyAction(state, action)` | `applyAction`, `createInitialState` | เทสต์เท่านั้น (ยืนยันด้วย grep) | rules, keywords, abilities | โครงสร้างดี แต่ไม่ได้ต่อกับ UI |
-| `components/LorcanaBoard.tsx` | โต๊ะเล่นเกม (1,599 บรรทัด) | `LorcanaBoard`, `LorcanaCard`, `SavedBoardState` | `App.tsx` | คอมโพเนนต์ย่อย 20 ตัว, store, service, helper จาก `src/game` | เป็นเจ้าของสถานะเกมทั้งหมดขณะเล่น |
+| `components/LorcanaBoard.tsx` | โต๊ะเล่นเกม (1,623 บรรทัด ณ 2026-10-12) | `LorcanaBoard`, `LorcanaCard`, `SavedBoardState` | `App.tsx` | คอมโพเนนต์ย่อย 20 ตัว, store, service, helper จาก `src/game` | เป็นเจ้าของสถานะเกมทั้งหมดขณะเล่น |
 | `components/board/useLorcanaWebSocket.ts` | subscribe event WS ราว 30 ชนิดให้กระดาน | `useLorcanaWebSocket` | `LorcanaBoard` | `webSocketService`, `apiService` | แปลงข้อความจากอีกฝั่งเป็นสถานะในเครื่อง |
 | `components/board/abilityResolver.ts` | ผลของความสามารถแบบ regex สำหรับกระดานจริง | `resolveCardAbilities` | `LorcanaBoard` | `parseCardKeywords`, `webSocketService` | การแปลความสามารถชุดที่สอง |
 | `components/board/*` (ที่เหลือ) | ส่วนแสดงผล: แถบบน, สนามสองฝั่ง, มือการ์ด, inkwell, modal, แชต, log, โหวต undo, overlay เมื่อหลุด | หลายตัว | `LorcanaBoard` | props | ผลจากการ refactor (`scripts/refactor_board.py`) |
@@ -769,7 +769,7 @@ erDiagram
 - `vitest.config.ts`: สภาพแวดล้อม jsdom, ไฟล์ setup มี polyfill ของ matchMedia, ResizeObserver และ WebGL, ตั้ง reporter coverage แบบ v8 ไว้ (ไม่มีเกณฑ์ขั้นต่ำ)
 - `playwright.config.ts`: worker เดียว, Desktop Chrome ขนาด 1440x900, ยิงไปที่ ALB ได้ด้วย `E2E_BASE_URL`, reporter ที่เขียนเอง `qa/qa-reporter.cjs`
 - lint คือ `tsc --noEmit` ไม่พบ config ของ ESLint หรือ Prettier
-- ไม่มี CI workflow เทสต์จะรันก็ต่อเมื่อมีคนรันบนเครื่องเอง
+- CI อยู่ที่ `.github/workflows/ci.yml` (job `check`: tsc, vitest, build) ส่วน E2E ยังรันด้วยมือ
 
 ช่องว่างของการทดสอบเรียงตามคุณค่า
 
@@ -779,7 +779,7 @@ erDiagram
 4. พฤติกรรมของ `GET /leaderboard` เมื่อมีรายการสถิติเกิน 100 รายการ
 5. การถดถอยด้านความปลอดภัย: กฎ admin ตามชื่อ (S1) และการรายงานชนะเอง (S2) ไม่มีเทสต์ที่ยืนยันพฤติกรรมที่ตั้งใจ
 
-ตัวเลขในเอกสารไม่ตรงกัน: README ระบุ "Vitest Unit Suite (33/33 pass rate)" และ E2E "49/50" แต่ตอนนี้รีโพสิทอรีมี Vitest 128 case ตัวเลขใน README จึงล้าสมัย
+ตัวเลขในเอกสารไม่ตรงกัน: README ระบุ "Vitest Unit Suite (33/33 pass rate)" และ E2E "49/50" แต่ตอนนี้รีโพสิทอรีมี Vitest 135 case ใน 22 ไฟล์ (รันจริง 2026-10-12 ผ่านทั้งหมด จำนวนต่อชุดในตารางด้านบนยังเป็นตัวเลขก่อนแก้ ไม่ได้นับแยกใหม่) ตัวเลขใน README จึงล้าสมัย
 
 ---
 
@@ -865,14 +865,14 @@ backend บนเครื่องต้องมี AWS credential ที่�
 | ปัญหา | หลักฐาน | ผลกระทบ | ลำดับ | สิ่งที่ควรทำ | ประโยชน์ | ความซับซ้อน |
 |---|---|---|---|---|---|---|
 | กติกาเกมสองชุด | `src/game/engine.ts` ไม่ได้ถูก UI ใช้, `abilityResolver.ts` | การแก้และเทสต์ในชุดหนึ่งไม่ช่วยอีกชุด ตัวเลข coverage อธิบายเกมจริงผิด | P1 | ให้ `LorcanaBoard` ขับเคลื่อนด้วย `applyAction` ผ่าน `useReducer` แสดงผลจาก `GameState` และ broadcast `GameAction` แทนส่วนต่างของ UI | กติกามีแหล่งเดียว เกมทดสอบได้ และเป็นฐานสำหรับโหมด server-authoritative ภายหลัง | สูง |
-| คอมโพเนนต์กระดาน 1,599 บรรทัด | `LorcanaBoard.tsx` | แก้ไขอย่างปลอดภัยได้ยาก | P1 (ได้ผลตามมาจากข้อข้างบน) | ย้ายสถานะไปไว้ใน reducer ให้คอมโพเนนต์ย่อยเป็นแค่ส่วนแสดงผล | อ่านง่ายขึ้น | ปานกลางถึงสูง |
+| คอมโพเนนต์กระดาน 1,623 บรรทัด | `LorcanaBoard.tsx` | แก้ไขอย่างปลอดภัยได้ยาก | P1 (ได้ผลตามมาจากข้อข้างบน) | ย้ายสถานะไปไว้ใน reducer ให้คอมโพเนนต์ย่อยเป็นแค่ส่วนแสดงผล | อ่านง่ายขึ้น | ปานกลางถึงสูง |
 | server เรียลไทม์สองตัวที่ทำงานไม่เหมือนกัน | WS ใน `server.ts` เทียบกับ `room/handler.ts` | เทสต์ตอน dev ไม่สะท้อน production | P1 | ให้ dev บนเครื่องเรียกตรรกะของ room handler (แยกเป็นโมดูลกลางแล้วห่อทั้งสำหรับ `ws` และ Lambda) หรือชี้ dev ไปที่ WS API | ทำงานเหมือนกัน | ปานกลาง |
 | protocol ข้อความเป็น string และซ้ำในสี่ฟิลด์ | `websocket.ts` บรรทัด 338-354 | ไม่ตรงกันแบบเงียบ ๆ | P2 | ใช้ฟิลด์ `type` เดียว และ union type กลางใน TypeScript ที่ทั้งสองฝั่ง import | บั๊กด้าน protocol น้อยลง | ปานกลาง |
 | room Lambda deploy จากรีโพไม่ได้ | `$lambdaFns` ใน `lab.ps1` | ซอร์สกับ production คลาดกันได้ | P1 | เพิ่ม `lorcana-room` ใน `Publish-Lambdas` และประกาศ dependency ของมัน | deploy ซ้ำได้ผลเหมือนเดิม | ต่ำ |
 | ไฟล์ค้าง: SAM template, `docker-compose.yml` ที่ชี้ไปไฟล์ที่ไม่มี, `Dockerfile` ที่ไม่ได้ใช้, ไฟล์ `.bak`, ไฟล์ `-` ที่หลงมา, `scratch/` ที่ถูก track, `SymbolDisneylorcana/` ที่ซ้ำ | ระบุไว้ในหัวข้อ 4 | ทำให้นักพัฒนาใหม่สับสน | P2 | ลบหรือทำเครื่องหมายว่าเก็บถาวร | ชัดเจนขึ้น | ต่ำ |
 | README อ้างว่า "100% AWS Serverless" และใช้จำนวนเทสต์เก่า | `README.md` บรรทัด 3, 123 | เอกสารทำให้เข้าใจผิด | P2 | อัปเดตเป็นคำอธิบายแบบผสมตามที่ใช้ใน `STAGE3_EXPERIMENT_RESULTS.md` | onboarding ถูกต้อง | ต่ำ |
 | `apiService` กลืน error และ endpoint ตอบ 200 เมื่อล้มเหลว | `api.ts`, `server.ts` บรรทัด 629-631, 646-648, 719-728 | ระบบล่มดูเหมือนแค่ไม่มีข้อมูล | P2 | ตอบ status code ที่ถูกต้อง และแสดงสถานะ error | สังเกตปัญหาได้ | ต่ำ |
-| ไม่มี CI | ไม่มี `.github/` | เจอการถดถอยช้า | P1 | GitHub Actions: `npm ci`, `tsc --noEmit`, `vitest run` ทุกครั้งที่ push | มีตาข่ายรองรับ | ต่ำ |
+| ~~ไม่มี CI~~ แก้แล้ว (PR #2) | มี `.github/workflows/ci.yml` | เจอการถดถอยช้า | P1 | GitHub Actions: `npm ci`, `tsc --noEmit`, `vitest run` ทุกครั้งที่ push | มีตาข่ายรองรับ | ต่ำ |
 
 ### ประสิทธิภาพและค่าใช้จ่าย
 
@@ -1067,7 +1067,7 @@ backend บนเครื่องต้องมี AWS credential ที่�
 ## ภาคผนวก D. 5 การปรับปรุงที่คุ้มค่าที่สุด
 
 1. ลบกฎ admin ตามชื่อผู้ใช้ และแปลงชื่อผู้ใช้เป็นตัวพิมพ์เล็ก (แรงต่ำ ปิดปัญหาระดับ P0)
-2. เพิ่ม CI ที่รัน `tsc --noEmit` และ `vitest run` ทุกครั้งที่ push (แรงต่ำ)
+2. (ทำแล้วใน PR #2) เพิ่ม CI ที่รัน `tsc --noEmit` และ `vitest run` ทุกครั้งที่ push (แรงต่ำ)
 3. ยืนยันตัวตนการเชื่อมต่อ WebSocket และผูกชื่อผู้ใช้กับ `connectionId` ฝั่ง server (ปานกลาง)
 4. ให้ room Lambda สร้างผลแข่งแทนการเชื่อ `POST /matches` จาก client ฝั่งเดียว (ปานกลาง)
 5. ให้ `LorcanaBoard` ขับเคลื่อนด้วย `applyAction` และ broadcast `GameAction` แล้วเลิกใช้ `abilityResolver.ts` (แรงสูง แต่ได้ผลระยะยาวมากที่สุด)
