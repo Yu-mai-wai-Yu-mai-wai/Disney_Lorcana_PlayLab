@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("start", "stop", "status", "publish", "lambdas", "destroy")]
+    [ValidateSet("start", "stop", "status", "publish", "lambdas", "destroy", "pause", "resume")]
     [string]$Action = "status",
     [string]$Region = "us-east-1"
 )
@@ -50,6 +50,10 @@ function Publish-Lambdas {
 
 switch ($Action) {
     "start" {
+        if ($state -and $state.Paused) {
+            Write-Error "Lab is currently Paused (ALB and cache deleted). Run 'lab.ps1 resume' instead of start."
+            exit 1
+        }
         Write-Host ("[START] Scaling ASG (" + $asg + ") to 2 (Multi-AZ Minimum 2)...") -ForegroundColor Green
         aws autoscaling update-auto-scaling-group --auto-scaling-group-name $asg --min-size 2 --desired-capacity 2 --region $Region
         Write-Host "[OK] 2 Instances are booting across AZ-a and AZ-b. Expected online in 60-90s." -ForegroundColor Green
@@ -64,6 +68,10 @@ switch ($Action) {
         Write-Host "[OK] Instances terminating. Compute cost is now `$0.00/hr." -ForegroundColor Cyan
     }
     "status" {
+        if ($state -and $state.Paused) {
+            Write-Host "Lab is currently Paused (ALB and ElastiCache deleted to save cost)." -ForegroundColor Yellow
+            Write-Host "To resume, run: .\scripts\lab.ps1 resume" -ForegroundColor Cyan
+        }
         Write-Host ("[STATUS] Disney Lorcana Lab Status (" + $asg + " - " + $Region + "):") -ForegroundColor Cyan
         aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg --region $Region --query "AutoScalingGroups[0].Instances[*].[InstanceId,AvailabilityZone,LifecycleState,HealthStatus]" --output table
         if ($albDns) {
@@ -74,6 +82,149 @@ switch ($Action) {
                 Write-Host "ALB Health: Standby / Unreachable" -ForegroundColor Yellow
             }
         }
+    }
+    "pause" {
+        Write-Host "[PAUSE] Pausing Lorcana PlayLab (scaling ASG to 0, deleting ALB and ElastiCache)..." -ForegroundColor Yellow
+
+        # 1. Scale ASG to 0 (terminate EC2 instances)
+        Write-Host "[1/3] Scaling ASG ($asg) to 0..." -ForegroundColor Green
+        aws autoscaling update-auto-scaling-group --auto-scaling-group-name $asg --min-size 0 --desired-capacity 0 --region $Region
+        Write-Host "  [OK] ASG desired capacity set to 0" -ForegroundColor Gray
+
+        # 2. Delete ALB if it exists
+        Write-Host "[2/3] Checking and deleting ALB..." -ForegroundColor Green
+        $albArn = aws elbv2 describe-load-balancers --names "lorcana-alb" --region $Region --query "LoadBalancers[0].LoadBalancerArn" --output text 2>$null
+        if ($albArn -and $albArn -ne "None") {
+            $delProt = aws elbv2 describe-load-balancer-attributes --load-balancer-arn $albArn --region $Region --query "Attributes[?Key=='deletion_protection.enabled'].Value | [0]" --output text 2>$null
+            if ($delProt -eq "true") {
+                Write-Error "ALB deletion_protection is enabled on $albArn. Disable it before running pause."
+                exit 1
+            }
+            Write-Host "  Deleting ALB $albArn..." -ForegroundColor Yellow
+            aws elbv2 delete-load-balancer --load-balancer-arn $albArn --region $Region
+            aws elbv2 wait load-balancers-deleted --load-balancer-arns $albArn --region $Region
+            Write-Host "  [OK] ALB deleted" -ForegroundColor Gray
+        } else {
+            Write-Host "  ALB does not exist or already deleted" -ForegroundColor Gray
+        }
+
+        # 3. Delete ElastiCache cluster if it exists
+        Write-Host "[3/3] Checking and deleting ElastiCache cluster..." -ForegroundColor Green
+        $clusterStatus = aws elasticache describe-cache-clusters --cache-cluster-id "lorcana-cache" --region $Region --query "CacheClusters[0].CacheClusterStatus" --output text 2>$null
+        if ($clusterStatus -and $clusterStatus -ne "None" -and $clusterStatus -ne "deleting") {
+            Write-Host "  Deleting cache cluster lorcana-cache..." -ForegroundColor Yellow
+            aws elasticache delete-cache-cluster --cache-cluster-id "lorcana-cache" --region $Region | Out-Null
+            Write-Host "  Waiting for cache cluster to delete..." -ForegroundColor Gray
+            for ($i = 0; $i -lt 40; $i++) {
+                $c = aws elasticache describe-cache-clusters --cache-cluster-id "lorcana-cache" --region $Region 2>$null
+                if ($LASTEXITCODE -ne 0) { break }
+                Start-Sleep -Seconds 10
+            }
+            Write-Host "  [OK] Cache cluster deleted" -ForegroundColor Gray
+        } else {
+            Write-Host "  Cache cluster does not exist or already deleted" -ForegroundColor Gray
+        }
+
+        # Record Paused state in infrastructure_state.json
+        if ($state) {
+            $state | Add-Member -NotePropertyName Paused -NotePropertyValue $true -Force
+            $state.AlbArn = $null
+            $state.AlbDnsName = $null
+            $state | ConvertTo-Json -Depth 5 | Set-Content -Path $stateFile -Encoding utf8
+        }
+        Write-Host "[DONE] Lab successfully paused. Hourly cost is now ~$0.00/hr." -ForegroundColor Green
+    }
+    "resume" {
+        Write-Host "[RESUME] Resuming Lorcana PlayLab (checking credentials, restoring cache, ALB, and scaling ASG)..." -ForegroundColor Green
+
+        # 1. Check AWS credentials first
+        Write-Host "[1/5] Checking AWS credentials..." -ForegroundColor Green
+        $caller = aws sts get-caller-identity --output json 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $caller) {
+            Write-Error "AWS credentials invalid or expired. Run 'aws sts get-caller-identity' to verify."
+            exit 1
+        }
+        Write-Host "  [OK] AWS credentials valid" -ForegroundColor Gray
+
+        if (-not $state) {
+            Write-Error "infrastructure_state.json not found. Run deploy first."
+            exit 1
+        }
+
+        # 2. Restore ElastiCache Redis cluster BEFORE scaling ASG so instances read the new endpoint at boot
+        Write-Host "[2/5] Restoring ElastiCache cluster..." -ForegroundColor Green
+        & (Join-Path $PSScriptRoot "ensure_cache.ps1") -Region $Region
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "ensure_cache.ps1 failed"
+            exit 1
+        }
+
+        # 3. Restore ALB and Port 80 Listener
+        Write-Host "[3/5] Checking and restoring ALB & Listener..." -ForegroundColor Green
+        $existingAlb = aws elbv2 describe-load-balancers --names "lorcana-alb" --region $Region --query "LoadBalancers[0]" --output json 2>$null | ConvertFrom-Json
+        $newAlbArn = $null
+        $newAlbDns = $null
+        if ($existingAlb -and $existingAlb.LoadBalancerArn) {
+            Write-Host "  ALB lorcana-alb already exists" -ForegroundColor Gray
+            $newAlbArn = $existingAlb.LoadBalancerArn
+            $newAlbDns = $existingAlb.DNSName
+        } else {
+            Write-Host "  Creating ALB lorcana-alb..." -ForegroundColor Green
+            $subnets = @($state.Subnet1Id, $state.Subnet2Id)
+            $albRes = aws elbv2 create-load-balancer `
+                --name "lorcana-alb" `
+                --subnets $subnets `
+                --security-groups $state.AlbSecurityGroupId `
+                --scheme internet-facing `
+                --type application `
+                --region $Region `
+                --output json | ConvertFrom-Json
+            $newAlbArn = $albRes.LoadBalancers[0].LoadBalancerArn
+            $newAlbDns = $albRes.LoadBalancers[0].DNSName
+            Write-Host "  [OK] Created ALB: $newAlbDns" -ForegroundColor Gray
+        }
+
+        # Check listener
+        $listeners = aws elbv2 describe-listeners --load-balancer-arn $newAlbArn --region $Region --output json 2>$null | ConvertFrom-Json
+        $port80Listener = if ($listeners -and $listeners.Listeners) { $listeners.Listeners | Where-Object { $_.Port -eq 80 } } else { $null }
+        if (-not $port80Listener) {
+            Write-Host "  Creating listener on port 80 forwarding to $($state.TargetGroupArn)..." -ForegroundColor Green
+            aws elbv2 create-listener `
+                --load-balancer-arn $newAlbArn `
+                --protocol HTTP `
+                --port 80 `
+                --default-actions "Type=forward,TargetGroupArn=$($state.TargetGroupArn)" `
+                --region $Region | Out-Null
+            Write-Host "  [OK] Port 80 listener created" -ForegroundColor Gray
+        } else {
+            Write-Host "  Port 80 listener already exists" -ForegroundColor Gray
+        }
+
+        # Update state file with new AlbArn and AlbDnsName, clear Paused
+        $state.AlbArn = $newAlbArn
+        $state.AlbDnsName = $newAlbDns
+        $state.Paused = $false
+        $state | ConvertTo-Json -Depth 5 | Set-Content -Path $stateFile -Encoding utf8
+
+        # 4. Scale ASG up to 2
+        Write-Host "[4/5] Scaling ASG ($asg) to 2..." -ForegroundColor Green
+        aws autoscaling update-auto-scaling-group --auto-scaling-group-name $asg --min-size 2 --desired-capacity 2 --region $Region
+        Write-Host "  [OK] 2 instances booting" -ForegroundColor Gray
+
+        # 5. Wait for healthy targets
+        Write-Host "[5/5] Waiting for healthy targets in target group..." -ForegroundColor Green
+        $tgArn = $state.TargetGroupArn
+        $healthy = 0
+        for ($i = 0; $i -lt 40; $i++) {
+            $healthy = [int](aws elbv2 describe-target-health --target-group-arn $tgArn --region $Region --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy'])" --output text 2>$null)
+            if ($healthy -ge 2) { break }
+            Start-Sleep -Seconds 10
+        }
+        Write-Host "  [OK] $healthy healthy target(s) registered" -ForegroundColor Gray
+
+        Write-Host "[DONE] Lab successfully resumed!" -ForegroundColor Green
+        Write-Host ("Application URL: http://" + $newAlbDns) -ForegroundColor Yellow
+        Write-Host ("Health Check:    http://" + $newAlbDns + "/api/health") -ForegroundColor Yellow
     }
     "lambdas" {
         Write-Host "[LAMBDAS] Bundling and deploying Lambda code..." -ForegroundColor Green

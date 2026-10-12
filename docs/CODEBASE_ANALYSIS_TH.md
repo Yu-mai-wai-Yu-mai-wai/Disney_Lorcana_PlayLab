@@ -31,7 +31,7 @@
 4. **REST ทุกเส้นอยู่ในไฟล์เดียว** `backend/server.ts` คือศูนย์กลาง และ `AGENTS.md` ระบุว่าตั้งใจให้เป็นแบบนี้ ("Unified Backend")
 5. **โครงสร้างพื้นฐานถูกสร้างด้วยสคริปต์ PowerShell ไม่ใช่เครื่องมือ IaC แบบประกาศสถานะ** `scripts/deploy_ec2_vpc_asg.ps1`, `scripts/ensure_pipeline.ps1`, `scripts/ensure_cache.ps1` และ `scripts/lab.ps1` สร้าง อัปเดต และลบทุกอย่างด้วยการเรียก AWS CLI ส่วน SAM template ใน `backend/serverless/template.yaml` บรรยายโครงสร้างแบบ serverless ล้วนรุ่นเก่า ไม่ตรงกับที่ deploy อยู่ตอนนี้
 
-**ระดับความพร้อม** เป็น MVP ที่ใช้งานได้ พร้อมผลทดลองด้านคลาวด์ที่วัดจริง (`docs/01_Reports/STAGE3_EXPERIMENT_RESULTS.md`) แต่ยังไม่พร้อมสำหรับ production เพราะไม่มี HTTPS, ทราฟฟิก WebSocket ไม่ยืนยันตัวตน, ผลแข่งรายงานจากฝั่งผู้เล่น, ไม่มี CI pipeline และคอมโพเนนต์กระดานยาว 1,599 บรรทัด
+**ระดับความพร้อม** เป็น MVP ที่ใช้งานได้ พร้อมผลทดลองด้านคลาวด์ที่วัดจริง (`docs/01_Reports/STAGE3_EXPERIMENT_RESULTS.md`) แต่ยังไม่พร้อมสำหรับ production เพราะไม่มี HTTPS, ทราฟฟิก WebSocket ไม่ยืนยันตัวตน, ผลแข่งรายงานจากฝั่งผู้เล่น (ปัจจุบันมี CI pipeline ตรวจสอบแล้ว) และคอมโพเนนต์กระดานยาว 1,623 บรรทัด
 
 ---
 

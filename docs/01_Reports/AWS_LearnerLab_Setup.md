@@ -79,15 +79,33 @@ cd D:\Tawanagent\TAWAN-OS\02_STUDY\2026-Semester\Cloud_Computing\Cloud_Project\D
 .\scripts\lab.ps1 stop    # หรือ .\scripts\lab_stop.ps1
 ```
 * สั่งปรับ `Desired Capacity = 0` และ `Min Size = 0`
-* EC2 ทั้งหมดถูก terminate ค่า EC2 หยุดทันที แต่ ALB และ public IPv4 ของ ALB ยังคิดราว $0.0325/ชม. (≈ $23.7/เดือน) ถ้าหยุดนานให้ใช้ destroy
+* EC2 ทั้งหมดถูก terminate ค่า EC2 หยุดทันที แต่ ALB และ ElastiCache ยังคิดเงินต่อเนื่องราว ~$0.05/ชม.
 
-### 4. เมื่อส่งโปรเจกต์เสร็จสิ้น / ไม่ได้ใช้งานยาวนาน (Complete Teardown)
+### 4. เมื่อต้องการหยุดค่าใช้จ่ายรายชั่วโมงทั้งหมดระหว่างวัน (Pause Infrastructure)
+```powershell
+.\scripts\lab.ps1 pause
+```
+* สั่งปรับ ASG เป็น 0 และลบ ALB กับ ElastiCache cluster ออก
+* คง VPC, Subnets, Security Groups, Target Group และ Launch Template ไว้
+* ค่าใช้จ่ายรายชั่วโมงเหลือ ≈ $0.00/ชม. โดยไม่ต้องรื้อ VPC และทรัพยากรหลัก
+
+### 5. เมื่อต้องการกลับมาใช้งานต่อจากที่ Pause ไว้ (Resume Infrastructure)
+```powershell
+.\scripts\lab.ps1 resume
+```
+* ตรวจสอบสิทธิ์ AWS ก่อน
+* กู้คืน ElastiCache cluster และอัปเดต SSM Parameter `/lorcana/cache-endpoint`
+* สร้าง ALB และ Port 80 Listener ชี้ไปยัง Target Group เดิม และอัปเดต `AlbDnsName` ใน `infrastructure_state.json`
+* ขยาย ASG กลับเป็น Min=Desired=2 และรอจนเป้าหมาย Healthy
+
+### 6. เมื่อส่งโปรเจกต์เสร็จสิ้น / ไม่ได้ใช้งานยาวนาน (Complete Teardown)
 ```powershell
 .\scripts\lab.ps1 destroy # หรือ .\scripts\lab_destroy.ps1
 ```
-* ลบ ALB, Target Group, ASG, Launch Template, Security Groups และ VPC ทิ้งทั้งหมด
+* ลบ ALB, Target Group, ASG, Launch Template, Security Groups, ElastiCache และ VPC ทิ้งทั้งหมด
 * ค่าใช้จ่ายรายชั่วโมงของ VPC/ALB/EC2 เป็น $0 (ยังเหลือ S3, DynamoDB, SSM ตามข้อมูลที่เก็บ ซึ่งต่ำมาก)
 * ถ้าลบไม่ครบ สคริปต์จะ exit 1 และเก็บ `infrastructure_state.json` ไว้ ให้รันซ้ำได้
+
 
 ---
 

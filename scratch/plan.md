@@ -1,10 +1,115 @@
 # Spec: Stage 3 — Game Engine Correctness, Real Analytics, Caching + Decoupling, Report
 
-Status: SPEC READY — รอยืนยัน seams แล้วจะแตก ticket | Updated: 2026-09-27
-Deadlines: ผลทดลอง Stage 3 วันที่ 10 ต.ค. 2569, รายงานฉบับสมบูรณ์ + นำเสนอ 20-25 ต.ค. 2569
+Status: Stage 3 สร้างและพิสูจน์บน AWS จริงแล้ว (2026-10-12) | สเปกใหม่ "pause/resume" รอตะวันตอบ "Proceed" | Updated: 2026-10-12
+Deadlines: ผลทดลอง Stage 3 วันที่ 10 ต.ค. 2569 (ส่งแล้ว), นำเสนอ Final วันที่ 26 ต.ค. 2569
 Audit ที่เป็นที่มาของสเปกนี้: ดูหัวข้อ "Audit Evidence" ท้ายไฟล์
 
-## ความคืบหน้า (อัปเดต 30 ก.ย. 2569) และงานที่จะทำต่อ
+## สถานะปัจจุบัน (อัปเดต 2026-10-12) อ่านหัวข้อนี้ก่อนทำงานต่อ
+
+ผู้เขียน: Claude Code ตามคำสั่งตะวันผ่าน Hermes (Discord) รายละเอียดคำสั่งและเหตุผลอยู่ใน `docs/specs/2026-10-11_post-pr2_learner_lab_runbook.md`
+
+### ข้อเท็จจริงของระบบ ณ 2026-10-12
+
+| เรื่อง | สถานะ | ที่มา |
+|---|---|---|
+| โค้ดบน `main` | PR #2 (d49d2b2: แก้บั๊ก ความปลอดภัย CI), PR #4 (544c399: `ensure_pipeline.ps1` เปิด event source mapping ที่ Disabled, หลักฐานรายงาน), `e1c65e9` (แก้ `docs/CODEBASE_ANALYSIS_TH.md`) | `git log origin/main` |
+| Vitest | 135 ผ่าน 22 ไฟล์ | รันเองวันที่ 12 |
+| E2E บน ALB จริง | 54 ผ่าน, TC-E2E-23 ล้มครั้งแรกเพราะ mapping Disabled แล้วผ่านหลังเปิด mapping | `docs/01_Reports/stage3_evidence/e2e_after_pr2_2026-10-12.txt` |
+| Auto Scaling | 2→3 เวลา 04:22:05Z, 3→4 เวลา 04:28:05Z, ลดกลับเหลือ 2 ที่ 04:44:41Z และ 04:46:34Z, login 18,270 ครั้ง ล้มเหลว 0 | `docs/01_Reports/stage3_evidence/stress_scaling_2026-10-12.txt` |
+| AWS ตอนนี้ | ASG `lorcana-asg` Min 0 / Desired 0 / Max 4 (หลัง `lab.ps1 stop`), ALB `lorcana-alb` active, ElastiCache `lorcana-cache` (engine redis) available | ตรวจ read-only 2026-10-12 |
+| งบ Learner Lab | ใช้ไป 14.8 จาก 50 ดอลลาร์ ณ 2026-10-12 (ตะวันรายงาน) ค่าที่ยังวิ่งหลัง stop คือ ALB กับ ElastiCache ราว 0.05 ดอลลาร์ต่อชั่วโมง (คำนวณจากราคาในเอกสาร ยังไม่เทียบ Cost Explorer) | ตะวัน |
+| ปรึกษาอาจารย์ 2026-10-12 16:30 | อาจารย์ให้ปรับ diagram draw.io ให้ละเอียดอ่านง่าย อธิบาย process ของ Lambda, EC2, ElastiCache และเส้นทุกเส้น คำถามที่อาจารย์สงสัย: ElastiCache ใช้ทำอะไร, Lambda ทำอะไร, ออกอินเทอร์เน็ตอย่างไรเมื่อไม่มี NAT, ตรรกะเกมอยู่ที่ Lambda หรือ EC2 | ตะวันรายงาน |
+| นำเสนอ Final | 2026-10-26 | ตะวัน |
+
+### เอกสารที่ทำวันที่ 12 (บางไฟล์ยังไม่ commit ดู git status)
+
+- `docs/architecture/aws_architecture_lorcana_playlab_detailed.drawio` 6 หน้า: ภาพรวม, EC2+ElastiCache, Lambda, ใครทำอะไร, เครือข่าย, ลำดับเหตุการณ์ (ใช้ไอคอน AWS) ยังไม่ได้เปิดตรวจภาพใน draw.io และยังไม่ export PNG
+- `docs/architecture/PROFESSOR_CLOUD_ARCHITECTURE.md` (เดิมชื่อ `EMAIL_TO_PROFESSOR_CLOUD_ARCHITECTURE.md`) สคริปต์คุยอาจารย์ ยังไม่มีคำตอบ 4 ข้อที่อาจารย์ถามต่อท้าย
+- `docs/architecture/aws_architecture_lorcana_playlab.drawio` แก้ป้าย React 19 และ `$disconnect` ส่วน PNG `Aws_disney_lorcana.drawio.png` ยังเป็นรุ่นเก่า
+- `docs/CODEBASE_ANALYSIS_TH.md` บรรทัด 34 ยังเขียน "ไม่มี CI pipeline" และ 1,599 บรรทัด ซึ่งผิด (CI มีแล้ว, ไฟล์ 1,623 บรรทัด)
+
+### ค้างอยู่ เรียงลำดับ (รายละเอียดอยู่ใน `scratch/tickets.md` หัวข้อ Ledger 2026-10-12)
+
+1. commit และ push เอกสารที่ค้าง (ตะวันรันเอง เพราะ git commit/push ผ่านเครื่องมือของ Claude ถูกปฏิเสธ)
+2. เปิด drawio ตรวจภาพ แก้เส้นที่ทับ แล้ว export PNG ใส่รายงาน
+3. สเปก pause/resume (หัวข้อถัดไป) รอ "Proceed"
+4. ความปลอดภัย WebSocket: `$connect` ไม่ตรวจ JWT, relay ไม่ตรวจว่าผู้ส่งเป็นสมาชิกห้อง, ไม่ตรวจ schema ของข้อความ, ผลแข่งมาจาก client (แผนแก้ยังไม่เขียน ตะวันยังไม่ตัดสินใจว่าจะทำ)
+5. publish Lambda `lorcana-room` และ `lorcana-auth-register` ที่ยังเป็นโค้ดก่อน PR #2 และ JWT_SECRET ของ auth-register, analyzer, room ไม่ตรงกับค่าใน SSM
+6. รันซ้ำบน stack ใหม่: ASG self-healing (`test_asg_recovery.ps1`), ทดสอบ DLQ, และรัน `ensure_pipeline.ps1` ที่แก้ (ตรวจแค่ syntax ยังไม่เคยรันจริง)
+7. ลบบัญชีทดสอบ `stress_bot` และ `e2e_*` ใน UsersTable (ตะวันรันเอง)
+8. compile รายงาน `.tex` หลังเพิ่มรูปบท 4 (ยังไม่ได้ compile)
+9. ตัดสินใจ `destroy` กับปล่อยไว้ ตามงบ ดูหัวข้อด้านล่าง
+
+### กฎงบและการปิดระบบ (ตัดสินแล้ว 2026-10-12)
+
+- ปล่อย ALB กับ ElastiCache ไว้ ไม่ `destroy` ตอนนี้ งบเหลือ 35.2 ดอลลาร์ ประมาณการใช้ถึงวันที่ 26 ราว 21-22 ดอลลาร์ถ้าซ้อม 4 ชั่วโมงต่อวัน
+- ใช้ `lab.ps1 stop` ทุกครั้งที่เลิกใช้ `start` เฉพาะตอนซ้อมหรือถ่ายภาพ
+- ถ้ายอดใช้ไปแตะราว 35 ดอลลาร์ก่อนวันที่ 24 ให้ `destroy` แล้วสร้างใหม่ก่อนวันซ้อมสุดท้าย (ตะวันสั่งรันเอง ห้าม agent รัน `destroy` โดยไม่ได้รับอนุมัติ)
+- AWS ไม่มีคำสั่งหยุด ALB หรือ ElastiCache ชั่วคราว มีแต่ลบกับสร้างใหม่ จึงมีสเปกด้านล่าง
+
+---
+
+## Spec: `lab.ps1 pause` และ `resume` (รอ "Proceed")
+
+### Problem
+`lab.ps1 stop` หยุดเฉพาะ EC2 (ASG เป็น 0) ALB กับ ElastiCache ยังคิดเงินราว 0.05 ดอลลาร์ต่อชั่วโมง ตะวันต้องการคำสั่งเดียวที่หยุดค่าใช้จ่ายรายชั่วโมงที่เหลือ โดยไม่ต้องสร้าง VPC ใหม่หมดเหมือน `destroy`
+
+### ขอบเขต
+ทำ: เพิ่ม action `pause` และ `resume` ใน `scripts/lab.ps1` ตัวเดียว และอัปเดต runbook กับ `AWS_LearnerLab_Setup.md`
+ไม่ทำ: ไม่แก้ `deploy_ec2_vpc_asg.ps1`, `ensure_cache.ps1`, `destroy` (เรียกใช้ซ้ำเท่านั้น) ไม่แตะ DynamoDB, SQS, SNS, Lambda, S3, SSM นอกจาก parameter `/lorcana/cache-endpoint` ที่ `ensure_cache.ps1` เขียนอยู่แล้ว
+
+### Interface (public)
+```
+.\scripts\lab.ps1 pause     # ASG เป็น 0 (เหมือน stop) แล้วลบ ALB กับ ElastiCache cluster
+.\scripts\lab.ps1 resume    # สร้าง ALB + listener :80 → target group เดิม, เรียก ensure_cache.ps1, อัปเดต state, ASG กลับเป็น Min=Desired=2, รอ target healthy
+```
+ผลคือ `infrastructure_state.json` ต้องมี `AlbArn` และ `AlbDnsName` ใหม่หลัง `resume` และ `status` ต้องทำงานได้ทั้งตอน paused
+
+### สิ่งที่ pause ลบ และสิ่งที่เก็บ
+| ลบ | เก็บ |
+|---|---|
+| ALB `lorcana-alb` (listener ถูกลบพร้อมกัน) | VPC, subnet 1a/1b, IGW, route table |
+| ElastiCache cluster `lorcana-cache` | Security Group ทั้งสาม, ElastiCache subnet group |
+| (EC2 ถูก terminate โดย ASG เป็น 0) | Target group `lorcana-tg`, Launch Template, ASG, scaling policy, CloudWatch alarm, SSM, S3, DynamoDB, SQS/SNS, Lambda |
+
+### Edge case และ worst case (Adversarial Pause)
+1. ALB DNS เปลี่ยนหลัง `resume` ลิงก์ในเอกสารและรายงานต้องแก้ สคริปต์ต้องพิมพ์ URL ใหม่ชัดเจนและอัปเดต state
+2. endpoint ของ ElastiCache เปลี่ยน EC2 อ่านจาก SSM ตอนบูต ดังนั้น `resume` ต้องรอ cache available และให้ `ensure_cache.ps1` เขียน `/lorcana/cache-endpoint` ก่อนเริ่ม ASG ถ้ากลับลำดับ เครื่องจะอ่านค่าเก่า ระบบไม่พังเพราะ leaderboard ถอยไปอ่าน DynamoDB แต่แคชจะไม่ทำงานจนกว่าจะเปลี่ยนเครื่อง
+3. ลบ ALB ไม่ได้ถ้ายังมี deletion protection หรือ listener ผูกอยู่: ต้องตรวจสถานะก่อนและรายงาน ไม่ลบแบบเงียบ
+4. `destroy` ที่รันหลัง `pause` ต้องผ่านโดยไม่ error เมื่อไม่มี ALB หรือ cache (ตรวจในโค้ดปัจจุบันว่าทุกขั้นเช็กการมีอยู่ก่อนลบ ถ้าไม่ครบต้องแก้)
+5. Learner Lab บางครั้งปฏิเสธบางคำสั่งด้วย SCP และ session หมดทุก 4 ชั่วโมง: ทุกขั้นต้องหยุดและรายงานถ้า `aws sts get-caller-identity` ล้มเหลว ไม่ทำต่อครึ่งๆ
+6. **Worst case:** `resume` สร้าง ALB ได้แต่ cache หรือ listener ไม่สำเร็จ ทำให้ระบบค้างกึ่งกลาง ผลคือเว็บไม่เปิดและยังจ่ายค่า ALB วิธีกู้: รัน `resume` ซ้ำ (ต้อง idempotent: ตรวจว่ามี ALB, listener, cache อยู่แล้วให้ข้าม) หรือ `destroy` แล้วสร้างใหม่ด้วย 3 สคริปต์ตาม runbook ข้อมูลใน DynamoDB/S3/SSM ไม่ได้รับผลกระทบ
+7. ห้ามพิมพ์ค่า SSM, token หรือ credential ในผลลัพธ์
+
+### ข้อเท็จจริงจากโค้ดที่ออกแบบอิงอยู่
+- `lab.ps1` มี action `start|stop|status|publish|lambdas|destroy` และอ่าน state จาก `scripts/infrastructure_state.json` (key: AlbArn, AlbDnsName, TargetGroupArn, VpcId, Subnet1Id, Subnet2Id, AlbSecurityGroupId, Ec2SecurityGroupId, AutoScalingGroupName ฯลฯ)
+- `deploy_ec2_vpc_asg.ps1` สร้างด้วย `aws elbv2 create-load-balancer` และ `create-listener` ในบรรทัด 128 และ 140 (resume ต้องทำเทียบเท่าโดยใช้ target group และ SG เดิม)
+- `ensure_cache.ps1` เป็น idempotent: สร้าง SG, subnet group, cluster ถ้ายังไม่มี รอจน available แล้วเขียน SSM endpoint
+- `lab.ps1 destroy` ลบ ElastiCache พร้อม subnet group และ SG ก่อนลบ VPC (บรรทัด 202-222)
+
+### Definition of Done (ตรวจแบบ binary)
+- [ ] D1 Red test ก่อน: ชุดทดสอบ PowerShell (Pester ถ้ามี หรือสคริปต์ตรวจ) ล้มเพราะยังไม่มี action `pause`/`resume` และ `ValidateSet` ไม่รับค่า
+- [ ] D2 `lab.ps1 pause` แล้ว `aws elbv2 describe-load-balancers --names lorcana-alb` ไม่พบ และ `aws elasticache describe-cache-clusters --cache-cluster-id lorcana-cache` ไม่พบ ASG Desired = 0
+- [ ] D3 `lab.ps1 pause` รันซ้ำเมื่อ paused แล้วไม่ error (idempotent)
+- [ ] D4 `lab.ps1 resume` ทำให้ `GET http://<ALB ใหม่>/api/health` ตอบ 200 ภายใน 15 นาที และ target ทั้ง 2 healthy
+- [ ] D5 หลัง resume `GET /api/leaderboard` คืน header `X-Cache` เปลี่ยน MISS แล้ว HIT (แคชใหม่ทำงาน)
+- [ ] D6 Playwright smoke อย่างน้อย login และ health ผ่านบน ALB ใหม่ (ใช้ `E2E_BASE_URL`)
+- [ ] D7 `lab.ps1 resume` รันซ้ำเมื่อระบบขึ้นอยู่แล้วไม่สร้างซ้ำ ไม่ error
+- [ ] D8 `lab.ps1 destroy` หลัง `pause` ผ่านและ exit 0
+- [ ] D9 `lab.ps1 status` ทำงานทั้งตอน paused และตอนปกติ
+- [ ] D10 อัปเดต `docs/specs/2026-10-11_post-pr2_learner_lab_runbook.md` และ `docs/01_Reports/AWS_LearnerLab_Setup.md` (ตารางงบ: หลัง `pause` ค่าใช้จ่ายรายชั่วโมงเหลือ ≈ 0) พร้อมบันทึกค่าใช้จ่ายจริงที่เห็นใน Cost Explorer
+- [ ] D11 ไม่มีความลับในผลลัพธ์ของสคริปต์ และรายงานผลทดสอบจริงลง `docs/01_Reports/stage3_evidence/`
+
+### Security test (OWASP)
+A05 Security Misconfiguration: หลัง `resume` Security Group ต้องเหมือนเดิม (ALB SG รับ 80 จาก 0.0.0.0/0, EC2 SG รับ 80 จาก ALB SG เท่านั้น, cache SG รับ 6379 จาก EC2 SG เท่านั้น ไม่เปิด 22) ตรวจด้วย `describe-security-groups`
+A09 Logging: สคริปต์พิมพ์ทุกขั้นที่ลบหรือสร้าง และหยุดเมื่อล้มเหลว
+
+### ลำดับลงมือหลังได้ Proceed
+Red test (D1) → pause (D2, D3) → resume (D4-D7) → destroy-compat (D8) → status (D9) → เอกสาร (D10, D11) ทดสอบกับ stack จริงทีละขั้น ก่อนรัน `pause` ครั้งแรกให้ตะวันยืนยันอีกครั้งเพราะลบ ALB กับ cache จริง
+
+---
+
+## ความคืบหน้า (อัปเดต 30 ก.ย. 2569) และงานที่จะทำต่อ (เก็บเป็นประวัติ ข้อมูลบางส่วนล้าสมัยแล้ว ดูหัวข้อ "สถานะปัจจุบัน" ด้านบน)
 
 รายละเอียดราย ticket อยู่ท้ายไฟล์ `scratch/tickets.md` (หัวข้อ Progress ledger) unit test 128/128, e2e 05+06 = 12/12 บน AWS จริง
 
