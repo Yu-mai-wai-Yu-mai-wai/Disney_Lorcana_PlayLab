@@ -1,0 +1,47 @@
+Auto Scaling stress test on the rebuilt stack
+Date: 2026-10-12   Region: us-east-1   ASG: lorcana-asg (Min 2, Desired 2, Max 4)   Policy: cpu-target-tracking-60 (target 60% ASGAverageCPUUtilization)
+Run by: the user (PowerShell 7) with scripts/stress_test.ps1 (defaults: 600 s, 40 workers, POST /api/auth/login, bcrypt cost 10)
+Code under test: main after PR #2, published with lab.ps1 publish the same day. Backend bundle is backend/cluster.ts.
+Evidence below is copied from the user's terminal output (script result) and from read-only aws cli queries by Claude Code (activities, alarms, CPU).
+
+=== Script result (pasted by the user) ===
+Done at 04:27:57 UTC | OK: 18270 | Failed: 0 | 30.4 logins/s
+Auto Scaling activity printed by the script at 04:27:57 UTC (before the second scale-out):
+  2026-10-12T04:22:15.572+00:00  Successful  Launching a new EC2 instance: i-0ccf47d29e675661b
+
+=== ASG scaling activities (aws autoscaling describe-scaling-activities, queried 04:45 UTC) ===
+04:22:05Z  AlarmHigh in ALARM triggered cpu-target-tracking-60: desired capacity 2 -> 3; instance started 04:22:13Z (i-0ccf47d29e675661b)
+04:28:05Z  AlarmHigh in ALARM triggered cpu-target-tracking-60: desired capacity 3 -> 4; instance started 04:28:16Z
+04:44:41Z  AlarmLow in ALARM triggered cpu-target-tracking-60: desired capacity 4 -> 3; instance i-0f9a41ce02e769f5b selected for termination (scale-in after the load stopped)
+04:46:34Z  AlarmLow in ALARM triggered cpu-target-tracking-60: desired capacity 3 -> 2; instance i-0ccf47d29e675661b selected for termination (from the user's Activity history screenshot, ASG back at Min 2)
+Local time (UTC+7): first scale-out 11:22:05, second 11:28:05, first scale-in 11:44:41, second scale-in 11:46:34.
+
+=== CPUUtilization, AWS/EC2 dimension AutoScalingGroupName=lorcana-asg, 1-minute average ===
+Local time (UTC+7)   Average CPU %
+11:10 to 11:17       0.19 to 0.30 (idle)
+11:18                23.8
+11:19                99.7
+11:20                99.3
+11:21                88.9
+11:22                79.5
+11:23                84.0
+11:24                90.1
+11:25                93.3
+11:26                83.7
+11:27                95.7
+11:28                81.9
+11:29 onward         0.2 to 0.3 (load stopped)
+(The average falls as new instances join the group; at 11:22 the group has 3 instances and at 11:28 it has 4 by the activity log.)
+
+=== Alarm states (describe-alarms, queried 04:45 UTC) ===
+TargetTracking-lorcana-asg-AlarmHigh-3dbc1fa9-5395-41d4-8033-f0ec14869a26  OK     (state changed 11:30:05 local, back from ALARM)
+TargetTracking-lorcana-asg-AlarmLow-293854af-5672-4bc9-b482-b45a13b38ebd   ALARM  (state changed 11:44:40 local)
+ASG at 04:45:41 UTC: Min 2, Desired 3, Max 4; i-0f9a41ce02e769f5b Terminating (connection draining), 3 other instances InService/Healthy.
+
+=== Result ===
+Scale-out reproduced on the new stack: 2 -> 3 -> 4 instances within about 6 minutes of CPU passing 60% (load started about 11:18 local, group reached Max 4 at 11:28). 0 failed logins out of 18,270. Scale-in began about 15 minutes after the load stopped.
+
+=== Not covered / caveats ===
+- The ASG health-check type is ELB; no instance was unhealthy during the run, which is not verified for every second of the test (only the end state).
+- The stress_bot account created by the script was not cleaned up at the time of writing; the user was given the delete-item command.
+- Screenshots of this run are separate files (user captured).

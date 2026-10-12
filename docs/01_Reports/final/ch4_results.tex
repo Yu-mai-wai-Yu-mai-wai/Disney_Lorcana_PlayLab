@@ -262,4 +262,52 @@ Manual Resolve & 2,956 (78.45\%) & แสดงป้ายให้ผู้เ
 \label{fig:aws_target_group}
 \end{figure}
 
-ภาพชุดนี้แสดงสถานะของ stack ขณะไม่มีโหลด จึงไม่มีภาพ alarm สั่งเพิ่มเครื่องจาก 2 เป็น 4 ผลการทดลองเรื่องการปรับจำนวนเครื่องตามโหลดอยู่ในไฟล์ข้อมูลของการทดลองเดิมใน \texttt{docs/01\_Reports/stage3\_evidence/} ซึ่งรันบน stack รุ่นก่อนหน้า
+ภาพข้างบนแสดงสถานะของ stack ขณะไม่มีโหลด ส่วนการปรับจำนวนเครื่องตามโหลดทดลองซ้ำบน stack ที่สร้างใหม่ในวันเดียวกัน ผลอยู่ในตารางที่ \ref{tab:scaling_2026_10_12}
+
+\subsubsection*{การทดลอง Auto Scaling ซ้ำบน stack ใหม่ (12 ตุลาคม 2569)}
+
+รัน \texttt{scripts/stress\_test.ps1} ค่าเริ่มต้น (600 วินาที, 40 worker, \texttt{POST /api/auth/login}) กับ ALB ของ stack ใหม่ ตัวเลขทั้งหมดมาจากเอาต์พุตของสคริปต์ และคำสั่ง AWS CLI แบบอ่านอย่างเดียว บันทึกไว้ที่ \texttt{docs/01\_Reports/stage3\_evidence/stress\_scaling\_2026-10-12.txt}
+
+\begin{table}[H]
+\centering
+\caption{ผลการทดลอง Auto Scaling บน stack ที่สร้างใหม่ (เวลาเป็น UTC และเวลาไทย UTC+7)}
+\label{tab:scaling_2026_10_12}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{หัวข้อ} & \textbf{ผล} \\
+\midrule
+Login สำเร็จ/ล้มเหลว & 18,270/0 (30.4 ครั้งต่อวินาที) \\
+CPU เฉลี่ยของ ASG & 0.2--0.3\% ก่อนโหลด, 79--99.7\% ระหว่าง 04:19 ถึง 04:28 UTC (11:19 ถึง 11:28 น.), 0.3\% หลังโหลดหยุด \\
+Scale-out ครั้งที่ 1 & 04:22:05 UTC (11:22:05 น.) จาก 2 เป็น 3 เครื่อง \\
+Scale-out ครั้งที่ 2 & 04:28:05 UTC (11:28:05 น.) จาก 3 เป็น 4 เครื่อง (ค่าสูงสุด) \\
+Scale-in ครั้งที่ 1 & 04:44:41 UTC (11:44:41 น.) จาก 4 เป็น 3 เครื่อง หลังโหลดหยุดราว 15 นาที \\
+Scale-in ครั้งที่ 2 & 04:46:34 UTC (11:46:34 น.) จาก 3 เป็น 2 เครื่อง กลับสู่ค่าต่ำสุด \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\IfFileExists{images/useindoc/aws_2026-10-12_scaleout_activity.png}{%
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_scaleout_activity.png}
+\caption{Activity history ของ \texttt{lorcana-asg}: เพิ่มเครื่อง 2 เป็น 3 (04:22:05 UTC) และ 3 เป็น 4 (04:28:05 UTC) เมื่อ alarm \texttt{AlarmHigh} เป็น ALARM จากนั้นลดเครื่อง 4 เป็น 3 (04:44:41 UTC) และ 3 เป็น 2 (04:46:34 UTC) เมื่อ alarm \texttt{AlarmLow} เป็น ALARM หลังโหลดหยุด ภาพตัดแถวบนสุดที่แสดงการเพิ่มเครื่องครั้งแรกไม่เต็ม เวลาในคอลัมน์ Cause เป็น UTC ส่วน Start time เป็นเวลาไทย (UTC+7)}
+\label{fig:aws_scaleout_activity}
+\end{figure}}{}
+
+\IfFileExists{images/useindoc/aws_2026-10-12_scaleout_alarm.png}{%
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_scaleout_alarm.png}
+\caption{กราฟของ alarm \texttt{TargetTracking-lorcana-asg-AlarmHigh}: CPU utilization เกินเส้นเกณฑ์ 60\% ติดต่อกัน 3 datapoints ใน 3 นาที แถบสีแดงด้านล่างคือช่วงที่ alarm อยู่สถานะ In alarm ราว 04:22 ถึง 04:30 UTC แกนเวลาในภาพเป็น UTC}
+\label{fig:aws_scaleout_alarm}
+\end{figure}}{}
+
+\IfFileExists{images/useindoc/aws_2026-10-12_scaleout_cpu.png}{%
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_scaleout_cpu.png}
+\caption{CPU Utilization ของ \texttt{lorcana-asg} (แท็บ Monitoring, EC2) สูงสุด 99.71\% ระหว่างการยิงโหลด แกนเวลาในภาพเป็น UTC}
+\label{fig:aws_scaleout_cpu}
+\end{figure}}{}
+
+ผลการทดลองนี้สอดคล้องกับรอบวันที่ 27 กันยายน 2569 (2 เป็น 4 เครื่อง) แต่เป็นการทดลองบน stack คนละชุด เวลาและจำนวนเครื่องของแต่ละรอบไม่ควรนำมารวมกัน ตัวเลขข้างบนไม่ครอบคลุมสถานะ health ของเครื่องตลอดช่วงโหลด ตรวจเฉพาะสถานะหลังโหลดจบ
