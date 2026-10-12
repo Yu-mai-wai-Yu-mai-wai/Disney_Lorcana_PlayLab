@@ -4,7 +4,10 @@
 **กลุ่มผู้จัดทำ:** นายตะวัน [รหัสนักศึกษา] และทีมโครงงาน  
 **แผนภาพสถาปัตยกรรมอ้างอิง:** [aws_architecture_lorcana_playlab.drawio](file:///D:/Tawanagent/TAWAN-OS/02_STUDY/2026-Semester/Cloud_Computing/Cloud_Project/DISNEY_LORCANA_PLAYLAB_CLOUD/docs/architecture/aws_architecture_lorcana_playlab.drawio) | [Aws_disney_lorcana.drawio.png](file:///D:/Tawanagent/TAWAN-OS/02_STUDY/2026-Semester/Cloud_Computing/Cloud_Project/DISNEY_LORCANA_PLAYLAB_CLOUD/docs/architecture/Aws_disney_lorcana.drawio.png)
 
-> **สถานะจริง ณ 2026-10-12 (ตรวจกับ AWS Learner Lab, Account 953899323223, us-east-1):** เอกสารนี้อธิบายสถาปัตยกรรมเป้าหมายของ Stage 3 ที่เคย deploy และทดสอบแล้ว แต่ตอนนี้ VPC, ALB, ASG, EC2 และ ElastiCache ไม่มีอยู่ (stack ถูกรื้อ) ตาราง `LorcanaMatchHistory`, `LorcanaPlayerStats`, SNS `lorcana-match-events` และ Lambda `lorcana-match-history`, `lorcana-player-stats` ก็ยังไม่มี สิ่งที่ยังอยู่คือ Lambda 5 ตัว (auth-login, auth-register, deck, analyzer, room), WebSocket API, DynamoDB 4 ตาราง (`UsersTable`, `DecksTable`, `LorcanaRoomStateV2`, `LorcanaMatchmaking`), SQS `lorcana-deck-analyzer` พร้อม DLQ, S3 2 bucket และ SSM 3 พารามิเตอร์ ก่อนนำเสนออาจารย์ว่า "รันบน AWS จริง" ต้องสร้าง stack ใหม่ตาม `docs/specs/2026-10-11_post-pr2_learner_lab_runbook.md` ก่อน รายละเอียดอยู่ในตารางสถานะของ runbook ฉบับนั้น
+> **สถานะจริง ณ 2026-10-12 (AWS Learner Lab, Account 953899323223, us-east-1):** เช้าวันนี้ตรวจพบว่า stack ถูกรื้อ (ไม่มี VPC, ALB, ASG, EC2, ElastiCache, ตาราง `LorcanaMatchHistory` และ `LorcanaPlayerStats`, SNS `lorcana-match-events`, Lambda `lorcana-match-history` และ `lorcana-player-stats`) จากนั้นสร้างใหม่ด้วย `deploy_ec2_vpc_asg.ps1`, `ensure_cache.ps1` และ `lab.ps1 publish` ตอนนี้ระบบรันครบตาม diagram: ALB `lorcana-alb`, ASG 2 เครื่องข้าม 2 AZ (healthy), ElastiCache engine Redis, pipeline SNS/SQS/Lambda สำหรับประวัติแมตช์และสถิติ
+> ที่ยังเป็นรุ่นก่อน PR #2: Lambda `lorcana-room` (2026-09-27) และ `lorcana-auth-register` (2026-08-25) ไม่ถูก deploy ใหม่
+> ที่ยังไม่ได้ยืนยันบน stack ใหม่: Playwright E2E, การทดสอบ ASG self-healing และ DLQ
+> สถานะ stack อาจเปลี่ยนได้ทุกเมื่อ (ถูก `lab.ps1 stop` หรือ `destroy` เพื่อประหยัดงบ) ตรวจจริงก่อนนำเสนอ รายละเอียดทรัพยากรและ ID อยู่ใน `docs/01_Reports/stage3_evidence/aws_inventory_2026-10-12.txt`
 
 ---
 
@@ -74,7 +77,7 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
    - *ประโยชน์:* เซิร์ฟเวอร์หลักตอบกลับผู้เล่นได้ทันทีโดยไม่ต้องรอเขียนฐานข้อมูล 2 ตารางพร้อมกัน และหากระบบสถิติล้มเหลว ประวัติการแข่งยังคงได้รับการบันทึกตามปกติ
 
 ### ระดับที่ 5: ระบบแคชและฐานข้อมูลหลัก (Caching & Storage Tier)
-- **Amazon ElastiCache Valkey (`lorcana-cache`):**
+- **Amazon ElastiCache Redis (`lorcana-cache`):** (สคริปต์ `scripts/ensure_cache.ps1` สร้างด้วย `--engine redis` ไม่ใช่ Valkey ตามที่ diagram เคยเขียน)
   - โหนด `cache.t3.micro` เครื่องเดี่ยว วางอยู่ใน VPC ผ่าน Subnet Group ข้าม 2 AZ
   - ทำงานภายใต้รูปแบบ Cache-Aside ร่วมกับโครงสร้างข้อมูลแบบ Sorted Set สำหรับตารางผู้นำ (Leaderboard)
   - ประสิทธิภาพ: Latency เมื่อ Cache Hit อยู่ที่ 1 มิลลิวินาที (เทียบกับตอน Cache Miss ที่ต้องอ่านจาก DynamoDB อยู่ที่ 41 มิลลิวินาที) พร้อมกำหนดอายุข้อมูล TTL 60 วินาที
@@ -89,7 +92,7 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
 
 ## 3. หลักฐานการทดสอบเชิงประจักษ์ (Empirical Evidence & Verifications)
 
-ระบบเคยผ่านการทดสอบจริงบนโครงสร้างพื้นฐาน AWS ด้วยชุดทดสอบอัตโนมัติ ผลด้านล่างเป็นหลักฐานย้อนหลังจากตอนที่ stack ยังรันอยู่ (Lambda ถูก deploy ล่าสุด 2026-10-05) ตอนนี้ stack ไม่มี จึงยังไม่มีผลทดสอบบน AWS ที่ยืนยันซ้ำได้วันนี้ ต้องรัน Phase 3 และ 4 ของ runbook ใหม่ก่อนอ้างผลชุดนี้ตอนนำเสนอ:
+ระบบเคยผ่านการทดสอบจริงบนโครงสร้างพื้นฐาน AWS ด้วยชุดทดสอบอัตโนมัติ ผลด้านล่างเป็นหลักฐานย้อนหลังจากตอนที่ stack รันครั้งก่อน (Lambda ถูก deploy ล่าสุด 2026-10-05) stack ถูกสร้างใหม่และ publish เมื่อ 2026-10-12 ผลที่ยืนยันซ้ำหลังสร้างใหม่มีแค่: `/api/health` ตอบ healthy, cache `/api/leaderboard` ได้ MISS แล้ว HIT, สมัครชื่อ `aDmIn` ได้ role `user`, และ vitest 135 ข้อผ่านในเครื่อง (หลักฐาน: `docs/01_Reports/stage3_evidence/aws_inventory_2026-10-12.txt`) ส่วน Playwright E2E (12/12 บน ALB), ASG self-healing และ DLQ **ยังไม่ได้รันซ้ำบน stack ใหม่** ต้องรันตาม Phase 4 ของ runbook ก่อนอ้างผลชุดนี้ตอนนำเสนอ:
 - **Unit Tests:** 119/119 รายการ ณ ตอนทดสอบเดิม หลัง PR #2 ชุดทดสอบเป็น 135 ข้อ (ตัวเลข 135 มาจาก runbook ยังไม่ได้รันซ้ำในเครื่องนี้) (ครอบคลุม Logic กฎการเล่น 14 คีย์เวิร์ด, Pure Function วิเคราะห์เด็ค, และแคช)
 - **End-to-End Tests บน ALB:** ผ่าน 12/12 รายการ (ครอบคลุม Auth, Deck CRUD, WebSocket Gameplay, SNS Fan-Out, และ Leaderboard Cache-Aside)
 - **การทดสอบความทนทานของ ASG (Self-Healing):** ทดสอบยุติการทำงานของ EC2 1 เครื่องใน AZ หนึ่ง ระบบ ALB ยังคงให้บริการต่อเนื่องผ่านอีก AZ หนึ่ง และ ASG ทำการสร้างเครื่องทดแทนใหม่อัตโนมัติ
@@ -116,7 +119,7 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
   2. *ในมุมมองเชิงสถาปัตยกรรม มีส่วนไหนในฝั่ง EC2 ที่อาจารย์มองว่าควรยุบรวมหรือปรับไปเป็น Container (เช่น ECS Fargate) หรือ Serverless ล้วนเพื่อให้ระบบคลีนขึ้นหรือไม่ครับ?*
 
 ### ประเด็นที่ 3: ความคุ้มค่าและความซับซ้อนของ ElastiCache Caching Tier
-- **บริบทปัจจุบัน:** ติดตั้ง ElastiCache Valkey สำหรับแคชตารางผู้นำ วัดผล Latency ลดลงจาก 41 มิลลิวินาทีเหลือ 1 มิลลิวินาที แต่ระบบต้องแบกรับค่าบริการของโหนดแคชประมาณ $0.017 ต่อชั่วโมง
+- **บริบทปัจจุบัน:** ติดตั้ง ElastiCache (engine Redis ตามสคริปต์) สำหรับแคชตารางผู้นำ วัดผล Latency ลดลงจาก 41 มิลลิวินาทีเหลือ 1 มิลลิวินาที แต่ระบบต้องแบกรับค่าบริการของโหนดแคชประมาณ $0.017 ต่อชั่วโมง
 - **สิ่งที่ควรนำเสนอต่ออาจารย์:** แสดงกราฟและตัวเลขผลการทดลองที่วัดได้จริง (Hit 1ms vs Miss 41ms)
 - **คำถามที่ต้องถามอาจารย์:**
   1. *สำหรับปริมาณข้อมูลผู้เล่นในระดับโครงงาน การมี ElastiCache เข้ามาเสริมถือเป็นจุดเด่นที่แสดงความเข้าใจเรื่อง In-memory Cache หรืออาจารย์มองว่าเป็นการเพิ่มความซับซ้อนเกินความจำเป็นที่ควรตัดออกเพื่อประหยัดต้นทุนครับ?*

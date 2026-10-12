@@ -3,7 +3,7 @@
 เอกสารนี้เขียนให้ Claude Code ที่รันบนเครื่องของทีม (Windows + PowerShell 7) ทำตามทีละ phase หลังเชื่อม AWS Learner Lab แล้ว
 PR #2 แก้เฉพาะโค้ดและไม่ได้ deploy อะไร งานใน runbook นี้คือส่วนที่ต้องใช้ AWS จริง
 
-## สถานะ AWS ที่ตรวจจริง (2026-10-12, Account 953899323223, us-east-1)
+## สถานะ AWS ที่ตรวจจริงก่อนสร้างใหม่ (2026-10-12, Account 953899323223, us-east-1)
 
 ฉบับแรกของ runbook เขียนจาก GitHub อย่างเดียว โดยสมมติว่า stack รันอยู่ เมื่อตรวจกับ AWS จริงพบว่า stack ถูกรื้อไปแล้ว ส่วนที่เหลือคือ:
 
@@ -16,6 +16,27 @@ PR #2 แก้เฉพาะโค้ดและไม่ได้ deploy อ
 | Edge / อื่นๆ | WebSocket API `a86238wqo4` (route ครบ), S3 `lorcana-playlab-static-<acct>` และ `lorcana-playlab-assets-<acct>`, SSM `/lorcana/jwt-secret`, `/lorcana/admin-passcode`, `/lorcana/sqs-url` | SSM `/lorcana/cache-endpoint` |
 
 ผลต่อลำดับงาน: ต้องสร้าง compute และ pipeline ก่อน แล้วจึง `lab.ps1 publish` ได้ ทดสอบกับ ALB (Phase 3.4 และ Phase 4) ได้หลังมี ALB เท่านั้น
+
+### ผลที่ทำจริง (2026-10-12)
+
+| Phase | ผล |
+|---|---|
+| 0 | ผ่าน: pwsh 7.6.6, node v24.11.1, aws-cli 2.36.21, region us-east-1, main ที่ `ff8a258` (หลังนี้ `aaea7e0`) |
+| 1 | สำรวจแล้ว ดูตารางด้านบน บันทึกที่ `docs/01_Reports/stage3_evidence/aws_inventory_2026-10-12.txt` |
+| 2 | ไม่ต้องลบตารางใด ใช้ `ensure_pipeline.ps1` (ถูกเรียกจาก `deploy_ec2_vpc_asg.ps1`) สร้างตาราง SNS SQS Lambda ครบ |
+| 3.1 | ผ่าน: `tsc --noEmit` ทั้งสองฝั่ง, vitest 22 ไฟล์ 135 ข้อ |
+| 3.2 | สร้าง VPC `vpc-04e97c05a36397f4a`, ALB `lorcana-alb`, ASG 2 เครื่อง, ElastiCache `lorcana-cache` (engine Redis) |
+| 3.3 | `lab.ps1 publish` จบ exit 0 เครื่อง 2 ตัวถูกเปลี่ยนทีละเครื่อง 2/2 healthy ทั้งสองรอบ |
+| 3.4 | ผ่าน (รันโดยผู้ใช้): `/api/health` healthy, `/api/leaderboard` MISS แล้ว HIT, สมัคร `aDmIn` ได้ role `user` แล้วลบบัญชีทดสอบ |
+| 3.5 | ไม่มีบัญชี admin (สแกน 63 แถว พบ role `admin` 0) ผู้ใช้เป็น admin ได้ผ่าน `POST /admin/elevate` ด้วย passcode ใน SSM `/lorcana/admin-passcode` |
+| 4 | **ยังไม่ได้รัน** ระบบปฏิเสธคำสั่ง `npx playwright install` กับ `npx playwright test` ในเซสชันที่ Claude Code ทำ ผู้ใช้ต้องรันเอง |
+| สำรองก่อน publish | **ไม่ได้ทำ** คำสั่งสำรองถูกปฏิเสธ ถ้าต้องย้อนกลับ ให้ build โค้ดจาก git ที่ commit ก่อน PR #2 แล้ว publish ใหม่ |
+
+ข้อสังเกตที่ยังต้องตามต่อ:
+- `lorcana-auth-register` (2026-08-25) และ `lorcana-room` (2026-09-27) ไม่ได้ถูก deploy `lab.ps1 publish` ไม่ครอบคลุมสองตัวนี้ ตรวจว่าเส้นทางสมัครสมาชิกจริงผ่าน EC2 (`/api/auth/register`) หรือ Lambda ตัวนี้ ผลทดสอบข้างบนยืนยันเฉพาะเส้นทาง EC2
+- `JWT_SECRET` ของ `lorcana-auth-register`, `lorcana-analyzer`, `lorcana-room` ต่างจากค่าใน SSM (เทียบในหน่วยความจำ ไม่พิมพ์ค่า) ยังไม่ทำให้พังเพราะ `room` ไม่ตรวจ token ต้องซิงก์ก่อนทำ Phase 5b
+- ElastiCache เป็น engine Redis (`--engine redis` ใน `scripts/ensure_cache.ps1`) เอกสารเก่าเขียนว่า Valkey แก้ briefing แล้ว
+- ค่าใช้จ่ายนับต่อเนื่อง (EC2 2 เครื่อง, ALB, ElastiCache ราว 0.06 ถึง 0.07 ดอลลาร์ต่อชั่วโมง ประมาณจากราคา list ไม่ใช่ตัวเลขจาก Pricing API) ปิดด้วย Phase 6
 ตัวเลขใน `docs/architecture/PROFESSOR_MEETING_BRIEFING.md` หัวข้อ 3 (E2E 12/12 บน ALB, ASG self-healing, DLQ) เป็นหลักฐานย้อนหลังจากตอนที่ stack ยังรันอยู่ ไม่ใช่สถานะวันนี้
 
 ## วิธีสั่ง Claude Code

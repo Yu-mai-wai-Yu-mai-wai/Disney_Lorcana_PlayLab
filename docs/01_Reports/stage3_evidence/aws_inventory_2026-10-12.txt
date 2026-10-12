@@ -1,0 +1,100 @@
+AWS inventory, Disney Lorcana PlayLab Cloud
+Date: 2026-10-12
+Account: 953899323223 (AWS Academy Learner Lab)   Region: us-east-1
+Collected by: Claude Code (aws cli, read-only describe/list calls) on branch main at ff8a258 (+ docs commit aaea7e0)
+No secret values in this file. SSM parameters are listed by name only.
+
+=== A. State before the rebuild (survey at start of session) ===
+
+Compute / network
+  VPC lorcana-lean-vpc ............ absent
+  Security groups lorcana* ........ absent
+  ALB lorcana-alb ................. absent (describe-load-balancers: LoadBalancerNotFound)
+  ASG lorcana-asg ................. absent (describe returned null)
+  Launch template lorcana-lt ...... absent
+  EC2 instances ................... none
+  ElastiCache ..................... none
+  VPC count in region ............. 1 (default VPC), IGW count 1
+
+DynamoDB
+  UsersTable ...................... key: username (HASH); TTL DISABLED; 63 items
+  DecksTable ...................... key: deckId (HASH) + userId (RANGE); no GSI; TTL DISABLED
+  LorcanaRoomStateV2 .............. key: roomId (HASH) + connectionId (RANGE); TTL ENABLED (attribute ttl)
+  LorcanaMatchmaking .............. key: connectionId (HASH); TTL ENABLED (attribute ttl)
+  LorcanaMatchHistory ............. absent (ResourceNotFoundException)
+  LorcanaPlayerStats .............. absent (ResourceNotFoundException)
+
+Lambda (LastModified, UTC)
+  lorcana-auth-login .............. nodejs24.x  2026-10-05T09:41:02
+  lorcana-deck .................... nodejs20.x  2026-10-05T09:41:06
+  lorcana-analyzer ................ nodejs20.x  2026-10-05T09:41:10
+  lorcana-room .................... nodejs20.x  2026-09-27T12:25:06
+  lorcana-auth-register ........... nodejs24.x  2026-08-25T09:58:41
+  lorcana-match-history ........... absent
+  lorcana-player-stats ............ absent
+
+Messaging
+  SQS lorcana-deck-analyzer, lorcana-deck-analyzer-dlq ... present
+  SNS lorcana-match-events ........ absent
+  SQS lorcana-match-history(-dlq), lorcana-player-stats(-dlq) ... absent
+
+Other
+  WebSocket API LorcanaPlayLabWebSocketApi ... a86238wqo4 (wss://a86238wqo4.execute-api.us-east-1.amazonaws.com)
+    routes: $connect, $disconnect, $default, sendAction, CREATE_ROOM, JOIN_ROOM, MATCHMAKING_JOIN, MATCHMAKING_LEAVE,
+            DECK_SELECTED, FIRST_PLAYER_CHOSEN, DICE_CHOICE, DICE_ROLLED, DICE_REROLL, CARD_MOVED, CARD_DRAWN,
+            CARD_EXERTED, INK_PLAYED, QUEST_DONE, CHALLENGE_DONE, LORE_UPDATED, TURN_PASSED, CHAT_MESSAGE, GAME_RESTART
+  S3 lorcana-playlab-assets-953899323223 ... present (server.cjs dated 2026-10-05, 3,434,982 bytes)
+  S3 lorcana-playlab-static-953899323223 ... present (58 objects, 33,917,113 bytes)
+  SSM /lorcana/jwt-secret, /lorcana/admin-passcode, /lorcana/sqs-url ... present
+  SSM /lorcana/cache-endpoint ..... absent
+  IAM LabRole, LabInstanceProfile . present
+
+JWT_SECRET environment variable vs SSM /lorcana/jwt-secret (compared in memory, values not printed)
+  lorcana-auth-login .............. same as SSM
+  lorcana-deck .................... same as SSM
+  lorcana-auth-register ........... DIFFERENT from SSM
+  lorcana-analyzer ................ DIFFERENT from SSM
+  lorcana-room .................... DIFFERENT from SSM
+
+=== B. Rebuild performed 2026-10-12 ===
+
+Commands: scripts/deploy_ec2_vpc_asg.ps1 (calls ensure_pipeline.ps1), scripts/ensure_cache.ps1, scripts/lab.ps1 publish
+Created:
+  DynamoDB LorcanaMatchHistory (userId HASH + finishedAt#matchId RANGE), LorcanaPlayerStats (userId HASH), PAY_PER_REQUEST
+  SNS lorcana-match-events; SQS lorcana-match-history, lorcana-player-stats and their DLQs (maxReceiveCount 3); SNS subscriptions
+  Lambda lorcana-match-history, lorcana-player-stats (nodejs20.x, 128 MB, LabRole) + event source mappings (ReportBatchItemFailures)
+  SSM /lorcana/match-events-topic-arn, /lorcana/cache-endpoint
+  VPC vpc-04e97c05a36397f4a (10.0.0.0/16), IGW igw-0934c97a452597f68, subnets 1a (subnet-0abe8dcec0f4d971a) and 1b (subnet-03849b56a5e04ba58),
+    route table rtb-08e1e511a730f5292
+  Security groups: lorcana-alb-sg sg-060328c06c37f9ba3 (80 from 0.0.0.0/0), lorcana-ec2-sg sg-0c5e44286d9ed3876 (80 from ALB SG only),
+    lorcana-cache-sg sg-01467ead055fb6407 (6379 from EC2 SG only). No port 22, no NAT Gateway.
+  Target group lorcana-tg, ALB lorcana-alb (lorcana-alb-1320994553.us-east-1.elb.amazonaws.com)
+  Launch template lorcana-lt (t3.micro, AL2023, IMDSv2 required, detailed monitoring), ASG lorcana-asg (min 2, desired 2, max 4)
+  Scaling policy cpu-target-tracking-60, CloudWatch alarm lorcana-unhealthy-hosts
+  ElastiCache lorcana-cache (engine redis, cache.t3.micro, 1 node), endpoint lorcana-cache.2z47bq.0001.use1.cache.amazonaws.com:6379
+Updated by publish:
+  S3 static (new frontend build) and assets/server.cjs (3,435,180 bytes)
+  Lambda code: lorcana-analyzer, lorcana-match-history, lorcana-player-stats
+  Lambda env JWT_SECRET: lorcana-auth-login, lorcana-deck (already equal to SSM)
+  EC2 instances replaced one at a time (2/2 healthy after each)
+Not touched: lorcana-room (2026-09-27), lorcana-auth-register (2026-08-25), existing DynamoDB data, existing SSM parameters.
+
+=== C. State after publish ===
+
+ASG: i-0144166833974451c (1a) InService/Healthy, i-0f9a41ce02e769f5b (1b) InService/Healthy
+     (previous instances i-04c6e565324532505, i-0dd182c700e8b4b96 draining/terminating at check time)
+Target group lorcana-tg: both new instances healthy
+Lambda LastModified after publish (UTC): lorcana-auth-login 02:51:45, lorcana-deck 02:51:49, lorcana-analyzer 02:51:54,
+  lorcana-match-history 02:52:00, lorcana-player-stats 02:52:06 (all 2026-10-12)
+
+HTTP checks, run by the user in PowerShell (2026-10-12 about 02:56 UTC):
+  GET /api/health ............ status healthy, service disney-lorcana-backend, node v18.20.8, uptime 121.7 s
+  GET /api/leaderboard ....... X-Cache: MISS, then X-Cache: HIT on the second call
+  POST /api/auth/register as "aDmIn" ... role = user (not admin)
+  Test account aDmIn deleted; get-item afterwards returned None
+  Scan UsersTable role = admin ... Count 0, ScannedCount 63
+
+Local checks before publish: tsc --noEmit (frontend, backend) exit 0; vitest 22 files, 135 tests passed.
+
+Not run: Playwright E2E against the ALB (command was denied in this session; run by the user, see runbook Phase 4).
+Not done: backup of Lambda code and DynamoDB tables before publish (command denied in this session).
