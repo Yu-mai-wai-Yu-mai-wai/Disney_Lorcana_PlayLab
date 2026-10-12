@@ -117,6 +117,11 @@ if ($analyzerMapping) {
     if (-not ($analyzerMapping.FunctionResponseTypes -contains "ReportBatchItemFailures")) {
         Invoke-Checked "update event source mapping" { aws lambda update-event-source-mapping --uuid $analyzerMapping.UUID --function-response-types ReportBatchItemFailures --region $Region --query State --output text } | Out-Null
     }
+    # A mapping someone disabled keeps existing, so "exists" is not "works": re-enable it (found 2026-10-12, TC-E2E-23 failed on it)
+    if ($analyzerMapping.State -in @("Disabled", "Disabling")) {
+        Invoke-Checked "enable event source mapping" { aws lambda update-event-source-mapping --uuid $analyzerMapping.UUID --enabled --region $Region --query State --output text } | Out-Null
+        Write-Host "  [FIX] re-enabled disabled mapping for lorcana-analyzer" -ForegroundColor Yellow
+    }
 } else {
     Invoke-Checked "create event source mapping" { aws lambda create-event-source-mapping --function-name lorcana-analyzer --event-source-arn $analyzerMainArn --batch-size 10 --function-response-types ReportBatchItemFailures --region $Region --query State --output text } | Out-Null
 }
@@ -224,6 +229,13 @@ function Ensure-EventSourceMapping([string]$FunctionName, [string]$QueueArn) {
             Invoke-Checked "update mapping $FunctionName" {
                 aws lambda update-event-source-mapping --uuid $mapping.UUID --function-response-types ReportBatchItemFailures --region $Region --query State --output text
             } | Out-Null
+        }
+        # Same as the analyzer: a Disabled mapping silently stops the fan-out, re-enable it
+        if ($mapping.State -in @("Disabled", "Disabling")) {
+            Invoke-Checked "enable mapping $FunctionName" {
+                aws lambda update-event-source-mapping --uuid $mapping.UUID --enabled --region $Region --query State --output text
+            } | Out-Null
+            Write-Host "  [FIX] re-enabled disabled mapping for $FunctionName" -ForegroundColor Yellow
         }
     } else {
         Invoke-Checked "create mapping $FunctionName" {
