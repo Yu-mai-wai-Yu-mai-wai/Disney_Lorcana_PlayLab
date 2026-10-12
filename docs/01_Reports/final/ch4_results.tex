@@ -202,4 +202,64 @@ Manual Resolve & 2,956 (78.45\%) & แสดงป้ายให้ผู้เ
 
 \subsection{ภาพหลักฐานจาก AWS Console}
 
-\todo{ใส่ภาพหน้าจอ AWS Console ที่ตะวันแคปจาก stack ที่ deploy เมื่อ 5 ตุลาคม 2569 (ASG 2 เครื่อง 2 AZ, ALB, Target Group healthy, CloudWatch Alarm) ตามข้อ 9 ของ \texttt{STAGE3\_EXPERIMENT\_RESULTS.md}}
+ภาพในหัวข้อนี้แคปจาก AWS Console ภูมิภาค us-east-1 เมื่อวันที่ 12 ตุลาคม 2569 หลังสร้าง stack ใหม่และ publish โค้ดล่าสุด ภาพอยู่ใน \texttt{docs/01\_Reports/images/useindoc/} ไฟล์ขึ้นต้นด้วย \texttt{aws\_2026-10-12\_}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_vpc_resource_map.png}
+\caption{Resource map ของ VPC \texttt{lorcana-lean-vpc} (10.0.0.0/16): subnet สาธารณะ \texttt{lorcana-public-1a} และ \texttt{lorcana-public-1b} ใน 2 Availability Zone, route table \texttt{lorcana-public-rt} ผูกกับทั้งสอง subnet และเชื่อม \texttt{lorcana-igw} ไม่มี private subnet และไม่มี NAT Gateway}
+\label{fig:aws_vpc_map}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_alb_active.png}
+    \caption{\texttt{lorcana-alb} สถานะ Active, Internet-facing, 2 Availability Zone}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_alb_listener.png}
+    \caption{Listener HTTP:80 ส่งต่อไปยัง target group \texttt{lorcana-tg}}
+\end{subfigure}
+\caption{Application Load Balancer ของระบบ}
+\label{fig:aws_alb}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_ec2_instances.png}
+    \caption{EC2 ที่กำลังทำงาน 2 เครื่อง ใน \texttt{us-east-1a} และ \texttt{us-east-1b} ผ่าน status check 3/3 ส่วนอีก 2 เครื่องเป็นเครื่องเก่าที่ถูกแทนที่ (Terminated)}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_asg_overview.png}
+    \caption{Auto Scaling group \texttt{lorcana-asg} At desired capacity, 2 เครื่อง สถานะ 2/2 Healthy}
+\end{subfigure}
+\caption{เครื่อง EC2 และ Auto Scaling group}
+\label{fig:aws_ec2_asg}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_asg_activity.png}
+\caption{Activity history ของ \texttt{lorcana-asg}: การเปลี่ยนเครื่องทีละเครื่อง (terminate เครื่องเก่า แล้ว launch เครื่องใหม่ทดแทน) ระหว่าง \texttt{lab.ps1 publish} และการเพิ่มจำนวนเครื่องจาก 0 เป็น 2 เมื่อสร้าง stack}
+\label{fig:aws_asg_activity}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_cloudwatch_alarms.png}
+\caption{CloudWatch Alarms: \texttt{lorcana-unhealthy-hosts} และ alarm ของ target tracking \texttt{AlarmHigh} อยู่สถานะ OK ส่วน \texttt{AlarmLow} อยู่สถานะ In alarm ตามปกติเมื่อโหลดต่ำ (CPU ต่ำกว่าเป้า) ระบบไม่ลดจำนวนเครื่องเพราะ MinSize เท่ากับ 2 ภาพนี้ไม่ใช่หลักฐานการเพิ่มเครื่อง}
+\label{fig:aws_cloudwatch}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/useindoc/aws_2026-10-12_target_group.png}
+\caption{Target group \texttt{lorcana-tg} แท็บ Targets: 2 targets สถานะ Healthy 2 และ Unhealthy 0 เครื่องหนึ่งอยู่ใน \texttt{us-east-1a} และอีกเครื่องอยู่ใน \texttt{us-east-1b} พอร์ต 80}
+\label{fig:aws_target_group}
+\end{figure}
+
+ภาพชุดนี้แสดงสถานะของ stack ขณะไม่มีโหลด จึงไม่มีภาพ alarm สั่งเพิ่มเครื่องจาก 2 เป็น 4 ผลการทดลองเรื่องการปรับจำนวนเครื่องตามโหลดอยู่ในไฟล์ข้อมูลของการทดลองเดิมใน \texttt{docs/01\_Reports/stage3\_evidence/} ซึ่งรันบน stack รุ่นก่อนหน้า
