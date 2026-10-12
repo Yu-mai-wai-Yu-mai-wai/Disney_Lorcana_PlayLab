@@ -29,7 +29,7 @@ PR #2 แก้เฉพาะโค้ดและไม่ได้ deploy อ
 | 3.3 | `lab.ps1 publish` จบ exit 0 เครื่อง 2 ตัวถูกเปลี่ยนทีละเครื่อง 2/2 healthy ทั้งสองรอบ |
 | 3.4 | ผ่าน (รันโดยผู้ใช้): `/api/health` healthy, `/api/leaderboard` MISS แล้ว HIT, สมัคร `aDmIn` ได้ role `user` แล้วลบบัญชีทดสอบ |
 | 3.5 | ไม่มีบัญชี admin (สแกน 63 แถว พบ role `admin` 0) ผู้ใช้เป็น admin ได้ผ่าน `POST /admin/elevate` ด้วย passcode ใน SSM `/lorcana/admin-passcode` |
-| 4 | **ยังไม่ได้รัน** ระบบปฏิเสธคำสั่ง `npx playwright install` กับ `npx playwright test` ในเซสชันที่ Claude Code ทำ ผู้ใช้ต้องรันเอง |
+| 4 | ผู้ใช้รัน `npx playwright test` กับ ALB: ผ่าน 54 ล้ม 1 (6.4 นาที) ข้อที่ล้มคือ TC-E2E-23 (SNS fan-out ไป match history และ player stats) สาเหตุ: event source mapping ของ `lorcana-match-history`, `lorcana-player-stats` และ `lorcana-analyzer` อยู่สถานะ `Disabled` (`USER_INITIATED`, แก้ล่าสุด 2026-09-30 และ 2026-10-05) ทำให้ Lambda ไม่อ่านคิว `ensure_pipeline.ps1` พบ mapping เดิมแล้วแค่ตรวจ `ReportBatchItemFailures` ไม่ได้เปิดกลับ แก้โดยสั่ง `update-event-source-mapping --enabled` ทั้ง 3 ตัว (ตอนนี้ `Enabled`, backlog ถูกประมวลผล: `LorcanaMatchHistory` 2 แถว, `LorcanaPlayerStats` 3 แถว) รัน TC-E2E-23 ซ้ำแล้ว ผ่าน (8.4 วินาที) รวม 55 ข้อผ่านบน stack ใหม่ แต่ไม่ได้อยู่ในรอบเดียว หลักฐาน `docs/01_Reports/stage3_evidence/e2e_after_pr2_2026-10-12.txt` ยังไม่ได้รัน ASG self-healing และ DLQ ซ้ำ และบัญชีทดสอบ `e2e_*` ที่ชุดเทสต์สร้างบน production ยังไม่ถูกลบ |
 | สำรองก่อน publish | **ไม่ได้ทำ** คำสั่งสำรองถูกปฏิเสธ ถ้าต้องย้อนกลับ ให้ build โค้ดจาก git ที่ commit ก่อน PR #2 แล้ว publish ใหม่ |
 
 ข้อสังเกตที่ยังต้องตามต่อ:

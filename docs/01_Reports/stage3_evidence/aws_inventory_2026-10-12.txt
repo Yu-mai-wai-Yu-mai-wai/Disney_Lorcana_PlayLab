@@ -96,5 +96,11 @@ HTTP checks, run by the user in PowerShell (2026-10-12 about 02:56 UTC):
 
 Local checks before publish: tsc --noEmit (frontend, backend) exit 0; vitest 22 files, 135 tests passed.
 
-Not run: Playwright E2E against the ALB (command was denied in this session; run by the user, see runbook Phase 4).
+Playwright E2E against the ALB, run by the user: 54 passed, 1 failed (6.4 min).
+  Failed: e2e/05-match-realtime-sync.spec.ts TC-E2E-23 (SNS fan-out to match history and player stats), assertion p1MatchFound true, got false.
+  Cause found: event source mappings for lorcana-match-history (0b84e38e-...), lorcana-player-stats (5656c5be-...) and lorcana-analyzer (77dc9c79-...)
+    were State=Disabled, StateTransitionReason=USER_INITIATED (LastModified 2026-09-30 and 2026-10-05). SQS queues held 1 message each,
+    both DynamoDB tables were empty. scripts/ensure_pipeline.ps1 found the existing mappings and did not re-enable them.
+  Action: update-event-source-mapping --enabled on all three. After 20 s all show Enabled; LorcanaMatchHistory 2 items, LorcanaPlayerStats 3 items.
+  Re-run of TC-E2E-23 by the user: passed (8.4 s). Details in e2e_after_pr2_2026-10-12.txt.
 Not done: backup of Lambda code and DynamoDB tables before publish (command denied in this session).

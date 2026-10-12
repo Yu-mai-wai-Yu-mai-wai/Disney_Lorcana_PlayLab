@@ -1,0 +1,23 @@
+E2E after PR #2, Playwright against the deployed stack
+Date: 2026-10-12
+Target: E2E_BASE_URL=http://lorcana-alb-1320994553.us-east-1.elb.amazonaws.com (ALB lorcana-alb, us-east-1, Account 953899323223)
+Code: main at aaea7e0 (includes PR #2 and PR #3), published with scripts/lab.ps1 publish the same day
+Run by: the user (PowerShell). Results below were pasted from the terminal; Claude Code could not run Playwright in its session.
+
+Run 1: npx playwright test (all specs, 1 worker, Desktop Chrome)
+  Result: 54 passed, 1 failed, 6.4 min
+  Failed: e2e/05-match-realtime-sync.spec.ts:112 TC-E2E-23 "match finish publishes to SNS and fan-out records to match history & player stats (ALB only)"
+    expect(p1MatchFound).toBe(true), received false (line 203): the match never appeared in GET /api/matches within the 25 s polling window.
+  Cause: SQS event source mappings for lorcana-match-history, lorcana-player-stats and lorcana-analyzer were State=Disabled
+    (StateTransitionReason USER_INITIATED, last modified 2026-09-30 and 2026-10-05), so no Lambda consumed the queues.
+    scripts/ensure_pipeline.ps1 found the existing mappings and did not re-enable them.
+  Fix: update-event-source-mapping --enabled on the three mappings; all Enabled after 20 s. Backlog processed:
+    LorcanaMatchHistory 2 items, LorcanaPlayerStats 3 items.
+
+Run 2: npx playwright test e2e/05-match-realtime-sync.spec.ts -g "TC-E2E-23"
+  Result: 1 passed (8.4 s); the test itself took 7.9 s.
+
+Combined: all 55 tests have passed against the new stack, but not in one clean run: 54 passed in run 1, TC-E2E-23 passed in run 2 after the fix.
+Not covered by this evidence: a single full re-run after the fix; ASG self-healing and DLQ tests (scripts/test_asg_recovery.ps1, scripts/test_dlq.ps1) were not re-run on the new stack.
+The failing line list for the 54 passes was not pasted, so per-test names and timings are not recorded here.
+Test accounts created by the suite on production (UsersTable, names starting with e2e_) were not cleaned up.
