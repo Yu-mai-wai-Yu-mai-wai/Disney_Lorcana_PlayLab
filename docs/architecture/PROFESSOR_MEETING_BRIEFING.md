@@ -4,6 +4,8 @@
 **กลุ่มผู้จัดทำ:** นายตะวัน [รหัสนักศึกษา] และทีมโครงงาน  
 **แผนภาพสถาปัตยกรรมอ้างอิง:** [aws_architecture_lorcana_playlab.drawio](file:///D:/Tawanagent/TAWAN-OS/02_STUDY/2026-Semester/Cloud_Computing/Cloud_Project/DISNEY_LORCANA_PLAYLAB_CLOUD/docs/architecture/aws_architecture_lorcana_playlab.drawio) | [Aws_disney_lorcana.drawio.png](file:///D:/Tawanagent/TAWAN-OS/02_STUDY/2026-Semester/Cloud_Computing/Cloud_Project/DISNEY_LORCANA_PLAYLAB_CLOUD/docs/architecture/Aws_disney_lorcana.drawio.png)
 
+> **สถานะจริง ณ 2026-10-12 (ตรวจกับ AWS Learner Lab, Account 953899323223, us-east-1):** เอกสารนี้อธิบายสถาปัตยกรรมเป้าหมายของ Stage 3 ที่เคย deploy และทดสอบแล้ว แต่ตอนนี้ VPC, ALB, ASG, EC2 และ ElastiCache ไม่มีอยู่ (stack ถูกรื้อ) ตาราง `LorcanaMatchHistory`, `LorcanaPlayerStats`, SNS `lorcana-match-events` และ Lambda `lorcana-match-history`, `lorcana-player-stats` ก็ยังไม่มี สิ่งที่ยังอยู่คือ Lambda 5 ตัว (auth-login, auth-register, deck, analyzer, room), WebSocket API, DynamoDB 4 ตาราง (`UsersTable`, `DecksTable`, `LorcanaRoomStateV2`, `LorcanaMatchmaking`), SQS `lorcana-deck-analyzer` พร้อม DLQ, S3 2 bucket และ SSM 3 พารามิเตอร์ ก่อนนำเสนออาจารย์ว่า "รันบน AWS จริง" ต้องสร้าง stack ใหม่ตาม `docs/specs/2026-10-11_post-pr2_learner_lab_runbook.md` ก่อน รายละเอียดอยู่ในตารางสถานะของ runbook ฉบับนั้น
+
 ---
 
 ## 1. ข้อมูลสังเขปของโครงงาน (Executive Project Summary)
@@ -38,7 +40,7 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
 - **Lean VPC (Zero NAT Gateway):** ออกแบบโดยไม่ใช้ NAT Gateway เพื่อประหยัดค่าบริการ $32 ต่อเดือน ป้องกันไม่ให้เกินโควตางบประมาณ $100 ของ Learner Lab
 - **Security Groups (การป้องกันแบบแบ่งชั้น):**
   - `lorcana-alb-sg`: เปิดรับเฉพาะ HTTP พอร์ต 80 จากภายนอก (`0.0.0.0/0`)
-  - `lorcana-ec2-sg`: รับเฉพาะทราฟฟิกพอร์ต 80 ที่ส่งต่อมาจาก `lorcana-alb-sg` และพอร์ต 22 สำหรับ SSH ภายใน
+  - `lorcana-ec2-sg`: รับเฉพาะทราฟฟิกพอร์ต 80 ที่ส่งต่อมาจาก `lorcana-alb-sg` ไม่เปิดพอร์ต 22 (ไม่ใช้ SSH เข้าเครื่องผ่าน SSM; `scripts/deploy_ec2_vpc_asg.ps1` ไม่มีกฎพอร์ต 22)
   - `lorcana-cache-sg`: รับเฉพาะทราฟฟิก TCP พอร์ต 6379 จาก `lorcana-ec2-sg` เท่านั้น ไม่อนุญาตให้ภายนอกเข้าถึงโดยเด็ดขาด
 
 ### ระดับที่ 2: เว็บและแอปพลิเคชันเซิร์ฟเวอร์ (Web & Compute Tier)
@@ -52,9 +54,9 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
 
 ### ระดับที่ 3: ระบบแข่งขันแบบเรียลไทม์ (Real-time Gaming Tier)
 - **Amazon API Gateway (WebSocket API):** รองรับการเชื่อมต่อแบบสองทาง WSS จากเบราว์เซอร์ของผู้เล่นทั้งสองคน
-  - รองรับ Route พื้นฐาน: `$connect`, `$disconnect`, `sendAction`, `syncState`
+  - Route ที่ตั้งไว้บน API จริง (ตรวจ 2026-10-12): `$connect`, `$disconnect`, `$default`, `sendAction` และ route ตามชนิด action ของเกม เช่น `CREATE_ROOM`, `JOIN_ROOM`, `MATCHMAKING_JOIN`, `MATCHMAKING_LEAVE`, `DECK_SELECTED`, `CARD_MOVED`, `TURN_PASSED`, `CHAT_MESSAGE` (ไม่มี route `syncState`)
 - **AWS Lambda (`lorcana-room`):** ประมวลผลการจับคู่ห้องด้วยรหัส 6 หลัก และส่งต่อ Action การเล่นระหว่างผู้เล่น
-- **Amazon DynamoDB (`LorcanaConnections`):** จัดเก็บ Connection ID ของผู้เล่นในแต่ละห้องแข่งขัน
+- **Amazon DynamoDB (`LorcanaRoomStateV2`, `LorcanaMatchmaking`):** `LorcanaRoomStateV2` (PK `roomId`, SK `connectionId`, TTL attribute `ttl`) จัดเก็บ Connection ID ของผู้เล่นในแต่ละห้อง ส่วน `LorcanaMatchmaking` (PK `connectionId`, TTL attribute `ttl`) เก็บคิวจับคู่ ชื่อ `LorcanaConnections` ที่เคยเขียนไว้ใน diagram ไม่มีในโค้ดและไม่มีบน AWS (รูป `Aws_disney_lorcana.drawio.png` และไฟล์ `.drawio` ยังใช้ชื่อเก่า ต้อง export ใหม่)
 - *เหตุผลในการแยกออกจาก EC2:* การรักษา Connection ค้างไว้บน WebSocket หากทำบน EC2 จะทำให้เกิดสถานะผูกมัดเครื่อง ส่งผลให้การทำ Auto Scaling ซับซ้อน การแยกไปไว้บน Serverless WebSocket ช่วยให้ฝั่ง Web Server ทำงานแบบ Stateless ได้อย่างสมบูรณ์
 
 ### ระดับที่ 4: การประมวลผลแบบอะซิงโครนัสและการกระจายเหตุการณ์ (Asynchronous & Event-Driven Tier)
@@ -63,7 +65,7 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
    - ผู้เล่นสั่งวิเคราะห์เด็ค -> EC2 ส่งข้อความเข้า Amazon SQS `lorcana-deck-analyzer`
    - คิวมี Dead Letter Queue (DLQ) ชื่อ `lorcana-deck-analyzer-dlq` (เงื่อนไข Retry สูงสุด 3 ครั้ง)
    - AWS Lambda `lorcana-analyzer` รับข้อความผ่าน Event Source Mapping พร้อมเปิด `ReportBatchItemFailures` เพื่อประมวลผลเฉพาะข้อความที่สำเร็จ และส่งคืนข้อความที่เสียกลับเข้าคิว
-   - ผลการคำนวณถูกบันทึกกลับลงตาราง `Decks` ใน DynamoDB
+   - ผลการคำนวณถูกบันทึกกลับลงตาราง `DecksTable` ใน DynamoDB (ฟิลด์ `analysis`)
 2. **สายงานกระจายผลการแข่งขัน (Match Event Decoupling & Fan-Out):**
    - เมื่อเกมจบ ผู้เล่นส่งคำขอ `POST /api/matches` -> EC2 ตรวจสอบ JWT และสิทธิ์ของผู้เล่น จากนั้นส่ง Event `match.finished` เข้า Amazon SNS Topic `lorcana-match-events`
    - Amazon SNS ทำหน้าที่กระจายข้อมูลแบบ Fan-Out เข้าสู่ SQS 2 คิวคู่ขนาน:
@@ -79,7 +81,7 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
   - ความยืดหยุ่น: หากโหนดแคชไม่พร้อมทำงาน ระบบจะสลับไปอ่านจาก DynamoDB โดยตรงทันทีโดยที่ผู้ใช้งานไม่พบข้อผิดพลาด
 - **Amazon DynamoDB (Pay-Per-Request):**
   - ตาราง `UsersTable`: จัดเก็บข้อมูลบัญชีผู้ใช้
-  - ตาราง `DecksTable`: จัดเก็บรายการการ์ดและผลวิเคราะห์เด็ค
+  - ตาราง `DecksTable`: จัดเก็บรายการการ์ดและผลวิเคราะห์เด็ค (key `deckId` + `userId` ยังไม่มี GSI `userId-index` โค้ดจึง query แบบ Scan เมื่อดึงเด็คของผู้ใช้)
   - ตาราง `LorcanaMatchHistory`: จัดเก็บประวัติการแข่งขันย้อนหลัง
   - ตาราง `LorcanaPlayerStats`: จัดเก็บสถิติรวมของผู้เล่น
 
@@ -87,8 +89,8 @@ Disney Lorcana PlayLab Cloud เป็นเว็บแอปพลิเคช
 
 ## 3. หลักฐานการทดสอบเชิงประจักษ์ (Empirical Evidence & Verifications)
 
-ระบบผ่านการทดสอบจริงบนโครงสร้างพื้นฐาน AWS ด้วยชุดทดสอบอัตโนมัติ:
-- **Unit Tests:** ผ่าน 119/119 รายการ (ครอบคลุม Logic กฎการเล่น 14 คีย์เวิร์ด, Pure Function วิเคราะห์เด็ค, และแคช)
+ระบบเคยผ่านการทดสอบจริงบนโครงสร้างพื้นฐาน AWS ด้วยชุดทดสอบอัตโนมัติ ผลด้านล่างเป็นหลักฐานย้อนหลังจากตอนที่ stack ยังรันอยู่ (Lambda ถูก deploy ล่าสุด 2026-10-05) ตอนนี้ stack ไม่มี จึงยังไม่มีผลทดสอบบน AWS ที่ยืนยันซ้ำได้วันนี้ ต้องรัน Phase 3 และ 4 ของ runbook ใหม่ก่อนอ้างผลชุดนี้ตอนนำเสนอ:
+- **Unit Tests:** 119/119 รายการ ณ ตอนทดสอบเดิม หลัง PR #2 ชุดทดสอบเป็น 135 ข้อ (ตัวเลข 135 มาจาก runbook ยังไม่ได้รันซ้ำในเครื่องนี้) (ครอบคลุม Logic กฎการเล่น 14 คีย์เวิร์ด, Pure Function วิเคราะห์เด็ค, และแคช)
 - **End-to-End Tests บน ALB:** ผ่าน 12/12 รายการ (ครอบคลุม Auth, Deck CRUD, WebSocket Gameplay, SNS Fan-Out, และ Leaderboard Cache-Aside)
 - **การทดสอบความทนทานของ ASG (Self-Healing):** ทดสอบยุติการทำงานของ EC2 1 เครื่องใน AZ หนึ่ง ระบบ ALB ยังคงให้บริการต่อเนื่องผ่านอีก AZ หนึ่ง และ ASG ทำการสร้างเครื่องทดแทนใหม่อัตโนมัติ
 - **การทดสอบ Dead Letter Queue (Poison Pill):** ทดสอบส่งข้อความที่โครงสร้างผิดพลาดเข้าคิว ระบบทดลองซ้ำครบ 3 ครั้งแล้วแยกข้อความเข้าสู่ DLQ ได้ถูกต้องโดยไม่ทำให้คิวหลักติดขัด

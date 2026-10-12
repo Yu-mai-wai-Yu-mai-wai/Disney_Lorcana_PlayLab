@@ -3,6 +3,21 @@
 เอกสารนี้เขียนให้ Claude Code ที่รันบนเครื่องของทีม (Windows + PowerShell 7) ทำตามทีละ phase หลังเชื่อม AWS Learner Lab แล้ว
 PR #2 แก้เฉพาะโค้ดและไม่ได้ deploy อะไร งานใน runbook นี้คือส่วนที่ต้องใช้ AWS จริง
 
+## สถานะ AWS ที่ตรวจจริง (2026-10-12, Account 953899323223, us-east-1)
+
+ฉบับแรกของ runbook เขียนจาก GitHub อย่างเดียว โดยสมมติว่า stack รันอยู่ เมื่อตรวจกับ AWS จริงพบว่า stack ถูกรื้อไปแล้ว ส่วนที่เหลือคือ:
+
+| กลุ่ม | มีอยู่ | ไม่มี |
+|---|---|---|
+| Network / compute | (ไม่มี) | VPC `lorcana-lean-vpc`, security group `lorcana*`, ALB, ASG, launch template, EC2, ElastiCache |
+| DynamoDB | `UsersTable` (63 แถว, TTL ปิด), `DecksTable` (ไม่มี GSI), `LorcanaRoomStateV2` (TTL เปิด), `LorcanaMatchmaking` (TTL เปิด) | `LorcanaMatchHistory`, `LorcanaPlayerStats` |
+| Lambda | `lorcana-auth-login`, `lorcana-deck`, `lorcana-analyzer`, `lorcana-room`, `lorcana-auth-register` | `lorcana-match-history`, `lorcana-player-stats` |
+| Messaging | SQS `lorcana-deck-analyzer` และ `lorcana-deck-analyzer-dlq` | SNS `lorcana-match-events`, SQS `lorcana-match-history*`, `lorcana-player-stats*` |
+| Edge / อื่นๆ | WebSocket API `a86238wqo4` (route ครบ), S3 `lorcana-playlab-static-<acct>` และ `lorcana-playlab-assets-<acct>`, SSM `/lorcana/jwt-secret`, `/lorcana/admin-passcode`, `/lorcana/sqs-url` | SSM `/lorcana/cache-endpoint` |
+
+ผลต่อลำดับงาน: ต้องสร้าง compute และ pipeline ก่อน แล้วจึง `lab.ps1 publish` ได้ ทดสอบกับ ALB (Phase 3.4 และ Phase 4) ได้หลังมี ALB เท่านั้น
+ตัวเลขใน `docs/architecture/PROFESSOR_MEETING_BRIEFING.md` หัวข้อ 3 (E2E 12/12 บน ALB, ASG self-healing, DLQ) เป็นหลักฐานย้อนหลังจากตอนที่ stack ยังรันอยู่ ไม่ใช่สถานะวันนี้
+
 ## วิธีสั่ง Claude Code
 
 ให้คนในทีมเปิด Claude Code ที่ root ของ repo แล้วพิมพ์:
@@ -36,8 +51,8 @@ node --version                     # 20.x ขึ้นไป
 aws --version                      # AWS CLI v2
 aws sts get-caller-identity --query Account --output text
 aws configure get region           # ต้องเป็น us-east-1 ถ้าไม่ใช่ให้ใช้ --region us-east-1 ทุกคำสั่ง
-git checkout main; git pull --ff-only
-git log --oneline -1               # ต้องเป็น merge ของ PR #2 หรือใหม่กว่า
+git checkout main; git pull --ff-only origin main   # remote `old-origin` ชี้ไป repo ที่ไม่มีแล้ว ใช้ `origin` เท่านั้น
+git log --oneline -1               # ต้องเป็น merge ของ PR #2 (d49d2b2) หรือใหม่กว่า (PR #3 = ff8a258)
 Test-Path scripts/infrastructure_state.json   # ไฟล์นี้ gitignore อยู่ อาจไม่มีบนเครื่องที่ไม่ได้ deploy เอง
 ```
 
@@ -62,14 +77,28 @@ foreach ($t in 'UsersTable','DecksTable','LorcanaRoomStateV2','LorcanaMatchmakin
 บันทึกผลลงไฟล์ `docs/01_Reports/stage3_evidence/aws_inventory_<วันที่>.txt` (ห้ามมีค่า secret)
 
 สิ่งที่ต้องรายงานผู้ใช้:
-- ASG ทำงานอยู่กี่เครื่อง หรือหยุดอยู่ (desired 0)
-- key ของ `LorcanaMatchHistory` ต้องเป็น `userId` (HASH) + `finishedAt#matchId` (RANGE) และ `LorcanaPlayerStats` ต้องเป็น `userId` (HASH) ถ้าเห็น `$PkName` หรือ `$SkName` แปลว่าโดนบั๊ก PowerShell 7 ไปทำ Phase 2
+- ASG ทำงานอยู่กี่เครื่อง หรือหยุดอยู่ (desired 0) หรือไม่มีเลย (ตรวจ 2026-10-12: ไม่มี ASG, ALB, VPC ตามตารางสถานะด้านบน คำสั่งข้างบนจะคืน `null` หรือ error `LoadBalancerNotFound` ซึ่งเป็นผลปกติของกรณีนี้ ไม่ต้องหยุด)
+- ตาราง `LorcanaMatchHistory` และ `LorcanaPlayerStats` มีอยู่หรือไม่ ถ้ามี key ของ `LorcanaMatchHistory` ต้องเป็น `userId` (HASH) + `finishedAt#matchId` (RANGE) และ `LorcanaPlayerStats` ต้องเป็น `userId` (HASH) ถ้าเห็น `$PkName` หรือ `$SkName` แปลว่าโดนบั๊ก PowerShell 7 ไปทำ Phase 2 (ตรวจ 2026-10-12: ทั้งสองตารางไม่มี คำสั่ง describe จะ error `ResourceNotFoundException` ซึ่งเป็นผลปกติ ไปทำ Phase 2 ฝั่ง "ไม่มีตาราง")
 - `DecksTable` มี GSI `userId-index` หรือไม่ (โค้ด query GSI นี้ ถ้าไม่มีจะถอยไป Scan)
 - TTL เปิดบน `LorcanaRoomStateV2`, `LorcanaMatchmaking`, `LorcanaPlayerStats` (attribute `ttl`) หรือไม่ ถ้าปิดอยู่ แถวเก่าจะไม่ถูกลบ [ถามก่อน] ค่อยเปิดด้วย `aws dynamodb update-time-to-live --table-name <t> --time-to-live-specification "Enabled=true,AttributeName=ttl"`
-- `lorcana-room` แก้ล่าสุดเมื่อไร (README บอกว่า bundle ที่ deploy ลงวันที่ 2026-08-25)
+- `lorcana-room` แก้ล่าสุดเมื่อไร (README บอกว่า bundle ที่ deploy ลงวันที่ 2026-08-25; ตรวจ 2026-10-12 พบ `LastModified` 2026-09-27)
 
-## Phase 2: แก้ตารางของ pipeline ถ้า key ผิด (ข้ามได้ถ้า Phase 1 key ถูก)
+## Phase 2: สร้างหรือแก้ pipeline ของผลแข่ง (ตารางสถิติ, SNS/SQS, Lambda)
 
+เลือกกรณีตามที่ Phase 1 พบ:
+
+**กรณี ก: ไม่มีตาราง `LorcanaMatchHistory` / `LorcanaPlayerStats` (สถานะที่พบ 2026-10-12)**
+ไม่มีอะไรต้องลบ `scripts/ensure_pipeline.ps1` สร้างให้ครบ: ตารางทั้งสอง, SNS `lorcana-match-events`, SQS `lorcana-match-history*` และ `lorcana-player-stats*` พร้อม DLQ, Lambda `lorcana-match-history` และ `lorcana-player-stats` พร้อม event source mapping (ตรวจ `lorcana-deck-analyzer` ที่มีอยู่แล้วโดยไม่สร้างซ้ำ)
+**[ถามก่อน]** เพราะเป็นการสร้างทรัพยากรใหม่ ก่อนรันให้อ่านสคริปต์ทั้งไฟล์และบอกผู้ใช้ว่าจะสร้างอะไร
+
+```powershell
+pwsh -File .\scripts\ensure_pipeline.ps1 -Region us-east-1
+aws dynamodb describe-table --table-name LorcanaMatchHistory --query "Table.KeySchema"
+aws dynamodb describe-table --table-name LorcanaPlayerStats --query "Table.KeySchema"
+aws lambda list-functions --query "Functions[?starts_with(FunctionName,'lorcana-match') || starts_with(FunctionName,'lorcana-player')].FunctionName" --output text
+```
+
+**กรณี ข: มีตารางแต่ key ผิด**
 **[ถามก่อน]** การลบตารางทำให้ประวัติการแข่งและสถิติที่มีอยู่หายทั้งหมด ถ้า key ผิดอยู่จริง Lambda เขียนข้อมูลลงไม่ได้มาตั้งแต่แรก ข้อมูลจึงน่าจะว่างอยู่แล้ว ให้ตรวจด้วย `aws dynamodb scan --table-name <t> --select COUNT` ก่อนถาม
 
 เมื่อผู้ใช้อนุญาต:
@@ -86,6 +115,8 @@ aws dynamodb describe-table --table-name LorcanaPlayerStats --query "Table.KeySc
 ผ่านเมื่อ: key ตรงกับ Phase 1 และ `ensure_pipeline.ps1` จบโดยไม่มี error
 
 ## Phase 3: deploy โค้ดจาก main
+
+ลำดับที่ต้องทำเมื่อไม่มี compute (สถานะ 2026-10-12): 3.1 ตรวจในเครื่อง, 3.2 สร้าง VPC/ASG/cache, 3.3 publish, 3.4 ตรวจหลัง deploy `lab.ps1 publish` ขั้น 6 อ่าน launch template `lorcana-lt` ถ้าไม่มีจะหยุดด้วย error "run deploy first" จึงรัน publish ก่อน 3.2 ไม่ได้
 
 ### 3.1 ตรวจในเครื่องก่อน publish
 
@@ -106,7 +137,8 @@ npx vitest run          # ต้องผ่านทั้งหมด (135 ข
 
 รอจน `lab.ps1 status` แสดง 2 เครื่อง `InService` / `Healthy`
 
-ถ้าไม่มี VPC `lorcana-lean-vpc` เลย (stack ถูก destroy ไปแล้ว) **[ถามก่อน]** แล้วรัน `.\scripts\deploy_ec2_vpc_asg.ps1` ตามด้วย `.\scripts\ensure_cache.ps1`
+ถ้าไม่มี VPC `lorcana-lean-vpc` เลย (stack ถูก destroy ไปแล้ว ซึ่งเป็นสถานะที่ตรวจพบ 2026-10-12 จึงข้าม `lab.ps1 start` และทำข้อนี้แทน) **[ถามก่อน]** แล้วรัน `.\scripts\deploy_ec2_vpc_asg.ps1` ตามด้วย `.\scripts\ensure_cache.ps1` ก่อนรันให้อ่านสคริปต์ทั้งสองและบอกผู้ใช้ว่าจะสร้างอะไร ค่าใช้จ่ายที่เริ่มนับ: EC2 t3.micro 2 เครื่อง, ALB ประมาณ 0.03 ดอลลาร์ต่อชั่วโมง, ElastiCache `cache.t3.micro` ประมาณ 0.017 ดอลลาร์ต่อชั่วโมง ไม่มี NAT Gateway และไม่มี SSH (เข้าเครื่องผ่าน SSM)
+ต้องมี SSM `/lorcana/jwt-secret` (มีอยู่แล้ว) และ `/lorcana/cache-endpoint` (ยังไม่มี `ensure_cache.ps1` ควรสร้างให้ ตรวจหลังรัน โดยดูเฉพาะชื่อพารามิเตอร์ ห้ามพิมพ์ค่า)
 
 ### 3.3 Publish
 
